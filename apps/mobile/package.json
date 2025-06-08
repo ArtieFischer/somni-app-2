@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit"
   },
-    "dependencies": {
+  "dependencies": {
     "@expo/vector-icons": "^14.1.0",
     "@hookform/resolvers": "^5.0.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -24,6 +24,7 @@
     "@somni/utils": "file:../../utils",
     "@supabase/supabase-js": "^2.49.10",
     "expo": "~53.0.10",
+    "expo-dev-client": "~5.2.0",
     "expo-font": "^13.3.1",
     "expo-localization": "^16.0.0",
     "expo-splash-screen": "^0.30.9",
@@ -38,12 +39,15 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.20.0",
     "zod": "^3.25.56",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "expo-local-authentication": "~16.0.4",
+    "expo-secure-store": "~14.2.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
     "babel-plugin-module-resolver": "^5.0.2",
+    "reactotron-react-native": "^5.1.13",
     "typescript": "~5.8.3"
   },
   "private": true

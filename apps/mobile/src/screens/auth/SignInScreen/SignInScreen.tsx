@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { SafeAreaView, View, Alert } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signInWithEmail, SignInSchema, SignInData } from '../../../api/auth';
-import { Text, Button } from '@components/atoms';
-import AuthInput from '../../../components/ui/AuthInput';
-import { useTranslation } from '@hooks/useTranslation';
+import { Text, Button } from '../../../components/atoms';
+import { AuthInput } from '../../../components/molecules/AuthInput';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { useBiometricAuth } from '../../../hooks/useBiometricAuth';
 import { useStyles } from './SignInScreen.styles';
 
 interface SignInScreenProps {
@@ -15,7 +16,10 @@ interface SignInScreenProps {
 export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
   const { t } = useTranslation('auth');
   const styles = useStyles();
-  
+  const { saveCredentials, attemptBiometricSignIn, getSavedCredentials } =
+    useBiometricAuth();
+  const [canUseBiometrics, setCanUseBiometrics] = useState(false);
+
   const {
     control,
     handleSubmit,
@@ -24,14 +28,26 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
     resolver: zodResolver(SignInSchema),
   });
 
+  useEffect(() => {
+    getSavedCredentials().then(setCanUseBiometrics);
+  }, []);
+
   const onSubmit = async (data: SignInData) => {
     try {
       await signInWithEmail(data);
+      await saveCredentials(data.email, data.password); // Save on success
       // Navigation will be handled by auth state change
     } catch (error) {
       if (error instanceof Error) {
         Alert.alert(t('signIn.error.invalidCredentials'), error.message);
       }
+    }
+  };
+
+  const onBiometricPress = async () => {
+    const result = await attemptBiometricSignIn();
+    if (!result.success) {
+      Alert.alert('Sign In Failed', result.error || 'Authentication failed');
     }
   };
 
@@ -77,16 +93,34 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
           )}
         />
 
-        <Button 
-          variant="primary" 
+        <View style={{ alignSelf: 'flex-end', marginVertical: 8 }}>
+          <Button
+            variant="ghost"
+            size="small"
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
+            Forgot Password?
+          </Button>
+        </View>
+
+        <Button
+          variant="primary"
           size="large"
-          onPress={handleSubmit(onSubmit)} 
+          onPress={handleSubmit(onSubmit)}
           loading={isSubmitting}
           style={styles.button}
         >
           {t('signIn.button')}
         </Button>
-        
+
+        {canUseBiometrics && (
+          <View style={{ marginTop: 16 }}>
+            <Button variant="secondary" size="large" onPress={onBiometricPress}>
+              Use Face ID / Touch ID
+            </Button>
+          </View>
+        )}
+
         <Button
           variant="ghost"
           onPress={() => navigation.navigate('SignUp')}
