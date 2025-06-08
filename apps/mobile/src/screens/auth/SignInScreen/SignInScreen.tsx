@@ -1,20 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signInWithEmail, SignInSchema, SignInData } from '../../../api/auth';
 import { Text, Button } from '@components/atoms';
 import AuthInput from '../../../components/ui/AuthInput';
 import { useTranslation } from '@hooks/useTranslation';
+import { useBiometricAuth } from '../../../hooks/useBiometricAuth';
 import { useStyles } from './SignInScreen.styles';
+import { AuthStackParamList } from '../../navigation/AuthNavigator';
 
-interface SignInScreenProps {
-  navigation: any;
-}
+type SignInScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'SignIn'>;
 
-export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
+export const SignInScreen: React.FC = () => {
+  const navigation = useNavigation<SignInScreenNavigationProp>();
   const { t } = useTranslation('auth');
   const styles = useStyles();
+  const { saveCredentials, attemptBiometricSignIn, isBiometricAvailable } = useBiometricAuth();
+  const [showBiometricButton, setShowBiometricButton] = useState(false);
   
   const {
     control,
@@ -24,14 +29,36 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
     resolver: zodResolver(SignInSchema),
   });
 
+  useEffect(() => {
+    // Check if biometric authentication is available and has saved credentials
+    const checkBiometricAvailability = async () => {
+      const isAvailable = await isBiometricAvailable();
+      setShowBiometricButton(isAvailable);
+    };
+    
+    checkBiometricAvailability();
+  }, [isBiometricAvailable]);
+
   const onSubmit = async (data: SignInData) => {
     try {
       await signInWithEmail(data);
-      // Navigation will be handled by auth state change
+      // On success, save credentials for biometric login
+      await saveCredentials(data.email, data.password);
     } catch (error) {
       if (error instanceof Error) {
         Alert.alert(t('signIn.error.invalidCredentials'), error.message);
       }
+    }
+  };
+
+  const onBiometricPress = async () => {
+    try {
+      const result = await attemptBiometricSignIn();
+      if (!result.success) {
+        Alert.alert('Biometric Sign In Failed', result.error || 'Authentication failed');
+      }
+    } catch (error) {
+      Alert.alert('Biometric Sign In Failed', 'Something went wrong');
     }
   };
 
@@ -77,6 +104,15 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
           )}
         />
 
+        <Button
+          variant="ghost"
+          size="small"
+          onPress={() => navigation.navigate('ForgotPassword')}
+          style={styles.forgotPasswordButton}
+        >
+          {t('signIn.forgotPassword')}
+        </Button>
+
         <Button 
           variant="primary" 
           size="large"
@@ -86,6 +122,17 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
         >
           {t('signIn.button')}
         </Button>
+
+        {showBiometricButton && (
+          <Button
+            variant="secondary"
+            size="large"
+            onPress={onBiometricPress}
+            style={styles.biometricButton}
+          >
+            Use Face ID / Touch ID
+          </Button>
+        )}
         
         <Button
           variant="ghost"

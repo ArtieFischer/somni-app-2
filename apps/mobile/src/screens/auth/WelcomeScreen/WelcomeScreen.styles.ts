@@ -11,30 +11,32 @@ export const useStyles = () => {
     },
     content: {
       flex: 1,
-      justifyContent: 'center',
+      justifyContent: 'space-between',
       paddingHorizontal: theme.spacing.large,
+      paddingVertical: theme.spacing.xl,
+    },
+    header: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     title: {
       textAlign: 'center',
-      marginBottom: theme.spacing.small,
+      marginBottom: theme.spacing.medium,
+      color: theme.colors.primary,
     },
-    subtitle: {
+    tagline: {
       textAlign: 'center',
       marginBottom: theme.spacing.xl,
     },
-    forgotPasswordButton: {
-      alignSelf: 'flex-end',
-      marginTop: theme.spacing.small,
-      marginBottom: theme.spacing.medium,
+    actions: {
+      gap: theme.spacing.medium,
     },
-    button: {
-      marginTop: theme.spacing.large,
+    primaryButton: {
+      marginBottom: theme.spacing.small,
     },
-    biometricButton: {
-      marginTop: theme.spacing.medium,
-    },
-    linkButton: {
-      marginTop: theme.spacing.medium,
+    secondaryButton: {
+      // Additional styling if needed
     },
   });
 };
