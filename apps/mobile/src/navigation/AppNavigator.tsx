@@ -1,19 +1,23 @@
-// apps/mobile/src/navigation/AppNavigator.tsx
 import React from 'react';
-import { useAuthStore } from '../stores/authStore';
+import { useAuth } from '@hooks/useAuth';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 import { View, ActivityIndicator } from 'react-native';
+import { useTheme } from '@hooks/useTheme';
 
 export default function AppNavigator() {
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
-  const isLoading = useAuthStore(state => state.isLoading);
+  const { isAuthenticated, isLoading } = useAuth();
+  const theme = useTheme();
 
   if (isLoading) {
-    // Show loading indicator while checking initial session
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        backgroundColor: theme.colors.background.primary 
+      }}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }

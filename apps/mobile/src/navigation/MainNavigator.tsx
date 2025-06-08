@@ -1,6 +1,5 @@
-// apps/mobile/src/navigation/MainNavigator.tsx
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import HomeScreen from '../screens/HomeScreen';
+import { HomeScreen } from '../screens/main/HomeScreen';
 
 const Stack = createNativeStackNavigator();
 
