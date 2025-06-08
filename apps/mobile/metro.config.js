@@ -3,25 +3,22 @@ const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
 const projectRoot = __dirname;
-const workspaceRoot = path.resolve(projectRoot, '../..');
+const workspaceRoot = path.resolve(projectRoot, '../..'); // Assuming apps/mobile is 2 levels down from monorepo root
 
 const config = getDefaultConfig(projectRoot);
 
-// 1. Monorepo settings
-config.watchFolders = [workspaceRoot];
+// Monorepo settings:
+config.watchFolders = [workspaceRoot]; // Watch the entire monorepo
 config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, 'node_modules'),
-  path.resolve(workspaceRoot, 'node_modules'),
+  path.resolve(projectRoot, 'node_modules'), // App-specific node_modules
+  path.resolve(workspaceRoot, 'node_modules'), // Monorepo root node_modules
 ];
 
-// 2. Add the aliasing for react-native-web
-// This is the crucial addition that solves the web bundling issue.
-config.resolver.extraNodeModules = {
-  'react-native': path.resolve(__dirname, 'node_modules/react-native-web'),
-};
-
-// 3. (Optional but recommended) Add 'mjs' for web compatibility
-config.resolver.sourceExts.push('mjs', 'cjs');
-
+// Optional: if you have issues with symlinks (often needed in monorepos)
+// Make sure to install `metro-resolver-symlinks` if you use this
+// const { GazeWatcher } = require('jest-haste-map');
+// config.watchman = false; // Required if using GazeWatcher for symlinks
+// config.fileWatcher = new GazeWatcher();
+// config.resolver.unstable_enableSymlinks = true;
 
 module.exports = config;
