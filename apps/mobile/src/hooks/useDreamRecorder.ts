@@ -1,11 +1,15 @@
 import { useState, useCallback } from 'react';
 import { useDreamStore } from '@somni/stores';
-import { AudioService, SpeechService } from '../infrastructure/services';
-import { RecordDreamUseCase } from '@somni/core';
-import { DreamRepository } from '../infrastructure/repositories';
+// We can leave these imports, they won't be used
+// import { AudioService, SpeechService } from '../infrastructure/services';
+// import { RecordDreamUseCase } from '@somni/core';
+// import { DreamRepository } from '../infrastructure/repositories';
 
 export const useDreamRecorder = () => {
   const dreamStore = useDreamStore();
+  
+  // --- Start of code to comment out ---
+  /*
   const [audioService] = useState(() => new AudioService());
   const [speechService] = useState(() => new SpeechService());
   const [recordDreamUseCase] = useState(() => new RecordDreamUseCase(new DreamRepository()));
@@ -76,13 +80,16 @@ export const useDreamRecorder = () => {
       });
     }
   }, [audioService, speechService, dreamStore, recordDreamUseCase]);
+  */
+  // --- End of code to comment out ---
 
+  // Return dummy data so the rest of the app doesn't crash
   return {
     isRecording: dreamStore.isRecording,
     duration: dreamStore.recordingDuration,
     amplitude: dreamStore.recordingAmplitude,
     session: dreamStore.recordingSession,
-    startRecording,
-    stopRecording,
+    startRecording: () => console.log('Recording feature is disabled for now.'),
+    stopRecording: () => console.log('Recording feature is disabled for now.'),
   };
 };
