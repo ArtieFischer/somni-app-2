@@ -24,7 +24,7 @@
     "@somni/stores": "file:../../packages/stores",
     "@supabase/supabase-js": "^2.49.10",
     "expo": "~53.0.10",
-    "expo-audio": "^14.0.0",
+    "expo-audio": "^0.2.1",
     "@jamsch/expo-speech-recognition": "^0.2.0",
     "expo-font": "^13.3.1",
     "expo-localization": "^16.0.0",
