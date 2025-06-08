@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Somni",
-    "slug": "somni-mobile",
+    "name": "mobile",
+    "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -28,9 +28,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-dev-client"
-    ]
+    }
   }
 }

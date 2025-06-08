@@ -1,8 +1,3 @@
-// Add this import at the top
-if (__DEV__) {
-  require('./src/config/reactotron');
-}
-
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';

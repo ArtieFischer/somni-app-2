@@ -8,10 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev:mobile": "npm run start --workspace=@somni/mobile",
     "dev:web": "npm run dev --workspace=@somni/web",
-    "build:web": "npm run build --workspace=@somni/web",
-    "lint": "npm run lint --workspaces",
-    "typecheck": "npm run typecheck --workspaces",
-    "prepare": "husky"
+    "build:web": "npm run build --workspace=@somni/web"
   },
   "keywords": [],
   "author": "",
@@ -30,7 +27,6 @@
     "eslint-plugin-prettier": "^5.4.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "husky": "^9.1.7",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3"
   },
