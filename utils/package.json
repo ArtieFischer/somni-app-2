@@ -10,6 +10,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@somni/types": "^0.1.0"
+    "@somni/types": "file:../types"
   }
 }

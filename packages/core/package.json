@@ -10,6 +10,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@somni/types": "workspace:*"
+    "@somni/types": "file:../../types"
   }
 }
