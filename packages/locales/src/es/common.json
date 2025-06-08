@@ -1,0 +1,44 @@
+{
+  "app": {
+    "name": "Somni",
+    "tagline": "Tu Diario de Sueños con IA"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "record": "Grabar",
+    "dreams": "Sueños",
+    "community": "Comunidad",
+    "profile": "Perfil",
+    "settings": "Configuración"
+  },
+  "actions": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "share": "Compartir",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "retry": "Reintentar",
+    "refresh": "Actualizar"
+  },
+  "status": {
+    "loading": "Cargando...",
+    "saving": "Guardando...",
+    "saved": "Guardado",
+    "error": "Algo salió mal",
+    "success": "Éxito",
+    "offline": "Estás desconectado",
+    "syncing": "Sincronizando..."
+  },
+  "time": {
+    "now": "Ahora",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "thisWeek": "Esta semana",
+    "lastWeek": "La semana pasada",
+    "thisMonth": "Este mes",
+    "lastMonth": "El mes pasado"
+  }
+}

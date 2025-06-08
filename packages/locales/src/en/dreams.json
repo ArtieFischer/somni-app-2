@@ -1,0 +1,83 @@
+{
+  "record": {
+    "title": "Record Your Dream",
+    "subtitle": "Capture your dreams while they're fresh",
+    "button": {
+      "start": "Tap to start recording",
+      "stop": "Tap to stop",
+      "recording": "Recording... {{duration}}s"
+    },
+    "whisperMode": "Whisper Mode Active",
+    "processing": "Processing your dream...",
+    "transcribing": "Converting speech to text...",
+    "error": {
+      "microphonePermission": "Microphone permission required",
+      "recordingFailed": "Recording failed. Please try again.",
+      "transcriptionFailed": "Failed to transcribe audio. Please try again."
+    },
+    "success": "Dream recorded successfully!"
+  },
+  "analysis": {
+    "title": "Dream Analysis",
+    "subtitle": "Explore your dream through different lenses",
+    "loading": "Analyzing your dream...",
+    "lenses": {
+      "freudian": "Freudian Interpretation",
+      "jungian": "Jungian Interpretation", 
+      "spiritual": "Spiritual Interpretation",
+      "neurobiological": "Neurobiological Interpretation",
+      "cognitive": "Cognitive Interpretation",
+      "personal_pattern": "Personal Pattern Analysis"
+    },
+    "confidence": "Confidence: {{percentage}}%",
+    "keyInsights": "Key Insights",
+    "suggestedActions": "Suggested Actions",
+    "share": "Share Analysis",
+    "save": "Save to Journal"
+  },
+  "journal": {
+    "title": "Dream Journal",
+    "empty": "No dreams recorded yet",
+    "emptySubtitle": "Start recording your dreams to build your personal journal",
+    "search": "Search your dreams...",
+    "filters": {
+      "all": "All Dreams",
+      "lucid": "Lucid Dreams",
+      "nightmares": "Nightmares",
+      "recent": "Recent",
+      "favorites": "Favorites"
+    },
+    "stats": {
+      "total": "Total Dreams",
+      "lucid": "Lucid Dreams",
+      "avgMood": "Average Mood"
+    }
+  },
+  "feed": {
+    "title": "Dream Feed",
+    "subtitle": "Explore dreams from the community",
+    "filters": {
+      "recent": "Recent",
+      "trending": "Trending",
+      "similar": "Similar to Mine"
+    },
+    "reactions": {
+      "insightful": "Insightful",
+      "relatable": "Relatable",
+      "supportive": "Supportive",
+      "mysterious": "Mysterious",
+      "beautiful": "Beautiful"
+    },
+    "anonymous": "Anonymous Dreamer",
+    "timeAgo": "{{time}} ago",
+    "comments": "{{count}} comment",
+    "comments_plural": "{{count}} comments"
+  },
+  "symbols": {
+    "title": "Dream Symbols",
+    "detected": "Detected Symbols",
+    "meaning": "Meaning",
+    "frequency": "Appears in {{count}} dream",
+    "frequency_plural": "Appears in {{count}} dreams"
+  }
+}

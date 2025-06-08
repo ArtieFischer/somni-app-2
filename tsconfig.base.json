@@ -17,6 +17,10 @@
     "paths": {
       "@somni/types": ["types/src"],
       "@somni/utils": ["utils/src"],
+      "@somni/core": ["packages/core/src"],
+      "@somni/locales": ["packages/locales/src"],
+      "@somni/theme": ["packages/theme/src"],
+      "@somni/stores": ["packages/stores/src"],
       "@somni/ui-core": ["packages/ui-core/src"],
       "@somni/config/*": ["packages/config/*"]
     }
