@@ -23,4 +23,5 @@ config.resolver.extraNodeModules = {
 // 3. (Optional but recommended) Add 'mjs' for web compatibility
 config.resolver.sourceExts.push('mjs', 'cjs');
 
+
 module.exports = config;
