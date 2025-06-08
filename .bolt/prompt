@@ -547,3 +547,31 @@ Research shows that proper implementation of these practices delivers measurable
 10. Bundle analysis with Expo Atlas
 
 This comprehensive approach to React Native Expo development ensures scalable, performant, and maintainable applications that leverage the latest ecosystem improvements while following proven architectural patterns from successful production apps.
+
+--
+
+Best Practices
+DO's:
+
+✅ Keep components under 150 lines
+✅ Use TypeScript strictly
+✅ Extract complex logic to hooks
+✅ Use semantic component names
+✅ Implement proper error boundaries
+✅ Add JSDoc comments for complex logic
+✅ Use React.memo for expensive components
+✅ Implement loading and error states
+✅ Use translation keys for all user-facing text
+✅ Format dates/numbers according to locale
+
+DON'Ts:
+
+❌ No inline styles
+❌ No business logic in components
+❌ No direct API calls in components
+❌ No hardcoded strings (use i18n)
+❌ No magic numbers (use theme constants)
+❌ No any types
+❌ No console.logs in production
+❌ No unnecessary re-renders
+❌ No mixing of concerns (styling/logic/presentation)
