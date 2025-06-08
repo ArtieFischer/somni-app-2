@@ -22,16 +22,8 @@ export const useStyles = () => {
       textAlign: 'center',
       marginBottom: theme.spacing.xl,
     },
-    forgotPasswordButton: {
-      alignSelf: 'flex-end',
-      marginTop: theme.spacing.small,
-      marginBottom: theme.spacing.medium,
-    },
     button: {
       marginTop: theme.spacing.large,
-    },
-    biometricButton: {
-      marginTop: theme.spacing.medium,
     },
     linkButton: {
       marginTop: theme.spacing.medium,
