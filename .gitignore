@@ -1,0 +1,47 @@
+# Node
+node_modules/
+dist/
+build/
+
+# NPM - package-lock.json is usually committed.
+# If you have nested package-lock.json files you wish to ignore:
+# apps/*/package-lock.json
+# packages/*/package-lock.json
+# types/package-lock.json
+# utils/package-lock.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Expo specific (assuming mobile app is in apps/mobile)
+apps/mobile/.expo/
+apps/mobile/web-build/
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/.idea/
+apps/mobile/.gradle/
+
+# Web app specific (assuming web app is in apps/web)
+apps/web/dist/
+apps/web/.vite/
+
+# Supabase (assuming supabase files are in supabase/)
+supabase/.temp/
+supabase/supabase/.branches
+supabase/supabase/.temp
+supabase/supabase/db_data # if using local docker db

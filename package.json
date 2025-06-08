@@ -1,0 +1,36 @@
+{
+  "name": "somni-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SOMNI App Monorepo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:mobile": "npm run start --workspace=@somni/mobile",
+    "dev:web": "npm run dev --workspace=@somni/web",
+    "build:web": "npm run build --workspace=@somni/web"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "types",
+    "utils"
+  ],
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.33.1",
+    "@typescript-eslint/parser": "^8.33.1",
+    "eslint": "^9.28.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "react-native-web": "^0.20.0"
+  }
+}
