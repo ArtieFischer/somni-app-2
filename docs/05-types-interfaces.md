@@ -1,8 +1,372 @@
 # TypeScript Types & Interfaces
 
-This document provides a comprehensive reference for all TypeScript types and interfaces used throughout the Somni project.
+This document provides a comprehensive reference for all TypeScript types and interfaces used throughout the Somni project, including the new clean architecture domain types and shared package interfaces.
 
-## Core Types (`@somni/types`)
+## Core Domain Types (`@somni/core`)
+
+### Domain Entities
+
+The domain layer defines business entities that encapsulate business rules and validation logic.
+
+#### Dream Entity
+```typescript
+export class Dream {
+  constructor(
+    public readonly id: string,
+    public readonly userId: string,
+    public readonly rawTranscript: string,
+    public readonly refinedNarrative?: string,
+    public readonly audioUrl?: string,
+    public readonly sleepPhase?: SleepPhase,
+    public readonly isLucid?: boolean,
+    public readonly moodBefore?: number,
+    public readonly moodAfter?: number,
+    public readonly createdAt?: string,
+    public readonly updatedAt?: string,
+    public readonly embedding?: number[]
+  ) {}
+
+  static create(dreamData: Partial<DreamType>): Dream;
+  toDTO(): DreamType;
+}
+```
+
+**Usage**: Represents a dream entity with business logic and validation
+**Methods**:
+- `create()`: Factory method with validation
+- `toDTO()`: Converts to database format
+
+#### User Entity
+```typescript
+export class User {
+  constructor(
+    public readonly id: string,
+    public readonly username?: string,
+    public readonly displayName?: string,
+    public readonly avatarUrl?: string,
+    public readonly isPremium: boolean = false,
+    public readonly onboardingCompleted: boolean = false,
+    public readonly sleepSchedule?: { bedtime: string; wake_time: string },
+    public readonly lucidDreamSettings?: object,
+    public readonly createdAt?: string,
+    public readonly updatedAt?: string
+  ) {}
+
+  static create(userData: Partial<UserProfile>): User;
+  updateProfile(updates: Partial<UserProfile>): User;
+  toDTO(): UserProfile;
+}
+```
+
+### Use Case Types
+
+#### Record Dream Use Case
+```typescript
+export interface RecordDreamRequest {
+  userId: string;
+  rawTranscript: string;
+  audioUrl?: string;
+  sleepPhase?: string;
+  moodBefore?: number;
+}
+
+export class RecordDreamUseCase {
+  constructor(private dreamRepository: IDreamRepository) {}
+  async execute(request: RecordDreamRequest): Promise<Dream>;
+}
+```
+
+#### Analyze Dream Use Case
+```typescript
+export interface AnalyzeDreamRequest {
+  dreamId: string;
+  analysisTypes: AnalysisType[];
+}
+
+export interface DreamAnalysis {
+  id: string;
+  dreamId: string;
+  analysisType: string;
+  content: string;
+  confidence?: number;
+  keyInsights: string[];
+  suggestedActions: string[];
+}
+
+export type AnalysisType = 
+  | 'freudian' 
+  | 'jungian' 
+  | 'spiritual' 
+  | 'neurobiological' 
+  | 'cognitive' 
+  | 'personal_pattern';
+```
+
+### Repository Interfaces
+
+#### Dream Repository Interface
+```typescript
+export interface IDreamRepository {
+  save(dream: Dream): Promise<Dream>;
+  findById(id: string): Promise<Dream | null>;
+  findByUserId(userId: string): Promise<Dream[]>;
+  update(id: string, updates: Partial<Dream>): Promise<Dream>;
+  delete(id: string): Promise<void>;
+  search(query: string, userId?: string): Promise<Dream[]>;
+}
+```
+
+#### User Repository Interface
+```typescript
+export interface IUserRepository {
+  save(user: UserProfile): Promise<UserProfile>;
+  findById(id: string): Promise<UserProfile | null>;
+  update(id: string, updates: Partial<UserProfile>): Promise<UserProfile>;
+  delete(id: string): Promise<void>;
+}
+```
+
+## State Management Types (`@somni/stores`)
+
+### Authentication Store
+```typescript
+interface AuthState {
+  session: Session | null;
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  
+  // Actions
+  setSession: (session: Session | null) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  signOut: () => Promise<void>;
+  clearError: () => void;
+}
+```
+
+### Dream Store
+```typescript
+interface DreamFilters {
+  dateRange?: {
+    start: string;
+    end: string;
+  };
+  sleepPhases?: string[];
+  isLucid?: boolean;
+  moodRange?: {
+    min: number;
+    max: number;
+  };
+  searchQuery?: string;
+}
+
+interface RecordingSession {
+  id: string;
+  status: 'idle' | 'recording' | 'processing' | 'transcribing' | 'completed' | 'error';
+  startTime?: string;
+  endTime?: string;
+  duration?: number;
+  audioUri?: string;
+  transcript?: string;
+  error?: string;
+}
+
+interface DreamState {
+  // Dreams data
+  dreams: Dream[];
+  currentDream: Dream | null;
+  isLoading: boolean;
+  error: string | null;
+  filters: DreamFilters;
+  
+  // Recording state
+  recordingSession: RecordingSession | null;
+  isRecording: boolean;
+  recordingDuration: number;
+  recordingAmplitude: number;
+  
+  // Actions
+  setDreams: (dreams: Dream[]) => void;
+  addDream: (dream: Dream) => void;
+  updateDream: (id: string, updates: Partial<Dream>) => void;
+  deleteDream: (id: string) => void;
+  startRecording: () => void;
+  stopRecording: () => void;
+  // ... other actions
+}
+```
+
+### Settings Store
+```typescript
+interface AppSettings {
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  notifications: {
+    enabled: boolean;
+    dreamReminders: boolean;
+    analysisComplete: boolean;
+    communityUpdates: boolean;
+  };
+  privacy: {
+    shareAnonymously: boolean;
+    allowDataCollection: boolean;
+  };
+  recording: {
+    whisperMode: boolean;
+    autoTranscribe: boolean;
+    saveAudio: boolean;
+  };
+  analysis: {
+    defaultLenses: string[];
+    autoAnalyze: boolean;
+  };
+}
+
+interface SettingsState {
+  settings: AppSettings;
+  isLoading: boolean;
+  error: string | null;
+  
+  updateSettings: (updates: Partial<AppSettings>) => void;
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  setLanguage: (language: string) => void;
+  resetSettings: () => void;
+}
+```
+
+## Theme System Types (`@somni/theme`)
+
+### Theme Interface
+```typescript
+export interface Theme {
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: {
+      primary: string;
+      secondary: string;
+      elevated: string;
+      overlay: string;
+    };
+    text: {
+      primary: string;
+      secondary: string;
+      inverse: string;
+      disabled: string;
+    };
+    button: {
+      primary: { background: string; text: string; border: string };
+      secondary: { background: string; text: string; border: string };
+      ghost: { background: string; text: string; border: string };
+    };
+    status: {
+      error: string;
+      warning: string;
+      success: string;
+      info: string;
+    };
+    border: {
+      primary: string;
+      secondary: string;
+      focus: string;
+    };
+  };
+  spacing: {
+    xs: number;
+    small: number;
+    medium: number;
+    large: number;
+    xl: number;
+    xxl: number;
+  };
+  typography: {
+    h1: { fontSize: number; fontWeight: string; lineHeight: number };
+    h2: { fontSize: number; fontWeight: string; lineHeight: number };
+    h3: { fontSize: number; fontWeight: string; lineHeight: number };
+    body: { fontSize: number; fontWeight: string; lineHeight: number };
+    caption: { fontSize: number; fontWeight: string; lineHeight: number };
+    button: {
+      small: { fontSize: number; fontWeight: string };
+      medium: { fontSize: number; fontWeight: string };
+      large: { fontSize: number; fontWeight: string };
+    };
+  };
+  borderRadius: {
+    small: number;
+    medium: number;
+    large: number;
+    round: number;
+  };
+  shadows: {
+    small: object;
+    medium: object;
+    large: object;
+  };
+}
+```
+
+### Color System
+```typescript
+export const colors = {
+  purple: {
+    50: '#F3F0FF',
+    100: '#E9E2FF',
+    // ... full color scale
+    500: '#7C3AED', // Primary purple
+    900: '#3C1A78',
+  },
+  // ... other color scales (blue, gray, red, green, yellow)
+};
+```
+
+## Internationalization Types (`@somni/locales`)
+
+### Translation Types
+```typescript
+import en from './en';
+
+export type TranslationKeys = typeof en;
+export type Namespace = keyof TranslationKeys;
+
+// Usage in components
+export const useTranslation = <N extends Namespace>(namespace?: N) => {
+  const { t, ...rest } = useI18nTranslation(namespace);
+  
+  return {
+    t: (key: string, options?: any) => t(key, options),
+    ...rest,
+  };
+};
+```
+
+### Translation Structure
+```typescript
+// Example translation structure
+interface CommonTranslations {
+  app: {
+    name: string;
+    tagline: string;
+  };
+  navigation: {
+    home: string;
+    record: string;
+    dreams: string;
+    community: string;
+    profile: string;
+  };
+  actions: {
+    save: string;
+    cancel: string;
+    delete: string;
+    // ... other actions
+  };
+}
+```
+
+## Database Schema Types (`@somni/types`)
 
 ### Current Database Schema Types
 
@@ -19,49 +383,14 @@ export interface UserProfile {
     bedtime: string; // e.g., "22:30"
     wake_time: string; // e.g., "06:30"
   };
-  lucid_dream_settings?: {
-    // Define settings later
-  };
-  created_at: string; // ISO 8601 string
-  updated_at: string; // ISO 8601 string
+  lucid_dream_settings?: object;
 }
-```
-
-**Usage**: Represents a user profile in the system, corresponding to the `users_profile` table
-**Properties**:
-- `id`: Unique identifier matching auth.users.id
-- `username`: Unique username (3-24 characters)
-- `display_name`: User's display name
-- `avatar_url`: URL to user's avatar image
-- `is_premium`: Premium subscription status
-- `onboarding_completed`: Whether user completed onboarding
-- `sleep_schedule`: JSON object with sleep preferences
-- `lucid_dream_settings`: JSON object with lucid dreaming preferences
-
-**Example**:
-```typescript
-const userProfile: UserProfile = {
-  id: 'user-123',
-  username: 'dreamer_2024',
-  display_name: 'Dream Explorer',
-  avatar_url: 'https://example.com/avatar.jpg',
-  is_premium: false,
-  onboarding_completed: true,
-  sleep_schedule: {
-    bedtime: "22:30",
-    wake_time: "06:30"
-  },
-  created_at: '2024-01-15T10:30:00.000Z',
-  updated_at: '2024-01-15T10:30:00.000Z'
-};
 ```
 
 #### Sleep Phase Type
 ```typescript
 export type SleepPhase = 'rem' | 'nrem' | 'light' | 'deep' | 'awake';
 ```
-
-**Usage**: Represents different phases of sleep for dream categorization
 
 #### Dream Interface
 ```typescript
@@ -81,42 +410,9 @@ export interface Dream {
 }
 ```
 
-**Usage**: Core dream entry data structure, corresponding to the `dreams` table
-**Properties**:
-- `id`: Unique identifier for the dream
-- `user_id`: ID of the user who recorded the dream
-- `created_at`: When the dream was recorded
-- `updated_at`: When the dream was last modified
-- `raw_transcript`: Original voice-to-text transcription
-- `refined_narrative`: AI-processed and cleaned narrative
-- `audio_url`: URL to the original audio recording
-- `sleep_phase`: Phase of sleep when dream occurred
-- `is_lucid`: Whether the dream was lucid
-- `mood_before`: Mood rating before sleep (1-5)
-- `mood_after`: Mood rating after waking (1-5)
-- `embedding`: Vector embedding for semantic search
-
-**Example**:
-```typescript
-const dream: Dream = {
-  id: 'dream-456',
-  user_id: 'user-123',
-  created_at: '2024-01-15T06:30:00.000Z',
-  updated_at: '2024-01-15T06:35:00.000Z',
-  raw_transcript: 'I was flying over mountains and...',
-  refined_narrative: 'In this vivid dream, I soared above snow-capped peaks...',
-  audio_url: 'https://storage.supabase.co/dream-recordings/user-123/dream-456/recording.webm',
-  sleep_phase: 'rem',
-  is_lucid: false,
-  mood_before: 3,
-  mood_after: 4,
-  embedding: [0.1, 0.2, 0.3, /* ... 1536 dimensions */]
-};
-```
-
 ### Legacy Interfaces (Deprecated)
 
-> **Note**: These interfaces are maintained for backward compatibility but will be removed in future versions. Please migrate to the new `UserProfile` and `Dream` interfaces.
+> **Note**: These interfaces are maintained for backward compatibility but will be removed in future versions. Please migrate to the new domain entities and database schema types.
 
 #### User Interface (Legacy)
 ```typescript
@@ -139,355 +435,32 @@ export interface DreamEntry {
 }
 ```
 
-## Extended Types for Future Features
+## Component Props Types
 
-### Dream Analysis Types
+### UI Component Props
+
+#### Text Component
 ```typescript
-export interface DreamAnalysis {
-  id: string;
-  dream_id: string;
-  analysis_type: AnalysisType;
-  content: string;
-  confidence: number; // 0-1
-  key_insights: string[];
-  suggested_actions: string[];
-  created_at: string;
-}
-
-export type AnalysisType = 
-  | 'freudian' 
-  | 'jungian' 
-  | 'spiritual' 
-  | 'neurobiological' 
-  | 'cognitive' 
-  | 'personal_pattern';
-```
-
-### Dream Symbols Types
-```typescript
-export interface DreamSymbol {
-  id: string;
-  dream_id: string;
-  name: string;
-  category: string;
-  confidence?: number; // 0-1
-  position?: number; // position in dream text
-  personal_meaning?: string;
-  created_at: string;
-}
-
-export type SymbolCategory = 
-  | 'people' 
-  | 'animals' 
-  | 'objects' 
-  | 'places' 
-  | 'emotions' 
-  | 'actions' 
-  | 'colors' 
-  | 'numbers';
-```
-
-### Voice Recording Types
-```typescript
-export interface VoiceRecording {
-  id: string;
-  dream_id: string;
-  audio_url: string;
-  duration: number; // seconds
-  transcription?: string;
-  transcription_confidence?: number; // 0-1
-  language: string;
-  is_whisper_mode: boolean;
-  created_at: string;
-}
-
-export type RecordingStatus = 
-  | 'idle' 
-  | 'recording' 
-  | 'processing' 
-  | 'transcribing' 
-  | 'completed' 
-  | 'error';
-
-export interface RecordingSession {
-  id: string;
-  status: RecordingStatus;
-  start_time?: string;
-  end_time?: string;
-  duration?: number;
-  audio_blob?: Blob;
-  error?: string;
+export interface TextProps extends RNTextProps {
+  variant?: 'h1' | 'h2' | 'h3' | 'body' | 'caption';
+  color?: 'primary' | 'secondary' | 'inverse' | 'disabled';
+  children: React.ReactNode;
 }
 ```
 
-### Lucid Dreaming Types
+#### Button Component
 ```typescript
-export interface LucidDreamingGoal {
-  id: string;
-  user_id: string;
-  type: GoalType;
-  description: string;
-  target_date?: string;
-  is_completed: boolean;
-  progress: number; // 0-100
-  techniques: LucidTechnique[];
-  created_at: string;
-  completed_at?: string;
-}
-
-export type GoalType = 
-  | 'first_lucid' 
-  | 'increase_frequency' 
-  | 'specific_experience' 
-  | 'skill_practice' 
-  | 'nightmare_control';
-
-export type LucidTechnique = 
-  | 'reality_checks' 
-  | 'mild' 
-  | 'wbtb' 
-  | 'wild' 
-  | 'fild' 
-  | 'meditation' 
-  | 'dream_journal';
-
-export interface RealityCheck {
-  id: string;
-  user_id: string;
-  type: RealityCheckType;
-  result: boolean; // true if in dream, false if awake
-  timestamp: string;
-  notes?: string;
-}
-
-export type RealityCheckType = 
-  | 'hands' 
-  | 'clock' 
-  | 'text' 
-  | 'mirror' 
-  | 'light_switch' 
-  | 'nose_pinch';
-```
-
-### Community Features Types
-```typescript
-export interface CommunityPost {
-  id: string;
-  user_id: string; // Anonymous ID for privacy
-  dream_id?: string;
-  type: PostType;
-  title: string;
-  content: string;
-  tags: string[];
-  is_anonymous: boolean;
-  reactions: CommunityReaction[];
-  comments: Comment[];
-  created_at: string;
-  updated_at: string;
-}
-
-export type PostType = 
-  | 'dream_share' 
-  | 'question' 
-  | 'insight' 
-  | 'technique_share' 
-  | 'interpretation_request';
-
-export interface Comment {
-  id: string;
-  post_id: string;
-  user_id: string; // Anonymous ID
-  content: string;
-  parent_comment_id?: string;
-  reactions: CommunityReaction[];
-  created_at: string;
-}
-
-export interface CommunityReaction {
-  id: string;
-  user_id: string;
-  type: ReactionType;
-  comment?: string;
-  created_at: string;
-}
-
-export type ReactionType = 
-  | 'relate' 
-  | 'insightful' 
-  | 'beautiful' 
-  | 'mysterious' 
-  | 'helpful';
-
-export interface DreamTrend {
-  id: string;
-  symbol: string;
-  category: SymbolCategory;
-  frequency: number;
-  timeframe: 'daily' | 'weekly' | 'monthly';
-  region?: string;
-  age_group?: string;
-  updated_at: string;
+export interface ButtonProps extends Omit<PressableProps, 'style'> {
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'small' | 'medium' | 'large';
+  children: React.ReactNode;
+  loading?: boolean;
 }
 ```
 
-## API Response Types
+### Screen Props
 
-### Generic API Response
-```typescript
-export interface ApiResponse<T> {
-  data: T;
-  success: boolean;
-  error?: ApiError;
-  meta?: ResponseMeta;
-}
-
-export interface ApiError {
-  code: string;
-  message: string;
-  details?: Record<string, any>;
-}
-
-export interface ResponseMeta {
-  page?: number;
-  limit?: number;
-  total?: number;
-  has_more?: boolean;
-}
-```
-
-### Supabase Specific Types
-```typescript
-export interface SupabaseResponse<T> {
-  data: T | null;
-  error: SupabaseError | null;
-  count?: number;
-  status: number;
-  statusText: string;
-}
-
-export interface SupabaseError {
-  message: string;
-  details: string;
-  hint: string;
-  code: string;
-}
-```
-
-## Form and Validation Types
-
-### Dream Entry Forms
-```typescript
-export interface DreamEntryForm {
-  raw_transcript: string;
-  refined_narrative?: string;
-  sleep_phase?: SleepPhase;
-  is_lucid?: boolean;
-  mood_before?: number;
-  mood_after?: number;
-}
-
-export interface DreamEntryValidation {
-  raw_transcript: {
-    required: boolean;
-    min_length: number;
-    max_length: number;
-  };
-  refined_narrative: {
-    max_length: number;
-  };
-  mood_before: {
-    min: number;
-    max: number;
-  };
-  mood_after: {
-    min: number;
-    max: number;
-  };
-}
-```
-
-### User Registration Forms
-```typescript
-export interface RegistrationForm {
-  email: string;
-  password: string;
-  confirm_password: string;
-  display_name?: string;
-  username?: string;
-  agree_to_terms: boolean;
-  agree_to_privacy: boolean;
-}
-
-export interface LoginForm {
-  email: string;
-  password: string;
-  remember_me: boolean;
-}
-```
-
-## State Management Types
-
-### Store States
-```typescript
-export interface DreamStore {
-  // State
-  dreams: Dream[];
-  current_dream: Dream | null;
-  is_loading: boolean;
-  error: string | null;
-  filters: DreamFilters;
-  
-  // Actions
-  addDream: (dream: Omit<Dream, 'id' | 'created_at' | 'updated_at'>) => void;
-  updateDream: (id: string, updates: Partial<Dream>) => void;
-  deleteDream: (id: string) => void;
-  loadDreams: () => Promise<void>;
-  setFilters: (filters: Partial<DreamFilters>) => void;
-  clearError: () => void;
-}
-
-export interface DreamFilters {
-  date_range?: {
-    start: string;
-    end: string;
-  };
-  sleep_phases?: SleepPhase[];
-  is_lucid?: boolean;
-  mood_range?: {
-    min: number;
-    max: number;
-  };
-  search_query?: string;
-}
-
-export interface UserStore {
-  user: UserProfile | null;
-  is_authenticated: boolean;
-  is_loading: boolean;
-  error: string | null;
-  
-  login: (credentials: LoginForm) => Promise<void>;
-  logout: () => Promise<void>;
-  register: (data: RegistrationForm) => Promise<void>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
-}
-
-export interface RecordingStore {
-  session: RecordingSession | null;
-  is_recording: boolean;
-  is_processing: boolean;
-  error: string | null;
-  
-  startRecording: () => Promise<void>;
-  stopRecording: () => Promise<void>;
-  processRecording: () => Promise<string>; // Returns transcription
-  clearSession: () => void;
-}
-```
-
-## Navigation Types
-
-### React Navigation Types
+#### Navigation Props
 ```typescript
 export type RootStackParamList = {
   Home: undefined;
@@ -506,6 +479,99 @@ export type TabParamList = {
   Record: undefined;
   Community: undefined;
   Profile: undefined;
+};
+```
+
+## Infrastructure Types
+
+### Service Interfaces
+
+#### Audio Service
+```typescript
+export interface AudioRecordingResult {
+  uri: string;
+  duration: number;
+  size: number;
+}
+
+export class AudioService {
+  async requestPermissions(): Promise<boolean>;
+  async startRecording(): Promise<void>;
+  async stopRecording(): Promise<AudioRecordingResult>;
+  getIsRecording(): boolean;
+  getDuration(): number;
+}
+```
+
+#### Speech Service
+```typescript
+export interface SpeechRecognitionResult {
+  transcript: string;
+  confidence: number;
+  isFinal: boolean;
+}
+
+export class SpeechService {
+  async requestPermissions(): Promise<boolean>;
+  async startListening(options?: {
+    language?: string;
+    continuous?: boolean;
+    onResult?: (result: SpeechRecognitionResult) => void;
+    onError?: (error: string) => void;
+  }): Promise<void>;
+  async stopListening(): Promise<void>;
+  getIsListening(): boolean;
+}
+```
+
+## Hook Types
+
+### Custom Hook Return Types
+
+#### useAuth Hook
+```typescript
+export const useAuth = () => {
+  return {
+    user: User | null;
+    session: Session | null;
+    isAuthenticated: boolean;
+    isLoading: boolean;
+    error: string | null;
+    signOut: () => Promise<void>;
+    clearError: () => void;
+  };
+};
+```
+
+#### useTheme Hook
+```typescript
+export const useTheme = (): Theme => {
+  // Returns current theme based on settings and system preference
+};
+```
+
+#### useTranslation Hook
+```typescript
+export const useTranslation = <N extends Namespace>(namespace?: N) => {
+  return {
+    t: (key: string, options?: any) => string;
+    i18n: i18n;
+    ready: boolean;
+  };
+};
+```
+
+#### useDreamRecorder Hook
+```typescript
+export const useDreamRecorder = () => {
+  return {
+    isRecording: boolean;
+    duration: number;
+    amplitude: number;
+    session: RecordingSession | null;
+    startRecording: () => Promise<void>;
+    stopRecording: () => Promise<void>;
+  };
 };
 ```
 
@@ -571,87 +637,82 @@ export const isValidAnalysisType = (type: string): type is AnalysisType => {
 
 ## Usage Examples
 
-### Creating a New Dream Entry
+### Creating Domain Entities
 ```typescript
-import { Dream, CreateDream } from '@somni/types';
+import { Dream, User } from '@somni/core';
+import { Dream as DreamType, UserProfile } from '@somni/types';
 
-const createDream = (dreamData: CreateDream): Dream => {
-  return {
-    id: generateId(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    ...dreamData,
-  };
+// Create a dream entity with validation
+const dreamData: Partial<DreamType> = {
+  user_id: 'user-123',
+  raw_transcript: 'I was flying over mountains...',
+  sleep_phase: 'rem',
+  mood_before: 3,
 };
+
+const dream = Dream.create(dreamData);
+const dreamDTO = dream.toDTO(); // Convert back to database format
 ```
 
-### Type-Safe API Calls
+### Using State Management
 ```typescript
-import { ApiResponse, Dream } from '@somni/types';
-
-const fetchDreams = async (userId: string): Promise<ApiResponse<Dream[]>> => {
-  const response = await fetch(`/api/dreams?user_id=${userId}`);
-  return response.json();
-};
-```
-
-### Store Usage with Types
-```typescript
-import { useDreamStore } from '../stores/dreamStore';
-import { Dream } from '@somni/types';
+import { useDreamStore, useAuthStore } from '@somni/stores';
 
 const DreamComponent = () => {
-  const { dreams, addDream, is_loading } = useDreamStore();
+  const { dreams, addDream, isLoading } = useDreamStore();
+  const { user } = useAuthStore();
   
-  const handleAddDream = (dreamData: Omit<Dream, 'id' | 'created_at' | 'updated_at'>) => {
-    addDream(dreamData);
+  const handleAddDream = (dreamData: Partial<Dream>) => {
+    const dream = Dream.create({
+      ...dreamData,
+      user_id: user?.id,
+    });
+    addDream(dream.toDTO());
   };
   
   // Component implementation...
 };
 ```
 
-## Migration Guide
-
-### From Legacy Types to New Types
-
-**User → UserProfile**:
+### Using Theme System
 ```typescript
-// Old
-const user: User = { id: 'user-123', email: 'user@example.com' };
+import { useTheme } from '@hooks/useTheme';
+import { Theme } from '@somni/theme';
 
-// New
-const userProfile: UserProfile = {
-  id: 'user-123',
-  username: 'user123',
-  display_name: 'User Name',
-  is_premium: false,
-  onboarding_completed: true,
-  created_at: '2024-01-15T10:30:00.000Z',
-  updated_at: '2024-01-15T10:30:00.000Z'
+const ThemedComponent = () => {
+  const theme = useTheme();
+  
+  const styles = {
+    container: {
+      backgroundColor: theme.colors.background.primary,
+      padding: theme.spacing.large,
+      borderRadius: theme.borderRadius.medium,
+    },
+    text: {
+      color: theme.colors.text.primary,
+      fontSize: theme.typography.body.fontSize,
+    },
+  };
+  
+  // Component implementation...
 };
 ```
 
-**DreamEntry → Dream**:
+### Using Translations
 ```typescript
-// Old
-const dreamEntry: DreamEntry = {
-  id: 'dream-123',
-  userId: 'user-456',
-  date: '2024-01-15T10:30:00.000Z',
-  title: 'Flying Dream',
-  content: 'I was flying over mountains...',
-  tags: ['flying', 'mountains']
-};
+import { useTranslation } from '@hooks/useTranslation';
 
-// New
-const dream: Dream = {
-  id: 'dream-123',
-  user_id: 'user-456',
-  created_at: '2024-01-15T10:30:00.000Z',
-  raw_transcript: 'I was flying over mountains...',
-  refined_narrative: 'In this vivid dream, I soared above snow-capped peaks...',
-  sleep_phase: 'rem',
-  is_lucid: false
+const LocalizedComponent = () => {
+  const { t } = useTranslation('dreams');
+  
+  return (
+    <View>
+      <Text>{t('record.title')}</Text>
+      <Text>{t('record.subtitle')}</Text>
+      <Button>{t('record.button.start')}</Button>
+    </View>
+  );
 };
 ```
+
+This comprehensive type reference ensures type safety and consistency across the entire Somni project while supporting the clean architecture and modern development patterns implemented in the codebase.

@@ -14,6 +14,7 @@ npm run lint --workspaces
 # Lint specific workspace
 npm run lint --workspace=@somni/mobile
 npm run lint --workspace=@somni/web
+npm run lint --workspace=@somni/core
 ```
 
 #### Key ESLint Rules
@@ -69,8 +70,133 @@ interface ApiResponse<T> {
 #### Type Imports
 ```typescript
 // Use type-only imports when possible
-import type { User, DreamEntry } from '@somni/types';
+import type { UserProfile, Dream } from '@somni/types';
 import { formatDate } from '@somni/utils';
+import { User, RecordDreamUseCase } from '@somni/core';
+```
+
+## Clean Architecture Guidelines
+
+### Domain Layer (`@somni/core`)
+
+The domain layer contains the business logic and should be framework-agnostic.
+
+#### Entities
+```typescript
+// Good: Entity with business logic and validation
+export class Dream {
+  constructor(
+    public readonly id: string,
+    public readonly userId: string,
+    public readonly rawTranscript: string,
+    // ... other properties
+  ) {}
+
+  static create(dreamData: Partial<DreamType>): Dream {
+    this.validateDreamData(dreamData);
+    return new Dream(/* ... */);
+  }
+
+  private static validateDreamData(data: Partial<DreamType>): void {
+    if (!data.user_id) {
+      throw new Error('User ID is required');
+    }
+    // Additional validation
+  }
+
+  toDTO(): DreamType {
+    return {
+      id: this.id,
+      user_id: this.userId,
+      // ... map to database format
+    };
+  }
+}
+```
+
+#### Use Cases
+```typescript
+// Good: Use case that orchestrates business logic
+export class RecordDreamUseCase {
+  constructor(
+    private dreamRepository: IDreamRepository
+  ) {}
+
+  async execute(request: RecordDreamRequest): Promise<Dream> {
+    // Validate input
+    const dream = Dream.create({
+      user_id: request.userId,
+      raw_transcript: request.rawTranscript,
+      // ... other properties
+    });
+
+    // Save via repository
+    const savedDream = await this.dreamRepository.save(dream.toDTO());
+    
+    return Dream.create(savedDream);
+  }
+}
+```
+
+#### Repository Interfaces
+```typescript
+// Good: Abstract interface in domain layer
+export interface IDreamRepository {
+  save(dream: Dream): Promise<Dream>;
+  findById(id: string): Promise<Dream | null>;
+  findByUserId(userId: string): Promise<Dream[]>;
+  update(id: string, updates: Partial<Dream>): Promise<Dream>;
+  delete(id: string): Promise<void>;
+}
+```
+
+### Infrastructure Layer (`apps/mobile/src/infrastructure`)
+
+The infrastructure layer implements domain interfaces and handles external concerns.
+
+#### Repository Implementation
+```typescript
+// Good: Concrete implementation in infrastructure layer
+export class DreamRepository implements IDreamRepository {
+  async save(dream: Dream): Promise<Dream> {
+    const { data, error } = await supabaseClient
+      .from('dreams')
+      .insert({
+        user_id: dream.user_id,
+        raw_transcript: dream.raw_transcript,
+        // ... map from domain to database
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // ... other methods
+}
+```
+
+#### Service Implementation
+```typescript
+// Good: External service wrapper
+export class AudioService {
+  private audioRecorder: any;
+  private isRecording = false;
+
+  async startRecording(): Promise<void> {
+    const hasPermission = await this.requestPermissions();
+    if (!hasPermission) {
+      throw new Error('Microphone permission not granted');
+    }
+
+    await this.audioRecorder.prepareToRecordAsync();
+    this.isRecording = true;
+    await this.audioRecorder.record();
+  }
+
+  // ... other methods
+}
 ```
 
 ## Shared Code Usage
@@ -80,278 +206,448 @@ import { formatDate } from '@somni/utils';
 Always use the scoped package names for imports:
 
 ```typescript
-// Correct
-import { User, DreamEntry } from '@somni/types';
-import { formatDate, getDreamTitle } from '@somni/utils';
+// Core domain logic
+import { Dream, User, RecordDreamUseCase } from '@somni/core';
 
-// Incorrect - don't use relative paths
-import { User } from '../../types/src/index';
+// State management
+import { useAuthStore, useDreamStore, useSettingsStore } from '@somni/stores';
+
+// Theming
+import { useTheme } from '@hooks/useTheme';
+import { lightTheme, darkTheme } from '@somni/theme';
+
+// Translations
+import { useTranslation } from '@hooks/useTranslation';
+import en from '@somni/locales/en';
+
+// Legacy types and utils
+import { UserProfile, Dream as DreamType } from '@somni/types';
+import { formatDate } from '@somni/utils';
 ```
 
-### Adding New Types
+### Adding New Domain Logic
 
-When adding new types to `@somni/types`:
+When adding new business logic to `@somni/core`:
 
-1. Define the interface in `types/src/index.ts`
-2. Export it from the main index file
-3. Update documentation
-4. Test usage in both mobile and web apps
+1. Define entities with validation
+2. Create use cases that orchestrate business logic
+3. Define repository interfaces
+4. Implement repositories in infrastructure layer
 
 ```typescript
-// types/src/index.ts
-export interface DreamSymbol {
-  id: string;
-  name: string;
-  category: string;
-  frequency: number;
-  lastSeen: string;
+// packages/core/src/entities/Analysis.ts
+export class Analysis {
+  constructor(
+    public readonly id: string,
+    public readonly dreamId: string,
+    public readonly type: AnalysisType,
+    public readonly content: string,
+    public readonly confidence: number
+  ) {}
+
+  static create(data: AnalysisData): Analysis {
+    this.validateAnalysisData(data);
+    return new Analysis(/* ... */);
+  }
+}
+
+// packages/core/src/useCases/analysis/GenerateAnalysisUseCase.ts
+export class GenerateAnalysisUseCase {
+  constructor(
+    private dreamRepository: IDreamRepository,
+    private analysisRepository: IAnalysisRepository
+  ) {}
+
+  async execute(request: GenerateAnalysisRequest): Promise<Analysis[]> {
+    // Business logic here
+  }
 }
 ```
 
-### Adding New Utilities
+### Adding New State Management
 
-When adding utilities to `@somni/utils`:
-
-1. Create focused, pure functions
-2. Include proper TypeScript types
-3. Add JSDoc comments
-4. Write unit tests
+When adding new Zustand stores to `@somni/stores`:
 
 ```typescript
-// utils/src/index.ts
-/**
- * Calculates the frequency of dream symbols
- * @param dreams Array of dream entries
- * @param symbolName Name of the symbol to count
- * @returns Frequency count
- */
-export const calculateSymbolFrequency = (
-  dreams: DreamEntry[],
-  symbolName: string
-): number => {
-  return dreams.filter(dream => 
-    dream.tags?.includes(symbolName)
-  ).length;
-};
+// packages/stores/src/analysisStore.ts
+interface AnalysisState {
+  analyses: Analysis[];
+  isGenerating: boolean;
+  error: string | null;
+  
+  generateAnalysis: (dreamId: string, types: AnalysisType[]) => Promise<void>;
+  setAnalyses: (analyses: Analysis[]) => void;
+  setError: (error: string | null) => void;
+}
+
+export const useAnalysisStore = create<AnalysisState>((set, get) => ({
+  analyses: [],
+  isGenerating: false,
+  error: null,
+  
+  generateAnalysis: async (dreamId, types) => {
+    try {
+      set({ isGenerating: true, error: null });
+      // Call use case or repository
+      const analyses = await generateAnalysisUseCase.execute({ dreamId, types });
+      set({ analyses, isGenerating: false });
+    } catch (error) {
+      set({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        isGenerating: false 
+      });
+    }
+  },
+  
+  // ... other actions
+}));
 ```
 
 ## Component Development
 
-### React Native Components
+### Atomic Design Structure
 
-#### File Organization
+Components are organized using atomic design principles:
+
 ```
-src/
-├── components/
-│   ├── atoms/          # Basic UI elements
-│   │   ├── Button/
-│   │   ├── Input/
-│   │   └── Text/
-│   ├── molecules/      # Compound components
-│   │   ├── DreamCard/
-│   │   ├── RecordButton/
-│   │   └── UserProfile/
-│   └── organisms/      # Complex components
-│       ├── DreamFeed/
-│       ├── RecordingInterface/
-│       └── AnalysisView/
+src/components/
+├── atoms/              # Basic UI elements
+│   ├── Text/
+│   ├── Button/
+│   └── Input/
+├── molecules/          # Compound components
+│   ├── DreamCard/
+│   ├── RecordButton/
+│   └── UserProfile/
+└── organisms/          # Complex components
+    ├── DreamFeed/
+    ├── RecordingInterface/
+    └── AnalysisView/
 ```
 
-#### Component Structure
+### Component Structure
+
 ```typescript
-// Good component structure
-interface DreamCardProps {
-  dream: DreamEntry;
-  onPress: (dreamId: string) => void;
-  showAnalysis?: boolean;
+// Good component structure with theming
+import React from 'react';
+import { Pressable, PressableProps } from 'react-native';
+import { Text } from '../Text';
+import { useTheme } from '@hooks/useTheme';
+
+export interface ButtonProps extends Omit<PressableProps, 'style'> {
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'small' | 'medium' | 'large';
+  children: React.ReactNode;
+  loading?: boolean;
 }
 
-export const DreamCard: React.FC<DreamCardProps> = ({
-  dream,
-  onPress,
-  showAnalysis = false,
+export const Button: React.FC<ButtonProps> = ({
+  variant = 'primary',
+  size = 'medium',
+  children,
+  loading = false,
+  disabled,
+  ...pressableProps
 }) => {
-  const handlePress = useCallback(() => {
-    onPress(dream.id);
-  }, [dream.id, onPress]);
-
+  const theme = useTheme();
+  const isDisabled = disabled || loading;
+  
+  const getButtonStyle = () => {
+    const buttonConfig = theme.colors.button[variant];
+    const sizeConfig = theme.typography.button[size];
+    
+    return {
+      backgroundColor: buttonConfig.background,
+      borderColor: buttonConfig.border,
+      borderRadius: theme.borderRadius.medium,
+      paddingVertical: theme.spacing[size === 'small' ? 'small' : 'medium'],
+      paddingHorizontal: theme.spacing[size === 'small' ? 'medium' : 'large'],
+      opacity: isDisabled ? 0.6 : 1,
+    };
+  };
+  
   return (
-    <TouchableOpacity onPress={handlePress}>
-      {/* Component content */}
-    </TouchableOpacity>
+    <Pressable 
+      style={({ pressed }) => [
+        getButtonStyle(),
+        pressed && { opacity: 0.8 }
+      ]} 
+      disabled={isDisabled}
+      {...pressableProps}
+    >
+      <Text style={{ color: theme.colors.button[variant].text }}>
+        {loading ? 'Loading...' : children}
+      </Text>
+    </Pressable>
   );
 };
 ```
 
-### React Web Components
-
-Follow similar patterns but adapt for web-specific needs:
+### Screen Structure
 
 ```typescript
-// Web-specific component
-interface DreamTableProps {
-  dreams: DreamEntry[];
-  onSort: (field: keyof DreamEntry) => void;
-  sortField: keyof DreamEntry;
-  sortDirection: 'asc' | 'desc';
-}
+// Good screen structure with hooks and styling
+import React from 'react';
+import { SafeAreaView, View } from 'react-native';
+import { Text, Button } from '@components/atoms';
+import { useAuth } from '@hooks/useAuth';
+import { useTranslation } from '@hooks/useTranslation';
+import { useStyles } from './HomeScreen.styles';
 
-export const DreamTable: React.FC<DreamTableProps> = ({
-  dreams,
-  onSort,
-  sortField,
-  sortDirection,
-}) => {
-  // Web-specific implementation
+export const HomeScreen: React.FC = () => {
+  const { t } = useTranslation('common');
+  const { user, signOut } = useAuth();
+  const styles = useStyles();
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text variant="h1" style={styles.title}>
+          {t('navigation.home')}
+        </Text>
+        
+        <Button variant="secondary" onPress={signOut}>
+          {t('actions.signOut')}
+        </Button>
+      </View>
+    </SafeAreaView>
+  );
+};
+```
+
+### Styling with Theme
+
+```typescript
+// Good: Separate styles file using theme
+import { StyleSheet } from 'react-native';
+import { useTheme } from '@hooks/useTheme';
+
+export const useStyles = () => {
+  const theme = useTheme();
+  
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background.primary,
+    },
+    content: {
+      padding: theme.spacing.large,
+    },
+    title: {
+      marginBottom: theme.spacing.medium,
+    },
+  });
 };
 ```
 
 ## State Management
 
-### Zustand Store Structure
+### Zustand Store Patterns
 
 ```typescript
-// stores/dreamStore.ts
-interface DreamStore {
+// Good: Domain-specific store with proper error handling
+interface DreamState {
   // State
-  dreams: DreamEntry[];
-  currentDream: DreamEntry | null;
+  dreams: Dream[];
+  currentDream: Dream | null;
   isLoading: boolean;
   error: string | null;
   
   // Actions
-  addDream: (dream: Omit<DreamEntry, 'id'>) => void;
-  updateDream: (id: string, updates: Partial<DreamEntry>) => void;
+  addDream: (dream: Dream) => void;
+  updateDream: (id: string, updates: Partial<Dream>) => void;
   deleteDream: (id: string) => void;
   loadDreams: () => Promise<void>;
   clearError: () => void;
 }
 
-export const useDreamStore = create<DreamStore>((set, get) => ({
+export const useDreamStore = create<DreamState>((set, get) => ({
   dreams: [],
   currentDream: null,
   isLoading: false,
   error: null,
   
-  addDream: (dreamData) => {
-    const dream: DreamEntry = {
-      ...dreamData,
-      id: generateId(),
-    };
+  addDream: (dream) => {
     set(state => ({
       dreams: [dream, ...state.dreams],
+      error: null,
     }));
   },
   
-  // Other actions...
+  loadDreams: async () => {
+    try {
+      set({ isLoading: true, error: null });
+      const dreams = await dreamRepository.findByUserId(userId);
+      set({ dreams, isLoading: false });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Unknown error',
+        isLoading: false,
+      });
+    }
+  },
+  
+  clearError: () => set({ error: null }),
 }));
 ```
 
-### State Management Best Practices
-
-1. **Keep stores focused**: One store per domain (dreams, user, settings)
-2. **Use selectors**: Extract specific data to prevent unnecessary re-renders
-3. **Handle loading states**: Always manage loading and error states
-4. **Persist important data**: Use AsyncStorage for offline support
-
-## API Integration
-
-### Supabase Client Usage
+### Custom Hooks
 
 ```typescript
-// lib/supabase.ts
-import { createClient } from '@supabase/supabase-js';
+// Good: Custom hook that encapsulates business logic
+export const useAuth = () => {
+  const authStore = useAuthStore();
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+  useEffect(() => {
+    // Initialize auth state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      authStore.setSession(session);
+      authStore.setLoading(false);
+    });
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        authStore.setSession(session);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return {
+    user: authStore.user,
+    isAuthenticated: authStore.isAuthenticated,
+    isLoading: authStore.isLoading,
+    error: authStore.error,
+    signOut: authStore.signOut,
+    clearError: authStore.clearError,
+  };
+};
 ```
 
-### API Service Pattern
+## Internationalization
+
+### Translation Usage
 
 ```typescript
-// services/dreamService.ts
-export class DreamService {
-  static async createDream(dream: Omit<DreamEntry, 'id'>): Promise<DreamEntry> {
-    const { data, error } = await supabase
-      .from('dreams')
-      .insert(dream)
-      .select()
-      .single();
-      
-    if (error) throw error;
-    return data;
-  }
+// Good: Type-safe translation usage
+import { useTranslation } from '@hooks/useTranslation';
+
+export const SignInScreen: React.FC = () => {
+  const { t } = useTranslation('auth');
   
-  static async getDreams(userId: string): Promise<DreamEntry[]> {
-    const { data, error } = await supabase
-      .from('dreams')
-      .select('*')
-      .eq('userId', userId)
-      .order('date', { ascending: false });
-      
-    if (error) throw error;
-    return data || [];
+  return (
+    <View>
+      <Text>{t('signIn.title')}</Text>
+      <Text>{t('signIn.subtitle')}</Text>
+      <Button>{t('signIn.button')}</Button>
+    </View>
+  );
+};
+```
+
+### Adding New Translations
+
+```json
+// packages/locales/src/en/dreams.json
+{
+  "record": {
+    "title": "Record Your Dream",
+    "button": {
+      "start": "Tap to start recording",
+      "stop": "Tap to stop",
+      "recording": "Recording... {{duration}}s"
+    }
   }
 }
 ```
 
 ## Error Handling
 
-### Error Boundaries
+### Domain Layer Error Handling
 
 ```typescript
-// components/ErrorBoundary.tsx
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error?: Error;
+// Good: Domain-specific errors
+export class DreamValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DreamValidationError';
+  }
 }
 
-export class ErrorBoundary extends React.Component<
-  React.PropsWithChildren<{}>,
-  ErrorBoundaryState
-> {
-  constructor(props: React.PropsWithChildren<{}>) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-    // Log to error reporting service
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <ErrorFallback error={this.state.error} />;
+export class Dream {
+  static create(data: Partial<DreamType>): Dream {
+    if (!data.user_id) {
+      throw new DreamValidationError('User ID is required');
     }
-
-    return this.props.children;
+    if (!data.raw_transcript?.trim()) {
+      throw new DreamValidationError('Dream content cannot be empty');
+    }
+    
+    return new Dream(/* ... */);
   }
 }
 ```
 
-### Async Error Handling
+### Infrastructure Layer Error Handling
 
 ```typescript
-// Good: Proper error handling in async functions
-const handleDreamSubmission = async (dreamData: Partial<DreamEntry>) => {
-  try {
-    setIsLoading(true);
-    const dream = await DreamService.createDream(dreamData);
-    addDream(dream);
-    navigation.navigate('DreamDetail', { dreamId: dream.id });
-  } catch (error) {
-    console.error('Failed to create dream:', error);
-    setError(error instanceof Error ? error.message : 'Unknown error');
-  } finally {
-    setIsLoading(false);
+// Good: Infrastructure error handling with proper mapping
+export class DreamRepository implements IDreamRepository {
+  async save(dream: Dream): Promise<Dream> {
+    try {
+      const { data, error } = await supabaseClient
+        .from('dreams')
+        .insert(dream.toDTO())
+        .select()
+        .single();
+
+      if (error) {
+        throw this.mapSupabaseError(error);
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof DreamValidationError) {
+        throw error; // Re-throw domain errors
+      }
+      throw new Error(`Failed to save dream: ${error.message}`);
+    }
   }
+
+  private mapSupabaseError(error: any): Error {
+    switch (error.code) {
+      case '23505':
+        return new Error('Dream already exists');
+      case '23503':
+        return new Error('Invalid user reference');
+      default:
+        return new Error(`Database error: ${error.message}`);
+    }
+  }
+}
+```
+
+### UI Error Handling
+
+```typescript
+// Good: User-friendly error handling in components
+export const DreamRecordingScreen: React.FC = () => {
+  const { t } = useTranslation('dreams');
+  const { error, clearError } = useDreamStore();
+
+  useEffect(() => {
+    if (error) {
+      Alert.alert(
+        t('record.error.title'),
+        error,
+        [{ text: t('actions.ok'), onPress: clearError }]
+      );
+    }
+  }, [error, clearError, t]);
+
+  // Component implementation
 };
 ```
 
@@ -359,130 +655,155 @@ const handleDreamSubmission = async (dreamData: Partial<DreamEntry>) => {
 
 ### React Native Performance
 
-1. **Use FlatList for large lists**
-2. **Implement proper memoization**
-3. **Optimize images with FastImage**
+1. **Use proper memoization**
+2. **Optimize FlatList rendering**
+3. **Minimize bridge calls**
 4. **Use Hermes JavaScript engine**
-5. **Minimize bridge calls**
 
 ```typescript
-// Good: Memoized component
-const DreamListItem = React.memo<{ dream: DreamEntry; onPress: (id: string) => void }>(
+// Good: Memoized component with proper dependencies
+const DreamListItem = React.memo<{ dream: Dream; onPress: (id: string) => void }>(
   ({ dream, onPress }) => {
+    const theme = useTheme();
+    
     const handlePress = useCallback(() => {
       onPress(dream.id);
     }, [dream.id, onPress]);
 
+    const styles = useMemo(() => ({
+      container: {
+        backgroundColor: theme.colors.background.elevated,
+        padding: theme.spacing.medium,
+        borderRadius: theme.borderRadius.medium,
+      },
+    }), [theme]);
+
     return (
-      <TouchableOpacity onPress={handlePress}>
-        <Text>{dream.title}</Text>
-      </TouchableOpacity>
+      <Pressable style={styles.container} onPress={handlePress}>
+        <Text>{dream.raw_transcript}</Text>
+      </Pressable>
     );
   }
 );
 ```
 
-### Web Performance
+### State Management Performance
 
-1. **Use React.lazy for code splitting**
-2. **Implement virtual scrolling for large lists**
-3. **Optimize bundle size**
-4. **Use service workers for caching**
+```typescript
+// Good: Selective state subscriptions
+const DreamList: React.FC = () => {
+  // Only subscribe to dreams, not the entire store
+  const dreams = useDreamStore(state => state.dreams);
+  const isLoading = useDreamStore(state => state.isLoading);
+  
+  // Avoid subscribing to the entire store
+  // const { dreams, isLoading } = useDreamStore(); // ❌ Less efficient
+};
+```
 
 ## Testing Guidelines
 
-### Unit Testing
+### Unit Testing Domain Logic
 
 ```typescript
-// __tests__/utils/formatDate.test.ts
-import { formatDate } from '@somni/utils';
+// Good: Testing domain entities
+describe('Dream', () => {
+  it('should create a valid dream', () => {
+    const dreamData = {
+      user_id: 'user-123',
+      raw_transcript: 'I was flying over mountains',
+    };
 
-describe('formatDate', () => {
-  it('should format ISO date string correctly', () => {
-    const isoDate = '2024-01-15T10:30:00.000Z';
-    const formatted = formatDate(isoDate);
-    expect(formatted).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
+    const dream = Dream.create(dreamData);
+
+    expect(dream.userId).toBe('user-123');
+    expect(dream.rawTranscript).toBe('I was flying over mountains');
+  });
+
+  it('should throw error for invalid data', () => {
+    const invalidData = { raw_transcript: '' };
+
+    expect(() => Dream.create(invalidData)).toThrow('User ID is required');
   });
 });
 ```
 
-### Component Testing
+### Testing Use Cases
 
 ```typescript
-// __tests__/components/DreamCard.test.tsx
+// Good: Testing use cases with mocked dependencies
+describe('RecordDreamUseCase', () => {
+  let useCase: RecordDreamUseCase;
+  let mockRepository: jest.Mocked<IDreamRepository>;
+
+  beforeEach(() => {
+    mockRepository = {
+      save: jest.fn(),
+      findById: jest.fn(),
+      // ... other methods
+    };
+    useCase = new RecordDreamUseCase(mockRepository);
+  });
+
+  it('should record a dream successfully', async () => {
+    const request = {
+      userId: 'user-123',
+      rawTranscript: 'Test dream',
+    };
+
+    const mockSavedDream = { id: 'dream-456', ...request };
+    mockRepository.save.mockResolvedValue(mockSavedDream);
+
+    const result = await useCase.execute(request);
+
+    expect(mockRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: 'user-123',
+        raw_transcript: 'Test dream',
+      })
+    );
+    expect(result.id).toBe('dream-456');
+  });
+});
+```
+
+### Testing Components
+
+```typescript
+// Good: Testing components with proper mocking
 import { render, fireEvent } from '@testing-library/react-native';
-import { DreamCard } from '../src/components/DreamCard';
+import { Button } from './Button';
 
-const mockDream: DreamEntry = {
-  id: '1',
-  userId: 'user1',
-  title: 'Test Dream',
-  content: 'Test content',
-  date: '2024-01-15T10:30:00.000Z',
-};
+// Mock the theme hook
+jest.mock('@hooks/useTheme', () => ({
+  useTheme: () => ({
+    colors: { button: { primary: { background: '#000', text: '#fff' } } },
+    spacing: { medium: 16 },
+    borderRadius: { medium: 8 },
+  }),
+}));
 
-describe('DreamCard', () => {
-  it('should call onPress with dream id when pressed', () => {
+describe('Button', () => {
+  it('should call onPress when pressed', () => {
     const onPress = jest.fn();
     const { getByText } = render(
-      <DreamCard dream={mockDream} onPress={onPress} />
+      <Button onPress={onPress}>Test Button</Button>
     );
-    
-    fireEvent.press(getByText('Test Dream'));
-    expect(onPress).toHaveBeenCalledWith('1');
+
+    fireEvent.press(getByText('Test Button'));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('should be disabled when loading', () => {
+    const onPress = jest.fn();
+    const { getByText } = render(
+      <Button onPress={onPress} loading>Test Button</Button>
+    );
+
+    fireEvent.press(getByText('Loading...'));
+    expect(onPress).not.toHaveBeenCalled();
   });
 });
 ```
 
-## Git Workflow
-
-### Commit Messages
-
-Use conventional commit format:
-
-```
-feat: add voice recording functionality
-fix: resolve dream sync issue
-docs: update API documentation
-test: add unit tests for dream service
-refactor: improve error handling
-```
-
-### Branch Naming
-
-```
-feature/voice-recording
-bugfix/dream-sync-issue
-hotfix/critical-auth-bug
-docs/api-reference-update
-```
-
-### Pull Request Guidelines
-
-1. **Clear description**: Explain what changes were made and why
-2. **Link issues**: Reference related GitHub issues
-3. **Test coverage**: Ensure new code is tested
-4. **Documentation**: Update docs if needed
-5. **Review checklist**: Follow the PR template
-
-## Security Guidelines
-
-### Environment Variables
-
-- Never commit sensitive data
-- Use different keys for development and production
-- Validate environment variables at startup
-
-### Data Handling
-
-- Sanitize user inputs
-- Validate data on both client and server
-- Use proper authentication and authorization
-- Implement rate limiting for API calls
-
-### Privacy
-
-- Respect user privacy settings
-- Implement proper data deletion
-- Use encryption for sensitive data
-- Follow GDPR and privacy regulations
+This comprehensive development guide ensures consistent, maintainable, and scalable code across the entire Somni project while following clean architecture principles and modern React Native best practices.

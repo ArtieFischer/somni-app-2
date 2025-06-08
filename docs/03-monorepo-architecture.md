@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Somni project uses a monorepo structure with npm workspaces to manage multiple applications and shared packages. This architecture promotes code reuse, consistent tooling, and simplified dependency management.
+The Somni project uses a monorepo structure with npm workspaces to manage multiple applications and shared packages. This architecture promotes code reuse, consistent tooling, simplified dependency management, and implements clean architecture principles across the entire codebase.
 
 ## Directory Structure
 
@@ -11,7 +11,11 @@ somni-monorepo/
 ├── apps/                    # Applications
 │   ├── mobile/             # React Native Expo app
 │   └── web/                # React Vite web app
-├── packages/               # Shared packages (future)
+├── packages/               # Shared packages
+│   ├── core/              # Domain logic (Clean Architecture)
+│   ├── stores/            # Zustand state management
+│   ├── theme/             # Design system and theming
+│   └── locales/           # Internationalization
 ├── types/                  # Shared TypeScript types
 ├── utils/                  # Shared utility functions
 ├── docs/                   # Project documentation
@@ -31,27 +35,46 @@ somni-monorepo/
 - **Package Name**: `@somni/mobile`
 - **Technology**: React Native with Expo SDK 53+
 - **Purpose**: iOS and Android mobile application
-- **Key Features**:
-  - Voice recording and transcription
-  - Offline dream storage
-  - Native integrations (HealthKit, biometrics)
-  - Push notifications
+- **Architecture**: Clean Architecture with domain-driven design
 
-**Key Files**:
+**Key Features**:
+- Voice recording and transcription
+- Offline dream storage
+- Native integrations (HealthKit, biometrics)
+- Push notifications
+- Multi-language support
+- Dynamic theming
+
+**Directory Structure**:
 ```
 apps/mobile/
-├── App.tsx                 # Main app component
+├── App.tsx                 # Main app component with i18n initialization
 ├── app.json               # Expo configuration
 ├── package.json           # Mobile-specific dependencies
+├── babel.config.js        # Babel with module resolver
 ├── metro.config.js        # Metro bundler configuration
-├── babel.config.js        # Babel configuration
 ├── tsconfig.json          # TypeScript configuration
 └── src/
-    └── lib/
-        └── supabase.ts    # Supabase client configuration
+    ├── components/        # UI components (Atomic Design)
+    │   └── atoms/        # Basic UI elements (Text, Button)
+    ├── screens/          # Screen components
+    │   ├── auth/         # Authentication screens
+    │   └── main/         # Main app screens
+    ├── navigation/       # Navigation configuration
+    ├── hooks/            # Custom React hooks
+    ├── infrastructure/   # External interfaces layer
+    │   ├── api/         # API clients (Supabase)
+    │   ├── repositories/ # Repository implementations
+    │   └── services/    # External services (Audio, Speech)
+    └── shared/          # Shared utilities
+        └── locales/     # i18n configuration
 ```
 
-**Dependencies Note**: The mobile app includes `react-native-web` for Expo's web build target and `@react-native-async-storage/async-storage` for persistent session storage with Supabase.
+**Dependencies**:
+- Core shared packages: `@somni/core`, `@somni/stores`, `@somni/theme`, `@somni/locales`
+- React Native ecosystem: Expo SDK, React Navigation, React Hook Form
+- Internationalization: i18next, expo-localization
+- State management: Zustand (via `@somni/stores`)
 
 #### Web App (`apps/web/`)
 - **Package Name**: `@somni/web`
@@ -73,21 +96,123 @@ apps/web/
 │   │   └── supabase.ts    # Supabase client configuration
 │   └── vite-env.d.ts      # Vite environment types
 ├── package.json           # Web-specific dependencies
-├── vite.config.ts         # Vite configuration
+├── vite.config.ts         # Vite configuration with aliases
 ├── tsconfig.json          # TypeScript configuration
 └── index.html             # HTML template
 ```
 
-### Shared Packages
+### Shared Packages (`packages/`)
+
+#### Core Domain Logic (`packages/core/`)
+- **Package Name**: `@somni/core`
+- **Purpose**: Clean Architecture domain layer
+- **Dependencies**: `@somni/types`
+
+**Structure**:
+```
+packages/core/src/
+├── entities/              # Domain entities
+│   ├── Dream.ts          # Dream business logic
+│   ├── User.ts           # User business logic
+│   └── index.ts
+├── useCases/             # Application use cases
+│   └── dreams/
+│       ├── RecordDreamUseCase.ts
+│       ├── AnalyzeDreamUseCase.ts
+│       └── index.ts
+├── repositories/         # Repository interfaces
+│   ├── IDreamRepository.ts
+│   ├── IUserRepository.ts
+│   └── index.ts
+└── index.ts
+```
+
+**Key Features**:
+- Domain entities with validation and business rules
+- Use cases that orchestrate business logic
+- Repository interfaces for data access abstraction
+- Framework-agnostic business logic
+
+#### State Management (`packages/stores/`)
+- **Package Name**: `@somni/stores`
+- **Purpose**: Centralized Zustand state management
+- **Dependencies**: `zustand`, `@supabase/supabase-js`
+
+**Structure**:
+```
+packages/stores/src/
+├── authStore.ts          # Authentication state
+├── dreamStore.ts         # Dreams and recording state
+├── settingsStore.ts      # App settings and preferences
+└── index.ts
+```
+
+**Features**:
+- Domain-specific stores (auth, dreams, settings)
+- Optimistic updates with error handling
+- Recording session management
+- Settings persistence
+
+#### Design System (`packages/theme/`)
+- **Package Name**: `@somni/theme`
+- **Purpose**: Comprehensive design system
+- **Dependencies**: None
+
+**Structure**:
+```
+packages/theme/src/
+├── colors.ts             # Color palette
+├── spacing.ts            # Spacing scale
+├── typography.ts         # Typography scale
+├── themes/
+│   ├── light.ts         # Light theme
+│   └── dark.ts          # Dark theme
+└── index.ts
+```
+
+**Features**:
+- Comprehensive color system with semantic tokens
+- Consistent spacing scale (8px grid)
+- Typography scale with line heights
+- Light/dark theme support
+- Shadow and border radius definitions
+
+#### Internationalization (`packages/locales/`)
+- **Package Name**: `@somni/locales`
+- **Purpose**: Translation resources and i18n types
+- **Dependencies**: None
+
+**Structure**:
+```
+packages/locales/src/
+├── en/                   # English translations
+│   ├── common.json      # Common UI text
+│   ├── dreams.json      # Dream-related text
+│   ├── auth.json        # Authentication text
+│   └── index.ts
+├── es/                   # Spanish translations
+│   ├── common.json
+│   └── index.ts
+├── types.ts             # TypeScript types
+└── index.ts
+```
+
+**Features**:
+- Namespace-based organization
+- TypeScript type safety for translations
+- Pluralization support
+- Interpolation support
+
+#### Legacy Shared Packages
 
 #### Types (`types/`)
 - **Package Name**: `@somni/types`
 - **Purpose**: Shared TypeScript interfaces and types
-- **Usage**: Imported by both mobile and web applications
+- **Usage**: Imported by all other packages and applications
 
 **Current Types**:
 ```typescript
-// Current database schema types
+// Database schema types
 export interface UserProfile {
   id: string;
   username?: string;
@@ -97,8 +222,6 @@ export interface UserProfile {
   onboarding_completed: boolean;
   sleep_schedule?: object;
   lucid_dream_settings?: object;
-  created_at: string;
-  updated_at: string;
 }
 
 export type SleepPhase = 'rem' | 'nrem' | 'light' | 'deep' | 'awake';
@@ -117,28 +240,12 @@ export interface Dream {
   mood_after?: number; // 1-5
   embedding?: number[]; // Vector array
 }
-
-// Legacy types (deprecated)
-export interface User {
-  id: string;
-  email?: string;
-}
-
-export interface DreamEntry {
-  id: string;
-  userId: string;
-  date: string;
-  title: string;
-  content: string;
-  interpretation?: string;
-  tags?: string[];
-}
 ```
 
 #### Utils (`utils/`)
 - **Package Name**: `@somni/utils`
 - **Purpose**: Shared utility functions
-- **Dependencies**: Can import from `@somni/types`
+- **Dependencies**: `@somni/types`
 
 **Current Utilities**:
 ```typescript
@@ -152,10 +259,6 @@ export const getDreamTitle = (dream: DreamEntry): string => {
   return dream.title;
 };
 ```
-
-#### Packages (`packages/`) - Future Use
-- **Purpose**: Additional shared packages as the project grows
-- **Examples**: UI components, configuration, API clients
 
 ### Database and Configuration
 
@@ -190,10 +293,9 @@ export const getDreamTitle = (dream: DreamEntry): string => {
 ### Root Configuration
 
 #### `package.json`
-- Defines workspaces
+- Defines workspaces including new shared packages
 - Contains root-level scripts
 - Manages shared development dependencies
-- Includes `react-native-web` for Expo compatibility
 
 ```json
 {
@@ -202,16 +304,13 @@ export const getDreamTitle = (dream: DreamEntry): string => {
     "packages/*",
     "types",
     "utils"
-  ],
-  "dependencies": {
-    "react-native-web": "^0.20.0"
-  }
+  ]
 }
 ```
 
 #### `tsconfig.base.json`
 - Base TypeScript configuration for all workspaces
-- Defines path mappings for shared packages
+- Defines path mappings for all shared packages
 - Sets common compiler options
 
 ```json
@@ -220,8 +319,10 @@ export const getDreamTitle = (dream: DreamEntry): string => {
     "paths": {
       "@somni/types": ["types/src"],
       "@somni/utils": ["utils/src"],
-      "@somni/ui-core": ["packages/ui-core/src"],
-      "@somni/config/*": ["packages/config/*"]
+      "@somni/core": ["packages/core/src"],
+      "@somni/locales": ["packages/locales/src"],
+      "@somni/theme": ["packages/theme/src"],
+      "@somni/stores": ["packages/stores/src"]
     }
   }
 }
@@ -230,10 +331,30 @@ export const getDreamTitle = (dream: DreamEntry): string => {
 ### Application-Specific Configuration
 
 #### Mobile App Configuration
+- **Babel Config**: Module resolver for shared packages and local aliases
 - **Metro Config**: Handles monorepo module resolution
-- **Babel Config**: Transpilation settings for React Native
 - **Expo Config**: App metadata and native features
 - **Supabase Client**: Configured with AsyncStorage for session persistence
+
+```javascript
+// babel.config.js
+module.exports = {
+  presets: ['babel-preset-expo'],
+  plugins: [
+    ['module-resolver', {
+      alias: {
+        '@components': './src/components',
+        '@screens': './src/screens',
+        '@hooks': './src/hooks',
+        '@somni/core': '../../packages/core/src',
+        '@somni/stores': '../../packages/stores/src',
+        '@somni/theme': '../../packages/theme/src',
+        '@somni/locales': '../../packages/locales/src',
+      }
+    }]
+  ]
+};
+```
 
 #### Web App Configuration
 - **Vite Config**: Build tool configuration with alias resolution
@@ -248,7 +369,6 @@ Common dependencies are installed at the root level:
 - ESLint
 - Prettier
 - Testing frameworks
-- `react-native-web` (for Expo web builds)
 
 ### Application-Specific Dependencies
 Each app manages its own dependencies:
@@ -258,45 +378,72 @@ Each app manages its own dependencies:
 
 **Mobile App Specific**:
 - `@react-native-async-storage/async-storage` - Session persistence
-- `react-native-web` - Expo web build support
-- `react-native-url-polyfill` - URL polyfill for React Native
+- `expo-localization` - Device locale detection
+- `i18next` - Internationalization
+- `babel-plugin-module-resolver` - Module path resolution
 
 **Web App Specific**:
 - Vite and related build tools
 - Web-specific React libraries
 
 ### Shared Package Dependencies
-- Types package has no external dependencies
-- Utils package can depend on types package
-- Future packages can depend on any existing shared packages
+- **@somni/core**: Depends on `@somni/types`
+- **@somni/stores**: Depends on `zustand`, `@supabase/supabase-js`
+- **@somni/theme**: No external dependencies
+- **@somni/locales**: No external dependencies
+- **@somni/types**: No external dependencies
+- **@somni/utils**: Depends on `@somni/types`
 
 ## Import Patterns
 
 ### Importing Shared Packages
 
 ```typescript
-// In mobile or web applications
-import { UserProfile, Dream, SleepPhase } from '@somni/types';
-import { formatDate } from '@somni/utils';
+// Core domain logic
+import { Dream, User, RecordDreamUseCase } from '@somni/core';
 
-// Legacy imports (deprecated)
-import { User, DreamEntry } from '@somni/types';
+// State management
+import { useAuthStore, useDreamStore } from '@somni/stores';
+
+// Theming
+import { lightTheme, darkTheme, Theme } from '@somni/theme';
+
+// Translations
+import en from '@somni/locales/en';
+
+// Legacy types and utils
+import { UserProfile, Dream as DreamType } from '@somni/types';
+import { formatDate } from '@somni/utils';
 ```
 
-### Supabase Client Usage
+### Mobile App Internal Imports
 
 ```typescript
-// Mobile app
-import { supabase } from './src/lib/supabase';
+// Components
+import { Text, Button } from '@components/atoms';
 
-// Web app
-import { supabase } from './lib/supabase';
+// Hooks
+import { useAuth, useTheme, useTranslation } from '@hooks';
+
+// Infrastructure
+import { DreamRepository, UserRepository } from '../infrastructure/repositories';
+import { AudioService, SpeechService } from '../infrastructure/services';
 ```
 
-### Path Resolution
-- TypeScript paths are configured in `tsconfig.base.json`
-- Vite aliases are configured in `vite.config.ts`
-- Metro resolver is configured in `metro.config.js`
+### Clean Architecture Boundaries
+
+```typescript
+// ✅ Correct: Domain layer imports
+import { Dream, RecordDreamUseCase, IDreamRepository } from '@somni/core';
+
+// ✅ Correct: Infrastructure implements domain interfaces
+export class DreamRepository implements IDreamRepository {
+  // Implementation
+}
+
+// ❌ Incorrect: Domain layer should not import infrastructure
+// Domain entities should not know about Supabase, React, etc.
+```
 
 ## Adding New Shared Packages
 
@@ -315,7 +462,7 @@ npm init -y
 ```json
 {
   "name": "@somni/new-package",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "main": "./src/index.ts",
   "types": "./src/index.ts"
@@ -325,7 +472,7 @@ npm init -y
 ### 4. Add TypeScript Configuration
 ```json
 {
-  "extends": "../tsconfig.base.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
     "composite": true,
@@ -353,43 +500,34 @@ npm install @somni/new-package --workspace=@somni/web
 
 ## Best Practices
 
+### Clean Architecture
+1. Keep domain logic in `@somni/core` free from external dependencies
+2. Implement repository interfaces in infrastructure layer
+3. Use dependency injection for use cases
+4. Maintain clear boundaries between layers
+
 ### Package Organization
 1. Keep packages focused and single-purpose
 2. Avoid circular dependencies between packages
 3. Use clear, descriptive package names
 4. Document package APIs thoroughly
 
-### Dependency Management
-1. Install shared dependencies at the root level
-2. Keep application-specific dependencies in their respective packages
-3. Regularly audit and update dependencies
-4. Use exact versions for critical dependencies
+### State Management
+1. Organize stores by business domain
+2. Use optimistic updates for better UX
+3. Handle loading and error states consistently
+4. Persist important state for offline support
 
-### Code Sharing
-1. Share types and interfaces through `@somni/types`
-2. Share utility functions through `@somni/utils`
-3. Consider creating UI component packages for shared components
-4. Avoid duplicating business logic across applications
+### Theming and Design
+1. Use semantic color tokens
+2. Maintain consistent spacing scale
+3. Support both light and dark themes
+4. Ensure accessibility compliance
 
-### Database Schema Management
-1. Use version-controlled migrations in `supabase/migrations/`
-2. Provide manual SQL scripts in `sql/` for dashboard execution
-3. Keep database types in sync with `@somni/types`
-4. Document all schema changes
+### Internationalization
+1. Organize translations by feature/domain
+2. Use TypeScript for translation key safety
+3. Support pluralization and interpolation
+4. Test with different locales and RTL languages
 
-### Version Management
-1. Keep shared packages in sync
-2. Use semantic versioning for packages
-3. Update all dependents when shared packages change
-4. Test changes across all applications
-
-## react-native-web Usage
-
-The `react-native-web` dependency is included at the root level to support Expo's web build target for the mobile app. This is **not** used by the dedicated web app (`apps/web`), which uses standard React and Vite for optimal web performance.
-
-**Purpose**:
-- Enables `expo start --web` for mobile app development
-- Provides React Native component compatibility in web browsers
-- Supports Expo's universal app development workflow
-
-**Note**: The dedicated web app (`apps/web`) does not use `react-native-web` and instead uses native web technologies for better performance and web-specific features.
+This architecture provides a robust foundation for the Somni application with proper separation of concerns, reusable components, and maintainable code organization.
