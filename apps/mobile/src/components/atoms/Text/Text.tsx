@@ -1,6 +1,6 @@
 import React from 'react';
-import { Text as RNText, TextProps as RNTextProps, StyleSheet } from 'react-native';
-import { useTheme } from '@hooks/useTheme';
+import { Text as RNText, TextProps as RNTextProps } from 'react-native';
+import { useTheme } from '../../../hooks/useTheme';
 
 export interface TextProps extends RNTextProps {
   variant?: 'h1' | 'h2' | 'h3' | 'body' | 'caption';
@@ -16,17 +16,18 @@ export const Text: React.FC<TextProps> = ({
   ...props
 }) => {
   const theme = useTheme();
-  
+
   const getTextStyle = () => {
     const baseStyle = theme.typography[variant];
     const textColor = theme.colors.text[color];
-    
+
     return {
       ...baseStyle,
+      fontWeight: baseStyle.fontWeight as any,
       color: textColor,
     };
   };
-  
+
   return (
     <RNText style={[getTextStyle(), style]} {...props}>
       {children}

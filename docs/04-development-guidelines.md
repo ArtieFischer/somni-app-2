@@ -1,5 +1,81 @@
 # Development Guidelines
 
+## 🌙 Oniric Theme Guidelines
+
+### Design Philosophy
+
+The Somni app follows an "oniric" (dreamlike) design philosophy, optimized for nighttime use when most dream journaling occurs.
+
+#### Core Principles:
+
+- **Dark-Only Theme** - No light mode, optimized for bedside use
+- **Ethereal Aesthetics** - Dreamlike colors and soft transitions
+- **Accessibility First** - WCAG 2.1 AA compliance with proper contrast
+- **Consistent Component Heights** - 48dp minimum for touch targets
+
+#### Color Palette Implementation:
+
+```typescript
+// Required oniric color system
+const colors = {
+  background: {
+    primary: '#0B1426', // Deep midnight blue
+    elevated: '#1A2332', // Elevated surfaces
+  },
+  primary: '#8B5CF6', // Aurora purple
+  primaryMuted: '#A78BFA', // Muted purple
+  accent: '#10B981', // Ethereal teal
+  text: {
+    primary: '#F8FAFC', // Starlight white
+    secondary: '#CBD5E1', // Silver
+    muted: '#64748B', // Muted gray
+  },
+  // Purple-tinted shadows for ethereal depth
+  shadows: {
+    small: '#8B5CF620',
+    medium: '#8B5CF630',
+  },
+};
+```
+
+#### Component Design Standards:
+
+```typescript
+// Button heights - REQUIRED for accessibility
+const buttonHeights = {
+  small: 40, // Minimum for secondary actions
+  medium: 48, // Standard minimum touch target
+  large: 56, // Primary actions
+};
+
+// Spacing system - 4px base unit
+const spacing = {
+  xs: 4,
+  small: 8,
+  medium: 16,
+  large: 24,
+  xl: 32,
+};
+```
+
+### Translation Implementation
+
+All user-facing text must use translations with oniric, dreamlike copy:
+
+```typescript
+// Good: Dreamlike translations
+'Return to the Dream Realm'; // SignIn title
+'Enter Dreams'; // SignIn button
+'Forgotten Path?'; // Forgot password
+'Welcome to the Dream Realm'; // Onboarding welcome
+'Your Dream Aspirations'; // Goals selection
+
+// TypeScript casting for translation compatibility
+{
+  String(t('signIn.title'));
+} // Required for React Native
+```
+
 ## Code Style and Standards
 
 ### ESLint and Prettier Configuration
@@ -7,6 +83,7 @@
 All code must adhere to the project's ESLint and Prettier configurations. These tools ensure consistent code style across the entire monorepo.
 
 #### Running Linting
+
 ```bash
 # Lint all workspaces
 npm run lint --workspaces
@@ -18,12 +95,14 @@ npm run lint --workspace=@somni/core
 ```
 
 #### Key ESLint Rules
+
 - TypeScript strict mode enabled
 - React hooks rules enforced
 - Unused variables flagged as warnings
 - Prettier integration for formatting
 
 #### Prettier Configuration
+
 ```javascript
 // .prettierrc.js
 module.exports = {
@@ -36,43 +115,318 @@ module.exports = {
 };
 ```
 
+### Import Path Standards
+
+#### Import Organization
+
+```typescript
+// 1. React and external libraries
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useForm } from 'react-hook-form';
+
+// 2. Internal packages (absolute imports)
+import { useAuthStore } from '@somni/stores';
+import type { UserProfile } from '@somni/types';
+
+// 3. Local imports (relative paths)
+import { Text, Button } from '../../components/atoms';
+import { useTheme } from '../../hooks/useTheme';
+import { useStyles } from './Component.styles';
+```
+
+#### Path Conventions
+
+- **Relative imports** for local files: `../../../hooks/useTheme`
+- **Absolute imports** for packages: `@somni/stores`
+- **Consistent organization** across all components
+
 ### TypeScript Guidelines
 
 #### Strict Type Safety
+
 - Always use TypeScript strict mode
 - Avoid `any` type - use proper typing or `unknown`
 - Define interfaces for all data structures
 - Use type guards for runtime type checking
 
-#### Type Definitions
+#### Component Interface Patterns
+
 ```typescript
-// Good: Proper interface definition
-interface DreamAnalysis {
-  id: string;
-  dreamId: string;
-  analysisType: 'freudian' | 'jungian' | 'spiritual' | 'neurobiological';
-  content: string;
-  confidence: number;
-  createdAt: string;
+// Good: Proper component interface with oniric theming
+interface ButtonProps {
+  variant: 'primary' | 'secondary' | 'ghost';
+  size: 'small' | 'medium' | 'large';
+  children: React.ReactNode;
+  onPress: () => void;
+  loading?: boolean;
+  disabled?: boolean;
 }
 
-// Good: Union types for specific values
-type RecordingStatus = 'idle' | 'recording' | 'processing' | 'completed' | 'error';
+// Good: Store interface with clear typing
+interface AuthStore {
+  user: User | null;
+  profile: UserProfile | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
 
-// Good: Generic types for reusable components
-interface ApiResponse<T> {
-  data: T;
-  error?: string;
-  success: boolean;
+  setUser: (user: User | null) => void;
+  setProfile: (profile: UserProfile | null) => void;
+  signOut: () => void;
 }
 ```
 
 #### Type Imports
+
 ```typescript
 // Use type-only imports when possible
 import type { UserProfile, Dream } from '@somni/types';
 import { formatDate } from '@somni/utils';
 import { User, RecordDreamUseCase } from '@somni/core';
+```
+
+## Component Architecture Guidelines
+
+### Atomic Design Implementation
+
+Follow strict atomic design principles with oniric theming:
+
+```typescript
+// Atoms: Basic building blocks
+src/components/atoms/
+├── Button/
+│   ├── Button.tsx           # Core button with height standards
+│   ├── Button.styles.ts     # Oniric styling
+│   └── index.ts
+├── Input/
+│   ├── Input.tsx            # Form input with validation
+│   ├── Input.styles.ts      # Focus states and oniric colors
+│   └── index.ts
+└── Text/
+    ├── Text.tsx             # Typography with theme support
+    └── index.ts
+
+// Molecules: Component combinations
+src/components/molecules/
+├── MultiSelectChip/         # Selection component for onboarding
+└── AuthInput/               # Specialized form input
+
+// Organisms: Complex components
+src/components/organisms/
+└── OnboardingScreenLayout/  # Reusable onboarding layout
+```
+
+### Button Component Standards
+
+```typescript
+// Required implementation pattern
+export const Button: React.FC<ButtonProps> = ({
+  variant,
+  size,
+  children,
+  onPress,
+  loading,
+  disabled
+}) => {
+  const theme = useTheme();
+
+  const styles = StyleSheet.create({
+    button: {
+      // REQUIRED: Minimum heights for accessibility
+      height: size === 'small' ? 40 : size === 'large' ? 56 : 48,
+      backgroundColor: variant === 'primary' ? theme.colors.primary : 'transparent',
+      borderRadius: theme.borderRadius.medium,
+      paddingHorizontal: theme.spacing.medium,
+      alignItems: 'center',
+      justifyContent: 'center',
+      // Oniric shadow effects
+      ...theme.shadows.small,
+    },
+  });
+
+  return (
+    <TouchableOpacity
+      style={styles.button}
+      onPress={onPress}
+      disabled={disabled || loading}
+    >
+      <Text variant="button" color={variant === 'primary' ? 'white' : 'primary'}>
+        {children}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+```
+
+### Input Component Standards
+
+```typescript
+// Required implementation with oniric focus states
+export const Input: React.FC<InputProps> = ({
+  label,
+  value,
+  onChangeText,
+  error,
+  ...props
+}) => {
+  const theme = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
+
+  const styles = StyleSheet.create({
+    container: {
+      marginBottom: theme.spacing.medium,
+    },
+    label: {
+      marginBottom: theme.spacing.xs,
+    },
+    input: {
+      height: 48, // REQUIRED: Consistent height
+      borderWidth: 1,
+      borderColor: error ? theme.colors.error :
+                   isFocused ? theme.colors.primary :
+                   theme.colors.border,
+      borderRadius: theme.borderRadius.medium,
+      paddingHorizontal: theme.spacing.medium,
+      backgroundColor: theme.colors.background.elevated,
+      color: theme.colors.text.primary,
+      // Oniric glow effect on focus
+      ...(isFocused && {
+        shadowColor: theme.colors.primary,
+        shadowRadius: 8,
+        shadowOpacity: 0.3,
+      }),
+    },
+  });
+
+  return (
+    <View style={styles.container}>
+      {label && (
+        <Text variant="label" style={styles.label}>
+          {label}
+        </Text>
+      )}
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        placeholderTextColor={theme.colors.text.muted}
+        {...props}
+      />
+      {error && (
+        <Text variant="caption" color="error">
+          {error}
+        </Text>
+      )}
+    </View>
+  );
+};
+```
+
+## State Management Guidelines
+
+### Zustand Store Patterns
+
+#### Domain-Driven Store Organization
+
+```typescript
+// Auth Store - User authentication and profiles
+interface AuthStore {
+  // State
+  user: User | null;
+  profile: UserProfile | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+
+  // Actions
+  setUser: (user: User | null) => void;
+  setProfile: (profile: UserProfile | null) => void;
+  signOut: () => void;
+}
+
+// Onboarding Store - Temporary data collection
+interface OnboardingStore {
+  data: OnboardingData;
+
+  // Screen-specific updates
+  setBedtime: (time: string) => void;
+  setWakeTime: (time: string) => void;
+  setGoals: (goals: string[]) => void;
+  setLucidityExperience: (level: string) => void;
+  setPrivacySettings: (settings: PrivacySettings) => void;
+
+  // Lifecycle management
+  reset: () => void;
+}
+```
+
+#### Store Implementation Pattern
+
+```typescript
+// Required implementation pattern with persistence
+export const useAuthStore = create<AuthStore>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      profile: null,
+      isAuthenticated: false,
+      isLoading: false,
+
+      setUser: (user) =>
+        set({
+          user,
+          isAuthenticated: !!user,
+          isLoading: false,
+        }),
+
+      setProfile: (profile) => set({ profile }),
+
+      signOut: () =>
+        set({
+          user: null,
+          profile: null,
+          isAuthenticated: false,
+        }),
+    }),
+    {
+      name: 'auth-storage',
+      // Only persist essential auth state
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    },
+  ),
+);
+```
+
+### Navigation Patterns
+
+#### Conditional Navigation Implementation
+
+```typescript
+// Required navigation logic pattern
+export const AppNavigator: React.FC = () => {
+  const { isAuthenticated, profile, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  // Unauthenticated users → Auth flow
+  if (!isAuthenticated) {
+    return <AuthNavigator />;
+  }
+
+  // New users without completed onboarding → Onboarding flow
+  if (!profile?.onboarding_completed) {
+    return <OnboardingNavigator />;
+  }
+
+  // Onboarded users → Main app
+  return <MainNavigator />;
+};
 ```
 
 ## Clean Architecture Guidelines
@@ -82,6 +436,7 @@ import { User, RecordDreamUseCase } from '@somni/core';
 The domain layer contains the business logic and should be framework-agnostic.
 
 #### Entities
+
 ```typescript
 // Good: Entity with business logic and validation
 export class Dream {
@@ -115,12 +470,11 @@ export class Dream {
 ```
 
 #### Use Cases
+
 ```typescript
 // Good: Use case that orchestrates business logic
 export class RecordDreamUseCase {
-  constructor(
-    private dreamRepository: IDreamRepository
-  ) {}
+  constructor(private dreamRepository: IDreamRepository) {}
 
   async execute(request: RecordDreamRequest): Promise<Dream> {
     // Validate input
@@ -132,13 +486,14 @@ export class RecordDreamUseCase {
 
     // Save via repository
     const savedDream = await this.dreamRepository.save(dream.toDTO());
-    
+
     return Dream.create(savedDream);
   }
 }
 ```
 
 #### Repository Interfaces
+
 ```typescript
 // Good: Abstract interface in domain layer
 export interface IDreamRepository {
@@ -155,6 +510,7 @@ export interface IDreamRepository {
 The infrastructure layer implements domain interfaces and handles external concerns.
 
 #### Repository Implementation
+
 ```typescript
 // Good: Concrete implementation in infrastructure layer
 export class DreamRepository implements IDreamRepository {
@@ -178,6 +534,7 @@ export class DreamRepository implements IDreamRepository {
 ```
 
 #### Service Implementation
+
 ```typescript
 // Good: External service wrapper
 export class AudioService {
@@ -242,7 +599,7 @@ export class Analysis {
     public readonly dreamId: string,
     public readonly type: AnalysisType,
     public readonly content: string,
-    public readonly confidence: number
+    public readonly confidence: number,
   ) {}
 
   static create(data: AnalysisData): Analysis {
@@ -255,7 +612,7 @@ export class Analysis {
 export class GenerateAnalysisUseCase {
   constructor(
     private dreamRepository: IDreamRepository,
-    private analysisRepository: IAnalysisRepository
+    private analysisRepository: IAnalysisRepository,
   ) {}
 
   async execute(request: GenerateAnalysisRequest): Promise<Analysis[]> {
@@ -274,7 +631,7 @@ interface AnalysisState {
   analyses: Analysis[];
   isGenerating: boolean;
   error: string | null;
-  
+
   generateAnalysis: (dreamId: string, types: AnalysisType[]) => Promise<void>;
   setAnalyses: (analyses: Analysis[]) => void;
   setError: (error: string | null) => void;
@@ -284,21 +641,24 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   analyses: [],
   isGenerating: false,
   error: null,
-  
+
   generateAnalysis: async (dreamId, types) => {
     try {
       set({ isGenerating: true, error: null });
       // Call use case or repository
-      const analyses = await generateAnalysisUseCase.execute({ dreamId, types });
+      const analyses = await generateAnalysisUseCase.execute({
+        dreamId,
+        types,
+      });
       set({ analyses, isGenerating: false });
     } catch (error) {
-      set({ 
+      set({
         error: error instanceof Error ? error.message : 'Unknown error',
-        isGenerating: false 
+        isGenerating: false,
       });
     }
   },
-  
+
   // ... other actions
 }));
 ```
@@ -351,11 +711,11 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const theme = useTheme();
   const isDisabled = disabled || loading;
-  
+
   const getButtonStyle = () => {
     const buttonConfig = theme.colors.button[variant];
     const sizeConfig = theme.typography.button[size];
-    
+
     return {
       backgroundColor: buttonConfig.background,
       borderColor: buttonConfig.border,
@@ -365,13 +725,13 @@ export const Button: React.FC<ButtonProps> = ({
       opacity: isDisabled ? 0.6 : 1,
     };
   };
-  
+
   return (
-    <Pressable 
+    <Pressable
       style={({ pressed }) => [
         getButtonStyle(),
         pressed && { opacity: 0.8 }
-      ]} 
+      ]}
       disabled={isDisabled}
       {...pressableProps}
     >
@@ -405,7 +765,7 @@ export const HomeScreen: React.FC = () => {
         <Text variant="h1" style={styles.title}>
           {t('navigation.home')}
         </Text>
-        
+
         <Button variant="secondary" onPress={signOut}>
           {t('actions.signOut')}
         </Button>
@@ -424,7 +784,7 @@ import { useTheme } from '@hooks/useTheme';
 
 export const useStyles = () => {
   const theme = useTheme();
-  
+
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -452,7 +812,7 @@ interface DreamState {
   currentDream: Dream | null;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   addDream: (dream: Dream) => void;
   updateDream: (id: string, updates: Partial<Dream>) => void;
@@ -466,14 +826,14 @@ export const useDreamStore = create<DreamState>((set, get) => ({
   currentDream: null,
   isLoading: false,
   error: null,
-  
+
   addDream: (dream) => {
-    set(state => ({
+    set((state) => ({
       dreams: [dream, ...state.dreams],
       error: null,
     }));
   },
-  
+
   loadDreams: async () => {
     try {
       set({ isLoading: true, error: null });
@@ -486,7 +846,7 @@ export const useDreamStore = create<DreamState>((set, get) => ({
       });
     }
   },
-  
+
   clearError: () => set({ error: null }),
 }));
 ```
@@ -506,11 +866,11 @@ export const useAuth = () => {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        authStore.setSession(session);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      authStore.setSession(session);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -536,7 +896,7 @@ import { useTranslation } from '@hooks/useTranslation';
 
 export const SignInScreen: React.FC = () => {
   const { t } = useTranslation('auth');
-  
+
   return (
     <View>
       <Text>{t('signIn.title')}</Text>
@@ -584,7 +944,7 @@ export class Dream {
     if (!data.raw_transcript?.trim()) {
       throw new DreamValidationError('Dream content cannot be empty');
     }
-    
+
     return new Dream(/* ... */);
   }
 }
@@ -639,11 +999,9 @@ export const DreamRecordingScreen: React.FC = () => {
 
   useEffect(() => {
     if (error) {
-      Alert.alert(
-        t('record.error.title'),
-        error,
-        [{ text: t('actions.ok'), onPress: clearError }]
-      );
+      Alert.alert(t('record.error.title'), error, [
+        { text: t('actions.ok'), onPress: clearError },
+      ]);
     }
   }, [error, clearError, t]);
 
@@ -665,7 +1023,7 @@ export const DreamRecordingScreen: React.FC = () => {
 const DreamListItem = React.memo<{ dream: Dream; onPress: (id: string) => void }>(
   ({ dream, onPress }) => {
     const theme = useTheme();
-    
+
     const handlePress = useCallback(() => {
       onPress(dream.id);
     }, [dream.id, onPress]);
@@ -693,9 +1051,9 @@ const DreamListItem = React.memo<{ dream: Dream; onPress: (id: string) => void }
 // Good: Selective state subscriptions
 const DreamList: React.FC = () => {
   // Only subscribe to dreams, not the entire store
-  const dreams = useDreamStore(state => state.dreams);
-  const isLoading = useDreamStore(state => state.isLoading);
-  
+  const dreams = useDreamStore((state) => state.dreams);
+  const isLoading = useDreamStore((state) => state.isLoading);
+
   // Avoid subscribing to the entire store
   // const { dreams, isLoading } = useDreamStore(); // ❌ Less efficient
 };
@@ -760,7 +1118,7 @@ describe('RecordDreamUseCase', () => {
       expect.objectContaining({
         user_id: 'user-123',
         raw_transcript: 'Test dream',
-      })
+      }),
     );
     expect(result.id).toBe('dream-456');
   });

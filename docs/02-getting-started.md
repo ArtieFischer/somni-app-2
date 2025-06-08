@@ -1,30 +1,42 @@
 # Getting Started
 
+## 🌙 Current Implementation Overview
+
+**Last Updated**: December 2024  
+**Implementation Status**: Features 1.1, 1.2, 2.1 Complete ✅
+
+This guide walks you through setting up the **current working implementation** of the Somni dream journaling app. All steps reflect the actual codebase structure and requirements.
+
+---
+
 ## Prerequisites
 
 Before setting up the Somni project, ensure you have the following installed:
 
-- **Node.js** (v18 or higher)
-- **npm** (comes with Node.js)
-- **Git**
+- **Node.js** (v18 or higher) - Required for React Native and Expo
+- **npm** (comes with Node.js) - Package manager
+- **Git** - Version control
 - **Expo CLI** (for mobile development): `npm install -g @expo/cli`
 
 ### Platform-Specific Requirements
 
-#### For Mobile Development
+#### For Mobile Development (Required)
+
 - **iOS**: Xcode (macOS only) or Expo Go app
 - **Android**: Android Studio or Expo Go app
+- **EAS CLI**: `npm install -g eas-cli` (for building)
 
-#### For Web Development
-- Modern web browser (Chrome, Firefox, Safari, Edge)
+> **Note**: Currently only mobile development is supported. Web app is planned for future phases.
 
-## Initial Setup
+---
+
+## ✅ Current Project Setup
 
 ### 1. Clone the Repository
 
 ```bash
 git clone <repository-url>
-cd somni-monorepo
+cd somni-app-2
 ```
 
 ### 2. Install Dependencies
@@ -35,50 +47,59 @@ Install all dependencies for the entire monorepo:
 npm install
 ```
 
-This will install dependencies for all workspaces including:
-- Root dependencies
-- Mobile app (`@somni/mobile`)
-- Web app (`@somni/web`)
-- Shared packages (`@somni/types`, `@somni/utils`)
+This will install dependencies for:
+
+- **Root workspace**: Development tools (ESLint, Prettier, Husky)
+- **Mobile app** (`@somni/mobile`): React Native, Expo, Supabase
+- **Shared packages**: stores, theme, locales, types
 
 ### 3. Environment Variables
 
-#### Supabase Configuration
+#### Supabase Configuration (Required)
 
-Create environment files for both applications:
+Create environment file for the mobile app:
 
-**For Web App** (`apps/web/.env.local`):
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+**Mobile App** (`apps/mobile/.env`):
 
-**For Mobile App** (`apps/mobile/.env`):
 ```env
 EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-> **Note**: Never commit these files to version control. They are already included in `.gitignore`.
+> **Important**:
+>
+> - Never commit this file to version control (it's in `.gitignore`)
+> - You need a working Supabase project to run the app
 
-#### Setting Up Supabase
+#### Setting Up Supabase (Required)
 
-Before you can use the environment variables, you need to set up your Supabase project:
+Before the app will work, you need to set up your Supabase project:
 
-1. **Create a Supabase Project**: Follow the detailed setup guide in [Supabase Setup](./10-supabase-setup.md)
-2. **Execute Database Schema**: Run the SQL scripts in order as described in the setup guide
-3. **Get Your Credentials**: Copy the Project URL and anon key from your Supabase dashboard
+1. **Create Supabase Project**:
 
-## Development
+   - Go to [supabase.com](https://supabase.com)
+   - Create a new project
+   - Note your Project URL and anon key
 
-### Mobile Development
+2. **Setup Database Schema**:
 
-#### Start the Mobile Development Server
+   - Copy and run the SQL from `supabase/migrations/` in your Supabase SQL editor
+   - Or follow the detailed guide in [Supabase Setup](./10-supabase-setup.md)
+
+3. **Verify Setup**: The app will show connection status on the home screen
+
+---
+
+## ✅ Development Workflow
+
+### Mobile Development (Current)
+
+#### Start the Development Server
 
 From the project root:
 
 ```bash
-npm run dev:mobile
+npm run dev --workspace=@somni/mobile
 ```
 
 Or from the mobile app directory:
@@ -88,181 +109,236 @@ cd apps/mobile
 npm start
 ```
 
+This will start the Expo development server and show a QR code.
+
 #### Running on Devices
 
-1. **Expo Go** (Recommended for development):
-   - Install Expo Go on your device
-   - Scan the QR code displayed in the terminal
+**Option 1: Expo Go (Recommended for development)**
 
-2. **iOS Simulator** (macOS only):
-   ```bash
-   npm run ios
-   ```
+1. Install Expo Go on your iOS/Android device
+2. Scan the QR code displayed in terminal
+3. App will load with hot reloading enabled
 
-3. **Android Emulator**:
-   ```bash
-   npm run android
-   ```
-
-#### Development Builds
-
-For features requiring native modules (like HealthKit):
+**Option 2: iOS Simulator (macOS only)**
 
 ```bash
+cd apps/mobile
+npm run ios
+```
+
+**Option 3: Android Emulator**
+
+```bash
+cd apps/mobile
+npm run android
+```
+
+#### Development Builds (For Testing Native Features)
+
+Some features require development builds:
+
+```bash
+# Install EAS CLI if not already installed
+npm install -g eas-cli
+
+# Login to Expo account
+eas login
+
 # Create development build
+cd apps/mobile
 eas build --profile development --platform ios
 eas build --profile development --platform android
 ```
 
-### Web Development
+---
 
-#### Start the Web Development Server
+## ✅ Available Scripts & Commands
 
-From the project root:
+### Root Level Scripts
 
 ```bash
-npm run dev:web
+# Start mobile development
+npm run dev --workspace=@somni/mobile
+
+# Run linting across all workspaces
+npm run lint --workspaces
+
+# Run type checking across all workspaces
+npm run type-check --workspaces
 ```
 
-Or from the web app directory:
+### Mobile App Scripts (apps/mobile)
 
 ```bash
-cd apps/web
-npm run dev
+cd apps/mobile
+
+# Development
+npm start              # Start Expo dev server
+npm run ios           # Run on iOS simulator
+npm run android       # Run on Android emulator
+
+# Code Quality
+npm run lint          # Run ESLint
+npm run type-check    # Run TypeScript checking
+
+# Building
+eas build --profile development    # Development build
+eas build --profile preview       # Preview build
+eas build --profile production     # Production build
 ```
 
-The web application will be available at `http://localhost:5173`
-
-#### Building for Production
+### Workspace-Specific Commands
 
 ```bash
-npm run build:web
-```
+# Install package in specific workspace
+npm install package-name --workspace=@somni/mobile
 
-## Workspace Commands
-
-### Running Commands in Specific Workspaces
-
-```bash
-# Run linting in mobile app
+# Run script in specific workspace
 npm run lint --workspace=@somni/mobile
-
-# Run type checking in web app
-npm run typecheck --workspace=@somni/web
-
-# Install a package in specific workspace
-npm install package-name --workspace=@somni/web
+npm run type-check --workspace=@somni/stores
 ```
 
-### Available Scripts
+---
 
-#### Root Level Scripts
-- `npm run dev:mobile` - Start mobile development server
-- `npm run dev:web` - Start web development server
-- `npm run build:web` - Build web application for production
-
-#### Mobile App Scripts (`apps/mobile`)
-- `npm start` - Start Expo development server
-- `npm run android` - Run on Android
-- `npm run ios` - Run on iOS
-- `npm run web` - Run on web (via Expo)
-- `npm run lint` - Run ESLint
-- `npm run typecheck` - Run TypeScript type checking
-
-#### Web App Scripts (`apps/web`)
-- `npm run dev` - Start Vite development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-- `npm run typecheck` - Run TypeScript type checking
-
-## Verification
+## ✅ Verification & Testing
 
 ### Test Mobile App Setup
 
-1. Start the mobile development server
-2. Open Expo Go and scan the QR code
-3. Verify that the app loads and displays dream data
-4. Check that shared types and utilities are working
-5. Verify Supabase connection status is displayed
+1. **Start Development Server**:
 
-### Test Web App Setup
+   ```bash
+   npm run dev --workspace=@somni/mobile
+   ```
 
-1. Start the web development server
-2. Open `http://localhost:5173` in your browser
-3. Verify that the app loads and displays dream data
-4. Check that shared types and utilities are working
-5. Verify Supabase connection status is displayed
+2. **Load App**: Open Expo Go and scan QR code
+
+3. **Verify Core Features**:
+   - ✅ App loads with oniric dark theme
+   - ✅ Welcome screen shows proper translations (not keys)
+   - ✅ Sign up/sign in forms work
+   - ✅ Onboarding flow completes successfully
+   - ✅ Theme switching works (dark-only mode)
+
+### Test Supabase Connection
+
+1. **Check Connection Status**: App shows Supabase status on home screen
+2. **Test Authentication**:
+
+   - Create new account → should work without errors
+   - Sign in with existing account → should work
+   - Sign out → should clear session
+
+3. **Test Onboarding**:
+   - Complete onboarding flow → data should persist
+   - Check profile creation in Supabase dashboard
 
 ### Test Shared Packages
 
-Both applications should successfully import and use:
-- `@somni/types` - TypeScript interfaces (both legacy and new)
-- `@somni/utils` - Utility functions
+Verify all shared packages are working:
 
-If you see import errors, check:
-1. Dependencies are installed (`npm install`)
-2. TypeScript paths are configured correctly
-3. Shared packages are properly linked
+- **@somni/stores**: AuthStore and OnboardingStore state management
+- **@somni/theme**: Oniric design system with purple theme
+- **@somni/locales**: Translations showing dreamlike copy
+- **@somni/types**: TypeScript interfaces for type safety
 
-### Test Supabase Integration
+---
 
-Both apps include Supabase connection testing:
-- **Mobile**: Check the status message below "Dream Test"
-- **Web**: Check the status message below the main heading
+## ✅ Current Architecture Overview
 
-Expected status messages:
-- "Connected to Supabase: Logged Out" (if no user is signed in)
-- "Connected to Supabase: Logged In" (if a user is signed in)
-- Error messages if there are configuration issues
+### Project Structure (Actual)
 
-## Next Steps
+```
+somni-app-2/
+├── apps/mobile/           # React Native Expo app ✅
+├── packages/              # Shared packages ✅
+│   ├── stores/           # Zustand state management ✅
+│   ├── theme/            # Oniric design system ✅
+│   ├── locales/          # i18n translations ✅
+│   └── types/            # TypeScript definitions ✅
+├── docs/                 # Documentation ✅
+└── supabase/            # Database migrations ✅
+```
 
-1. **Complete Supabase Setup**: Follow [Supabase Setup Guide](./10-supabase-setup.md) to set up your database
-2. **Review Architecture**: Read [Monorepo Architecture](./03-monorepo-architecture.md) to understand the project structure
-3. **Study Type Definitions**: Explore [Types & Interfaces](./05-types-interfaces.md) to understand the data models
-4. **Review Development Guidelines**: Follow [Development Guidelines](./04-development-guidelines.md) for coding standards
-5. **Set up Testing**: Review [Testing Strategy](./07-testing-strategy.md) for testing approaches
+### Key Technologies in Use
 
-## Common Issues
+- **React Native**: 0.76.1 with Expo SDK 53+
+- **Navigation**: React Navigation 6 with conditional routing
+- **State Management**: Zustand with persistence
+- **Database**: Supabase with Row Level Security
+- **Authentication**: Supabase Auth with biometric support
+- **Styling**: Custom oniric theme with purple color palette
+- **Internationalization**: i18next with dreamlike translations
 
-### Dependency Issues
+### User Flow (Current Implementation)
 
-**Issue**: `Cannot resolve module '@somni/types'`
-**Solution**:
+1. **Welcome Screen** → Authentication required
+2. **Sign Up/Sign In** → Creates user account and session
+3. **Onboarding Flow** → 6-screen data collection process
+4. **Home Screen** → Main app interface (minimal for now)
+
+---
+
+## 🔄 Not Yet Available
+
+The following features are **planned but not implemented**:
+
+- ❌ **Web Application**: React Vite web app (planned)
+- ❌ **Dream Recording**: Voice recording and transcription
+- ❌ **Dream Analysis**: AI-powered dream interpretation
+- ❌ **Vector Search**: Semantic dream search functionality
+- ❌ **Community Features**: Dream sharing and social features
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**1. Expo/React Native Setup Issues**
+
 ```bash
-# Reinstall all dependencies
+# Clear Expo cache
+npx expo install --fix
+
+# Clear npm cache and reinstall
 rm -rf node_modules package-lock.json
-rm -rf apps/*/node_modules
 npm install
 ```
 
-**Issue**: Metro bundler errors in React Native
-**Solution**:
+**2. Environment Variables Not Loading**
+
+- Ensure `.env` file is in `apps/mobile/` directory
+- Restart Expo development server after adding variables
+- Check variables start with `EXPO_PUBLIC_`
+
+**3. Supabase Connection Issues**
+
+- Verify URLs and keys in `.env` file
+- Check Supabase project is active and accessible
+- Ensure database schema is properly set up
+
+**4. TypeScript Errors**
+
 ```bash
-# Clear Metro cache
-npx expo start --clear
+# Run type checking
+npm run type-check --workspace=@somni/mobile
+
+# Clear TypeScript cache
+rm -rf apps/mobile/.expo
+rm -rf apps/mobile/node_modules/.cache
 ```
 
-**Issue**: TypeScript path mapping not working
-**Solution**:
-1. Check `tsconfig.base.json` paths configuration
-2. Restart TypeScript server in your IDE
-3. Ensure each app extends the base config properly
+**5. Build Issues**
 
-### Supabase Issues
+```bash
+# Reset Expo state
+cd apps/mobile
+npx expo install --fix
+rm -rf .expo
+```
 
-**Issue**: "Supabase Connection Error" in apps
-**Solution**:
-1. Verify environment variables are set correctly
-2. Check that Supabase project is active
-3. Ensure database schema has been set up
-4. Verify API keys are valid
+For more detailed troubleshooting, see [Troubleshooting Guide](./09-troubleshooting.md).
 
-**Issue**: Database queries fail
-**Solution**:
-1. Check that all SQL migrations have been executed
-2. Verify Row Level Security policies are in place
-3. Test authentication flow
+---
 
-For more troubleshooting help, see [Troubleshooting Guide](./09-troubleshooting.md).
+This getting started guide reflects the **current working state** of the Somni project as of Features 1.1, 1.2, and 2.1 completion. All instructions are tested and verified to work with the actual codebase.

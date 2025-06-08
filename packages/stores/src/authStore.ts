@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createClient } from '@supabase/supabase-js';
+import { UserProfile } from '@somni/types';
 
 interface User {
   id: string;
@@ -16,12 +17,14 @@ interface Session {
 interface AuthState {
   session: Session | null;
   user: User | null;
+  profile: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   
   // Actions
   setSession: (session: Session | null) => void;
+  setProfile: (profile: UserProfile | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   signOut: () => Promise<void>;
@@ -31,6 +34,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   user: null,
+  profile: null,
   isAuthenticated: false,
   isLoading: true,
   error: null,
@@ -42,6 +46,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: !!session,
       error: null,
     });
+  },
+
+  setProfile: (profile) => {
+    set({ profile });
   },
 
   setLoading: (loading) => {
@@ -59,6 +67,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({
         session: null,
         user: null,
+        profile: null,
         isAuthenticated: false,
         isLoading: false,
       });

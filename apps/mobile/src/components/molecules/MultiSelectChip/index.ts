@@ -1,0 +1,1 @@
+export { MultiSelectChip } from './MultiSelectChip'; 

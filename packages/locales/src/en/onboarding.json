@@ -1,0 +1,64 @@
+{
+  "welcome": {
+    "title": "Welcome to the Dream Realm",
+    "description": "Before we begin your nocturnal journey, let's set up a few things to personalize your dream exploration.",
+    "getStarted": "Begin Dream Journey",
+    "allowNotifications": "Allow Notifications",
+    "skipForNow": "Skip for Now"
+  },
+  "sleepSchedule": {
+    "title": "Your Sleep Rhythm",
+    "description": "Tell us about your sleep patterns so we can provide insights tailored to your nocturnal cycle.",
+    "bedtimeLabel": "Bedtime",
+    "wakeTimeLabel": "Wake Time",
+    "next": "Continue"
+  },
+  "goals": {
+    "title": "Dream Aspirations",
+    "description": "What do you hope to achieve in your dream exploration? Select all that resonate with you.",
+    "options": {
+      "rememberDreams": "Remember more dreams",
+      "lucidDreaming": "Achieve lucid dreams",
+      "dreamMeaning": "Understand dream meanings",
+      "sleepQuality": "Improve sleep quality"
+    }
+  },
+  "lucidity": {
+    "title": "Your Lucid Journey",
+    "description": "How experienced are you with lucid dreaming? This helps us tailor content to your level.",
+    "options": {
+      "beginner": "Complete beginner",
+      "few": "I've had a few lucid dreams",
+      "regular": "I have lucid dreams regularly",
+      "experienced": "I'm an experienced lucid dreamer"
+    }
+  },
+  "privacy": {
+    "title": "Dream Privacy",
+    "description": "How would you like to share your dream experiences? You can change this anytime.",
+    "options": {
+      "private": "Private - Only you can see your dreams",
+      "anonymous": "Anonymous - Share dreams anonymously for insights"
+    }
+  },
+  "complete": {
+    "title": "Welcome to Somni!",
+    "description": "You're all set! Let's start your journey to better dream experiences.",
+    "summaryTitle": "Your Dream Profile:",
+    "sleepScheduleLabel": "Sleep Schedule",
+    "goalsLabel": "Aspirations",
+    "experienceLabel": "Experience Level",
+    "privacyLabel": "Privacy Setting",
+    "finish": "Enter the Dream Realm"
+  },
+  "permissions": {
+    "title": "Dream Notifications",
+    "message": "We recommend enabling notifications for dream reminders and reality checks to enhance your lucid dreaming practice."
+  },
+  "common": {
+    "next": "Continue",
+    "skip": "Skip",
+    "back": "Back",
+    "finish": "Complete Setup"
+  }
+} 

@@ -3,36 +3,37 @@ import { SafeAreaView, View, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Text, Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
+import { useTranslation } from '../../../hooks/useTranslation';
+
+interface NavigationType {
+  navigate: (screen: string) => void;
+}
 
 export const WelcomeScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NavigationType>();
   const theme = useTheme();
+  const { t } = useTranslation('welcome');
+  const styles = createStyles(theme);
 
   return (
-    <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.background.primary },
-      ]}
-    >
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text variant="h1" style={{ textAlign: 'center' }}>
-          Welcome to Somni
+        <Text variant="h1" style={styles.title}>
+          {String(t('title'))}
         </Text>
         <Text variant="body" color="secondary" style={styles.subtitle}>
-          Unlock the world of your dreams. Your personal AI dream journal
-          awaits.
+          {String(t('subtitle'))}
         </Text>
         <Button
           variant="primary"
           size="large"
           onPress={() => navigation.navigate('SignUp')}
         >
-          Get Started
+          {String(t('getStarted'))}
         </Button>
-        <View style={{ marginTop: theme.spacing.medium }}>
+        <View style={styles.secondaryButtonContainer}>
           <Button variant="ghost" onPress={() => navigation.navigate('SignIn')}>
-            I Already Have an Account
+            {String(t('alreadyHaveAccount'))}
           </Button>
         </View>
       </View>
@@ -40,8 +41,27 @@ export const WelcomeScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flex: 1, justifyContent: 'center', padding: 24 },
-  subtitle: { textAlign: 'center', marginVertical: 24, lineHeight: 22 },
-});
+const createStyles = (theme: any) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background.primary,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingHorizontal: theme.spacing.large,
+    },
+    title: {
+      textAlign: 'center',
+      marginBottom: theme.spacing.small,
+    },
+    subtitle: {
+      textAlign: 'center',
+      marginVertical: theme.spacing.large,
+      lineHeight: theme.typography.body.lineHeight || 22,
+    },
+    secondaryButtonContainer: {
+      marginTop: theme.spacing.medium,
+    },
+  });

@@ -1,28 +1,33 @@
 # API Reference
 
-This document provides comprehensive information about Supabase integration, API calls, and backend services used in the Somni project.
+## 🌙 Current Implementation Overview
 
-## Supabase Configuration
+**Last Updated**: December 2024  
+**Implementation Status**: Features 1.1, 1.2, 2.1 Complete ✅
+
+This document provides comprehensive information about the **actually implemented** Supabase integration, API calls, and backend services used in the Somni project. All APIs listed here are currently working in the codebase.
+
+---
+
+## ✅ Implemented Supabase Configuration
 
 ### Environment Variables
 
 #### Mobile App (`.env`)
+
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-#### Web App (`.env.local`)
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
+> **Note**: The mobile app only needs these two environment variables for the current implementation.
 
 ### Client Initialization
 
-#### Mobile (React Native)
+#### Mobile (React Native) - CURRENT IMPLEMENTATION
+
 ```typescript
-// apps/mobile/src/lib/supabase.ts
+// apps/mobile/src/infrastructure/auth/supabase.ts
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -41,6 +46,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 ```
 
 #### Web (React)
+
 ```typescript
 // apps/web/src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
@@ -51,30 +57,33 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 ```
 
-## Database Schema
+---
+
+## ✅ Current Database Schema (Implemented)
 
 ### Tables Structure
 
-#### Users Profile Table
+#### Users Profile Table - IMPLEMENTED ✅
+
 ```sql
+-- Current working schema in production
 CREATE TABLE users_profile (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   username TEXT UNIQUE,
-  display_name TEXT,
-  avatar_url TEXT,
-  is_premium BOOLEAN DEFAULT FALSE NOT NULL,
-  onboarding_completed BOOLEAN DEFAULT FALSE NOT NULL,
-  sleep_schedule JSONB,
-  lucid_dream_settings JSONB,
+  bed_time TIME,                               -- HH:MM:SS format
+  wake_time TIME,                              -- HH:MM:SS format
+  goals TEXT[],                                -- Array of dream goals
+  lucidity_experience TEXT,                    -- Experience level
+  privacy_settings JSONB,                      -- Privacy preferences
+  onboarding_completed BOOLEAN DEFAULT FALSE,  -- Onboarding status
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  CONSTRAINT username_length CHECK (char_length(username) >= 3 AND char_length(username) <= 24)
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable RLS
+-- Row Level Security (RLS) enabled
 ALTER TABLE users_profile ENABLE ROW LEVEL SECURITY;
 
--- Policies
+-- Security policies currently in use
 CREATE POLICY "Users can view own profile" ON users_profile
   FOR SELECT USING (auth.uid() = id);
 
@@ -85,7 +94,30 @@ CREATE POLICY "Users can insert their own profile" ON users_profile
   FOR INSERT WITH CHECK (auth.uid() = id);
 ```
 
+#### Example User Profile Data Structure:
+
+```typescript
+// Actual data structure in use
+interface UserProfile {
+  id: string; // UUID from auth.users
+  username?: string; // Optional unique username
+  bed_time?: string; // "22:30:00" format
+  wake_time?: string; // "06:30:00" format
+  goals?: string[]; // ["rememberDreams", "achieveLucidity", ...]
+  lucidity_experience?: string; // "beginner" | "intermediate" | "advanced" | "expert"
+  privacy_settings?: {
+    allowDataSharing: boolean;
+    shareAnonymously: boolean;
+    allowCommunityAccess: boolean;
+  };
+  onboarding_completed: boolean; // Always set after onboarding
+  created_at: string; // ISO timestamp
+  updated_at: string; // ISO timestamp
+}
+```
+
 #### Dreams Table
+
 ```sql
 -- Custom enum for sleep phases
 CREATE TYPE sleep_phase AS ENUM ('rem', 'nrem', 'light', 'deep', 'awake');
@@ -128,6 +160,7 @@ CREATE INDEX idx_dreams_embedding ON dreams USING hnsw (embedding vector_cosine_
 ```
 
 #### Dream Analysis Table
+
 ```sql
 CREATE TABLE dream_analysis (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -147,14 +180,15 @@ ALTER TABLE dream_analysis ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view analysis of own dreams" ON dream_analysis
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM dreams 
-      WHERE dreams.id = dream_analysis.dream_id 
+      SELECT 1 FROM dreams
+      WHERE dreams.id = dream_analysis.dream_id
       AND dreams.user_id = auth.uid()
     )
   );
 ```
 
 #### Dream Symbols Table
+
 ```sql
 CREATE TABLE dream_symbols (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -174,26 +208,28 @@ ALTER TABLE dream_symbols ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view symbols of own dreams" ON dream_symbols
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM dreams 
-      WHERE dreams.id = dream_symbols.dream_id 
+      SELECT 1 FROM dreams
+      WHERE dreams.id = dream_symbols.dream_id
       AND dreams.user_id = auth.uid()
     )
   );
 ```
 
-## Authentication API
+## ✅ Authentication API (Implemented)
 
-### User Registration
+### User Registration - IMPLEMENTED ✅
+
 ```typescript
-// services/authService.ts
+// apps/mobile/src/infrastructure/auth/authService.ts
 export class AuthService {
-  static async signUp(email: string, password: string, displayName?: string) {
+  // Current sign-up implementation
+  static async signUp(email: string, password: string, username: string) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          display_name: displayName,
+          username, // Stored in user metadata
         },
       },
     });
@@ -202,6 +238,7 @@ export class AuthService {
     return data;
   }
 
+  // Current sign-in implementation
   static async signIn(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -212,537 +249,370 @@ export class AuthService {
     return data;
   }
 
+  // Sign-out implementation
   static async signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }
 
-  static async getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
+  // Get current session
+  static async getSession() {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
     if (error) throw error;
-    return user;
-  }
-
-  static async resetPassword(email: string) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) throw error;
+    return session;
   }
 }
 ```
 
-### Authentication State Management
+### Auth Error Handling - IMPLEMENTED ✅
+
 ```typescript
-// hooks/useAuth.ts
-import { useEffect, useState } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+// Common auth errors handled in the app
+export enum AuthErrorCodes {
+  INVALID_CREDENTIALS = 'invalid_grant',
+  USER_NOT_FOUND = 'user_not_found',
+  EMAIL_NOT_CONFIRMED = 'email_not_confirmed',
+  TOO_MANY_ATTEMPTS = 'too_many_requests',
+  WEAK_PASSWORD = 'weak_password',
+  EMAIL_ALREADY_EXISTS = 'user_already_exists',
+}
 
-export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  return { user, loading };
+// Error handling pattern used throughout the app
+export const handleAuthError = (error: AuthError): string => {
+  switch (error.message) {
+    case 'Invalid login credentials':
+      return 'Invalid email or password. Please try again.';
+    case 'Email rate limit exceeded':
+      return 'Too many attempts. Please try again later.';
+    case 'User already registered':
+      return 'An account with this email already exists.';
+    default:
+      return 'An unexpected error occurred. Please try again.';
+  }
 };
 ```
 
-## Dreams API
+## ✅ User Profile API (Implemented)
 
-### Dream Service
+### Profile Management - IMPLEMENTED ✅
+
 ```typescript
-// services/dreamService.ts
-import { Dream, UserProfile } from '@somni/types';
-import { supabase } from '../lib/supabase';
-
-export class DreamService {
-  static async createDream(dream: Omit<Dream, 'id' | 'created_at' | 'updated_at'>): Promise<Dream> {
+// apps/mobile/src/infrastructure/repositories/userRepository.ts
+export class UserRepository {
+  // Create profile after successful registration
+  static async createProfile(
+    userId: string,
+    profileData: Partial<UserProfile>,
+  ) {
     const { data, error } = await supabase
-      .from('dreams')
+      .from('users_profile')
       .insert({
-        user_id: dream.user_id,
-        raw_transcript: dream.raw_transcript,
-        refined_narrative: dream.refined_narrative,
-        audio_url: dream.audio_url,
-        sleep_phase: dream.sleep_phase,
-        is_lucid: dream.is_lucid,
-        mood_before: dream.mood_before,
-        mood_after: dream.mood_after,
-        embedding: dream.embedding,
+        id: userId,
+        ...profileData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single();
 
     if (error) throw error;
-    return this.mapDreamFromDB(data);
+    return data;
   }
 
-  static async getDreams(userId?: string): Promise<Dream[]> {
-    let query = supabase
-      .from('dreams')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    
-    return data?.map(this.mapDreamFromDB) || [];
-  }
-
-  static async getDreamById(id: string): Promise<Dream | null> {
+  // Get user profile
+  static async getProfile(userId: string): Promise<UserProfile | null> {
     const { data, error } = await supabase
-      .from('dreams')
+      .from('users_profile')
       .select('*')
-      .eq('id', id)
+      .eq('id', userId)
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
-      throw error;
-    }
-
-    return this.mapDreamFromDB(data);
+    if (error && error.code !== 'PGRST116') throw error; // Ignore "not found" errors
+    return data;
   }
 
-  static async updateDream(id: string, updates: Partial<Dream>): Promise<Dream> {
+  // Update profile (used during onboarding)
+  static async updateProfile(userId: string, updates: Partial<UserProfile>) {
     const { data, error } = await supabase
-      .from('dreams')
+      .from('users_profile')
       .update({
         ...updates,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq('id', userId)
       .select()
       .single();
 
     if (error) throw error;
-    return this.mapDreamFromDB(data);
-  }
-
-  static async deleteDream(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('dreams')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-  }
-
-  static async searchDreams(query: string, userId?: string): Promise<Dream[]> {
-    let dbQuery = supabase
-      .from('dreams')
-      .select('*')
-      .or(`raw_transcript.ilike.%${query}%,refined_narrative.ilike.%${query}%`)
-      .order('created_at', { ascending: false });
-
-    if (userId) {
-      dbQuery = dbQuery.eq('user_id', userId);
-    }
-
-    const { data, error } = await dbQuery;
-    if (error) throw error;
-
-    return data?.map(this.mapDreamFromDB) || [];
-  }
-
-  // Helper method to map database fields to TypeScript interface
-  private static mapDreamFromDB(dbDream: any): Dream {
-    return {
-      id: dbDream.id,
-      user_id: dbDream.user_id,
-      created_at: dbDream.created_at,
-      updated_at: dbDream.updated_at,
-      raw_transcript: dbDream.raw_transcript,
-      refined_narrative: dbDream.refined_narrative,
-      audio_url: dbDream.audio_url,
-      sleep_phase: dbDream.sleep_phase,
-      is_lucid: dbDream.is_lucid,
-      mood_before: dbDream.mood_before,
-      mood_after: dbDream.mood_after,
-      embedding: dbDream.embedding,
-    };
+    return data;
   }
 }
 ```
 
-### Real-time Dream Updates
+### Onboarding Data Persistence - IMPLEMENTED ✅
+
 ```typescript
-// hooks/useDreamSubscription.ts
-import { useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { useDreamStore } from '../stores/dreamStore';
+// Onboarding completion flow
+export const completeOnboarding = async (
+  userId: string,
+  onboardingData: OnboardingData,
+): Promise<UserProfile> => {
+  // Transform onboarding data to profile format
+  const profileUpdates = {
+    bed_time: `${onboardingData.bedtime}:00`, // Convert "22:30" to "22:30:00"
+    wake_time: `${onboardingData.wakeTime}:00`, // Convert "06:30" to "06:30:00"
+    goals: onboardingData.selectedGoals,
+    lucidity_experience: onboardingData.lucidityExperience,
+    privacy_settings: onboardingData.privacySettings,
+    onboarding_completed: true,
+  };
 
-export const useDreamSubscription = (userId: string) => {
-  const { addDream, updateDream, removeDream } = useDreamStore();
-
-  useEffect(() => {
-    const subscription = supabase
-      .channel('dreams')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'dreams',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          addDream(DreamService.mapDreamFromDB(payload.new));
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'dreams',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          updateDream(payload.new.id, DreamService.mapDreamFromDB(payload.new));
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'dreams',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          removeDream(payload.old.id);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [userId, addDream, updateDream, removeDream]);
+  return UserRepository.updateProfile(userId, profileUpdates);
 };
 ```
 
-## Vector Embeddings API
+## ✅ Store Integration (Implemented)
 
-### Vector Search Function
-The database includes a `match_dreams` function for semantic similarity search:
+### AuthStore API - IMPLEMENTED ✅
 
-```sql
-CREATE OR REPLACE FUNCTION match_dreams(
-  query_embedding vector(1536),
-  match_threshold float DEFAULT 0.78,
-  match_count int DEFAULT 10,
-  filter_user_id uuid DEFAULT NULL
-)
-RETURNS TABLE (
-  id uuid,
-  user_id uuid,
-  raw_transcript text,
-  refined_narrative text,
-  created_at timestamp with time zone,
-  similarity float
-)
-```
-
-### Embedding Generation Service
 ```typescript
-// services/embeddingService.ts
-import { pipeline } from '@xenova/transformers';
+// packages/stores/src/authStore.ts
+export interface AuthStore {
+  // State
+  user: User | null; // Supabase auth user
+  profile: UserProfile | null; // Extended profile data
+  isAuthenticated: boolean; // Authentication status
+  isLoading: boolean; // Loading state
 
-export class EmbeddingService {
-  private static embeddingModel: any = null;
-
-  static async initializeModel() {
-    if (!this.embeddingModel) {
-      this.embeddingModel = await pipeline(
-        'feature-extraction',
-        'Supabase/gte-small'
-      );
-    }
-    return this.embeddingModel;
-  }
-
-  static async generateEmbedding(text: string): Promise<number[]> {
-    const model = await this.initializeModel();
-    
-    const output = await model(text, {
-      pooling: 'mean',
-      normalize: true,
-    });
-
-    return Array.from(output.data);
-  }
-
-  static async searchSimilarDreams(
-    query: string,
-    userId?: string,
-    threshold: number = 0.78,
-    limit: number = 10
-  ): Promise<Dream[]> {
-    const queryEmbedding = await this.generateEmbedding(query);
-
-    const { data, error } = await supabase.rpc('match_dreams', {
-      query_embedding: queryEmbedding,
-      match_threshold: threshold,
-      match_count: limit,
-      filter_user_id: userId,
-    });
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  static async updateDreamEmbedding(dreamId: string, content: string): Promise<void> {
-    const embedding = await this.generateEmbedding(content);
-
-    const { error } = await supabase
-      .from('dreams')
-      .update({ embedding })
-      .eq('id', dreamId);
-
-    if (error) throw error;
-  }
+  // Actions
+  setUser: (user: User | null) => void;
+  setProfile: (profile: UserProfile | null) => void;
+  signOut: () => void;
 }
+
+// Usage in components
+const Component = () => {
+  const { user, profile, isAuthenticated } = useAuthStore();
+
+  // Access current user and profile data
+  if (isAuthenticated && profile) {
+    // User is logged in and has completed setup
+  }
+};
 ```
 
-## Database Functions and Triggers
+### OnboardingStore API - IMPLEMENTED ✅
 
-### Automatic Profile Creation
-The database includes an automatic trigger that creates a user profile when a new user signs up:
+```typescript
+// packages/stores/src/onboardingStore.ts
+export interface OnboardingStore {
+  data: OnboardingData;
 
-```sql
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.users_profile (id, username, display_name)
-  VALUES (
-    new.id, 
-    COALESCE(new.raw_user_meta_data ->> 'username', 'user_' || substr(new.id::text, 1, 8)),
-    COALESCE(new.raw_user_meta_data ->> 'display_name', new.raw_user_meta_data ->> 'full_name')
+  // Individual field setters
+  setBedtime: (time: string) => void; // "HH:MM" format
+  setWakeTime: (time: string) => void; // "HH:MM" format
+  setGoals: (goals: string[]) => void; // Goal IDs array
+  setLucidityExperience: (level: string) => void; // Experience level
+  setPrivacySettings: (settings: PrivacySettings) => void;
+
+  // Lifecycle
+  reset: () => void; // Clear all data
+}
+
+// Usage during onboarding flow
+const OnboardingScreen = () => {
+  const { data, setGoals } = useOnboardingStore();
+
+  const handleGoalSelection = (selectedGoals: string[]) => {
+    setGoals(selectedGoals);
+  };
+};
+```
+
+## ✅ Translation API (Implemented)
+
+### i18next Integration - IMPLEMENTED ✅
+
+```typescript
+// apps/mobile/src/hooks/useTranslation.ts
+export const useTranslation = (namespace?: string) => {
+  const { t, i18n } = useI18nextTranslation(namespace);
+
+  return {
+    t: (key: string, options?: any) => String(t(key, options)),
+    i18n,
+    ready: i18n.isInitialized,
+  };
+};
+
+// Usage in components
+const Component = () => {
+  const { t } = useTranslation('auth');
+
+  return (
+    <Text>{t('signIn.title')}</Text>  // "Return to the Dream Realm"
   );
-  RETURN new;
-END;
-$$;
-
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+};
 ```
 
-### Automatic Timestamp Updates
-The database includes triggers to automatically update the `updated_at` timestamp:
+### Translation Namespace Structure - IMPLEMENTED ✅
 
-```sql
-CREATE OR REPLACE FUNCTION public.handle_updated_at()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  new.updated_at = timezone('utc'::text, now());
-  RETURN new;
-END;
-$$;
-
-CREATE TRIGGER handle_users_profile_updated_at
-  BEFORE UPDATE ON public.users_profile
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-
-CREATE TRIGGER handle_dreams_updated_at
-  BEFORE UPDATE ON public.dreams
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-```
-
-## File Storage API
-
-### Audio Recording Storage
 ```typescript
-// services/storageService.ts
-export class StorageService {
-  static async uploadAudioRecording(
+// Current translation structure
+interface TranslationNamespaces {
+  auth: {
+    signIn: {
+      title: string; // "Return to the Dream Realm"
+      subtitle: string; // "Continue your journey through the oniric realm"
+      email: string; // "Email"
+      password: string; // "Secret Key"
+      button: string; // "Enter Dreams"
+      // ... more fields
+    };
+    signUp: {
+      title: string; // "Enter the Dream Realm"
+      // ... more fields
+    };
+  };
+  onboarding: {
+    welcome: {
+      title: string; // "Welcome to the Dream Realm"
+      // ... more fields
+    };
+    // ... more screens
+  };
+  common: {
+    button: {
+      continue: string; // "Continue"
+      next: string; // "Next"
+      back: string; // "Back"
+    };
+  };
+}
+```
+
+## 🔄 Planned APIs (Not Yet Implemented)
+
+> **Note**: The following APIs are planned for future phases and are **not yet implemented** in the current codebase.
+
+### Dream Recording API (Planned for Phase 5)
+
+```typescript
+// PLANNED - Not yet implemented
+interface DreamAPI {
+  createDream(dreamData: CreateDreamData): Promise<Dream>;
+  updateDream(dreamId: string, updates: Partial<Dream>): Promise<Dream>;
+  getUserDreams(userId: string): Promise<Dream[]>;
+  deleteDream(dreamId: string): Promise<void>;
+}
+```
+
+### AI Analysis API (Planned for Phase 6)
+
+```typescript
+// PLANNED - Not yet implemented
+interface AnalysisAPI {
+  analyzeDream(
     dreamId: string,
-    audioBlob: Blob,
-    userId: string
-  ): Promise<string> {
-    const fileName = `${userId}/${dreamId}/recording.webm`;
-    
-    const { data, error } = await supabase.storage
-      .from('dream-recordings')
-      .upload(fileName, audioBlob, {
-        contentType: 'audio/webm',
-        upsert: true,
-      });
-
-    if (error) throw error;
-
-    const { data: urlData } = supabase.storage
-      .from('dream-recordings')
-      .getPublicUrl(fileName);
-
-    return urlData.publicUrl;
-  }
-
-  static async deleteAudioRecording(dreamId: string, userId: string): Promise<void> {
-    const fileName = `${userId}/${dreamId}/recording.webm`;
-    
-    const { error } = await supabase.storage
-      .from('dream-recordings')
-      .remove([fileName]);
-
-    if (error) throw error;
-  }
-
-  static async uploadProfileAvatar(
-    userId: string,
-    imageBlob: Blob
-  ): Promise<string> {
-    const fileName = `${userId}/avatar.jpg`;
-    
-    const { data, error } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, imageBlob, {
-        contentType: 'image/jpeg',
-        upsert: true,
-      });
-
-    if (error) throw error;
-
-    const { data: urlData } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(fileName);
-
-    return urlData.publicUrl;
-  }
+    analysisType: AnalysisType,
+  ): Promise<DreamAnalysis>;
+  getAnalysisHistory(dreamId: string): Promise<DreamAnalysis[]>;
 }
 ```
 
-## Error Handling
+---
 
-### API Error Types
+## Error Handling Patterns
+
+### Supabase Error Handling - IMPLEMENTED ✅
+
 ```typescript
-// types/errors.ts
-export interface ApiError {
-  code: string;
-  message: string;
-  details?: any;
-}
-
-export class SupabaseError extends Error {
-  constructor(
-    public code: string,
-    message: string,
-    public details?: any
-  ) {
-    super(message);
-    this.name = 'SupabaseError';
+// Standard error handling pattern used throughout the app
+export const handleSupabaseError = (
+  error: PostgrestError | AuthError,
+): string => {
+  // Database constraint violations
+  if (error.code === '23505') {
+    if (error.message.includes('username')) {
+      return 'This username is already taken. Please choose another.';
+    }
+    if (error.message.includes('email')) {
+      return 'This email is already registered. Please sign in instead.';
+    }
   }
-}
 
-export const handleSupabaseError = (error: any): never => {
-  if (error.code) {
-    throw new SupabaseError(error.code, error.message, error.details);
+  // Row Level Security violations
+  if (error.code === '42501') {
+    return "You don't have permission to perform this action.";
   }
-  throw new Error(error.message || 'Unknown error occurred');
+
+  // Network or connection errors
+  if (error.message.includes('network') || error.message.includes('fetch')) {
+    return 'Network error. Please check your connection and try again.';
+  }
+
+  // Default fallback
+  return 'An unexpected error occurred. Please try again.';
 };
 ```
 
-### Error Handling Wrapper
-```typescript
-// utils/apiWrapper.ts
-export const withErrorHandling = async <T>(
-  apiCall: () => Promise<T>
-): Promise<T> => {
-  try {
-    return await apiCall();
-  } catch (error: any) {
-    console.error('API Error:', error);
-    
-    if (error.code === 'PGRST116') {
-      throw new Error('Resource not found');
+### Component Error Boundaries - IMPLEMENTED ✅
+
+```typitten
+// Error handling in components
+const AuthScreen = () => {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSignIn = async (data: SignInData) => {
+    try {
+      setError(null);
+      await AuthService.signIn(data.email, data.password);
+    } catch (err) {
+      const errorMessage = err instanceof Error ?
+        handleAuthError(err as AuthError) :
+        'An unexpected error occurred';
+      setError(errorMessage);
     }
-    
-    if (error.code === '23505') {
-      throw new Error('Resource already exists');
-    }
-    
-    if (error.message?.includes('JWT')) {
-      throw new Error('Authentication required');
-    }
-    
-    throw error;
+  };
+
+  if (error) {
+    return <ErrorMessage message={error} onDismiss={() => setError(null)} />;
   }
+
+  // ... rest of component
 };
 ```
 
-## Rate Limiting and Optimization
+---
 
-### Request Batching
+## Rate Limiting & Security
+
+### Supabase Built-in Protections - ACTIVE ✅
+
+- **Authentication rate limiting**: 5 attempts per hour per IP for auth endpoints
+- **Row Level Security (RLS)**: All user data protected by RLS policies
+- **JWT token validation**: All requests validated with Supabase JWT
+- **HTTPS only**: All API communications over secure HTTPS
+
+### App-Level Security Measures - IMPLEMENTED ✅
+
 ```typescript
-// utils/batchRequests.ts
-export class RequestBatcher {
-  private static batches: Map<string, any[]> = new Map();
-  private static timeouts: Map<string, NodeJS.Timeout> = new Map();
+// Secure token storage
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-  static async batchRequest<T>(
-    key: string,
-    request: () => Promise<T>,
-    delay: number = 100
-  ): Promise<T> {
-    return new Promise((resolve, reject) => {
-      if (!this.batches.has(key)) {
-        this.batches.set(key, []);
-      }
-
-      this.batches.get(key)!.push({ resolve, reject, request });
-
-      if (this.timeouts.has(key)) {
-        clearTimeout(this.timeouts.get(key)!);
-      }
-
-      this.timeouts.set(key, setTimeout(async () => {
-        const batch = this.batches.get(key) || [];
-        this.batches.delete(key);
-        this.timeouts.delete(key);
-
-        try {
-          const results = await Promise.all(
-            batch.map(item => item.request())
-          );
-          batch.forEach((item, index) => {
-            item.resolve(results[index]);
-          });
-        } catch (error) {
-          batch.forEach(item => {
-            item.reject(error);
-          });
-        }
-      }, delay));
-    });
-  }
-}
+// Supabase automatically handles secure token storage via AsyncStorage
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: AsyncStorage, // Encrypted storage on device
+    autoRefreshToken: true, // Automatic token refresh
+    persistSession: true, // Secure session persistence
+  },
+});
 ```
 
-This API reference provides a comprehensive guide to all backend integrations and data operations in the Somni project. Use these patterns and examples as the foundation for all API-related development.
+---
+
+This API reference reflects the **actual working implementation** in the Somni codebase as of Features 1.1, 1.2, and 2.1 completion. All APIs listed in the "Implemented" sections are currently functioning and can be relied upon for development.

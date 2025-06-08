@@ -1,17 +1,10 @@
-import { useColorScheme } from 'react-native';
-import { useSettingsStore } from '@somni/stores';
-import { lightTheme, darkTheme, Theme } from '@somni/theme';
+import { darkTheme, Theme } from '@somni/theme';
 
+/**
+ * Hook that returns the oniric dark theme
+ * Somni is designed for nighttime use with a dreamlike aesthetic
+ */
 export const useTheme = (): Theme => {
-  const systemColorScheme = useColorScheme();
-  const { settings } = useSettingsStore();
-  
-  const getTheme = (): Theme => {
-    if (settings.theme === 'system') {
-      return systemColorScheme === 'dark' ? darkTheme : lightTheme;
-    }
-    return settings.theme === 'dark' ? darkTheme : lightTheme;
-  };
-  
-  return getTheme();
+  // Always return dark theme for the oniric dream experience
+  return darkTheme;
 };

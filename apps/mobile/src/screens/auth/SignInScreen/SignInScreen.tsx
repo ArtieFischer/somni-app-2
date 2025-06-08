@@ -55,10 +55,10 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text variant="h1" style={styles.title}>
-          {t('signIn.title')}
+          {String(t('signIn.title'))}
         </Text>
         <Text variant="body" color="secondary" style={styles.subtitle}>
-          {t('signIn.subtitle')}
+          {String(t('signIn.subtitle'))}
         </Text>
 
         <Controller
@@ -93,13 +93,13 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
           )}
         />
 
-        <View style={{ alignSelf: 'flex-end', marginVertical: 8 }}>
+        <View style={styles.forgotPasswordContainer}>
           <Button
             variant="ghost"
             size="small"
             onPress={() => navigation.navigate('ForgotPassword')}
           >
-            Forgot Password?
+            {String(t('signIn.forgotPassword'))}
           </Button>
         </View>
 
@@ -108,9 +108,8 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
           size="large"
           onPress={handleSubmit(onSubmit)}
           loading={isSubmitting}
-          style={styles.button}
         >
-          {t('signIn.button')}
+          {String(t('signIn.button'))}
         </Button>
 
         {canUseBiometrics && (

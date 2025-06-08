@@ -3,38 +3,34 @@ import { useTheme } from '../../../hooks/useTheme';
 
 export const useStyles = () => {
   const theme = useTheme();
-  
+
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.colors.background.primary,
+    },
+    header: {
+      paddingHorizontal: theme.spacing.large,
+      paddingTop: theme.spacing.xxl,
+      paddingBottom: theme.spacing.large,
+    },
+    title: {
+      textAlign: 'center',
+    },
+    description: {
+      textAlign: 'center',
+      marginTop: theme.spacing.medium,
     },
     content: {
       flex: 1,
       justifyContent: 'center',
       paddingHorizontal: theme.spacing.large,
     },
-    title: {
-      textAlign: 'center',
-      marginBottom: theme.spacing.small,
+    footer: {
+      padding: theme.spacing.large,
     },
-    subtitle: {
-      textAlign: 'center',
-      marginBottom: theme.spacing.xl,
-    },
-    button: {
-      marginTop: theme.spacing.large,
-    },
-    linkButton: {
+    skipButton: {
       marginTop: theme.spacing.medium,
     },
-    forgotPasswordContainer: {
-      alignItems: 'center',
-      marginVertical: theme.spacing.small,
-    },
-    forgotPasswordButton: {
-      // Small button styling for forgot password
-      opacity: 0.8,
-    },
   });
-};
+}; 
