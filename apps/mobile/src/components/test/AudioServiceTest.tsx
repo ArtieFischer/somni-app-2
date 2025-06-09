@@ -10,17 +10,20 @@ export interface AudioRecordingResult {
   format: string;
 }
 
-// Simple Button component for testing
+interface PlaybackTestProps {
+  audioUri?: string;
+}
+
 const TestButton: React.FC<{
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'danger';
+  variant?: 'primary' | 'secondary';
   disabled?: boolean;
 }> = ({ title, onPress, variant = 'primary', disabled = false }) => (
   <TouchableOpacity
     style={[
       styles.button,
-      variant === 'danger' ? styles.dangerButton : styles.primaryButton,
+      variant === 'secondary' ? styles.secondaryButton : styles.primaryButton,
       disabled && styles.disabled
     ]}
     onPress={onPress}
@@ -29,6 +32,94 @@ const TestButton: React.FC<{
     <Text style={styles.buttonText}>{title}</Text>
   </TouchableOpacity>
 );
+
+const AudioPlaybackTest: React.FC<PlaybackTestProps> = ({ audioUri }) => {
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const playRecording = async () => {
+    if (!audioUri) {
+      Alert.alert('No Recording', 'Please record audio first');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      if (sound) {
+        await sound.unloadAsync();
+        setSound(null);
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+      });
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: audioUri },
+        { shouldPlay: true },
+        (status) => {
+          if (status.isLoaded) {
+            setIsPlaying(status.isPlaying);
+            if (status.didJustFinish) {
+              setIsPlaying(false);
+            }
+          }
+        }
+      );
+
+      setSound(newSound);
+      setIsPlaying(true);
+
+    } catch (error) {
+      console.error('Playback error:', error);
+      Alert.alert('Playback Error', 'May not work fully in Expo Go');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const stopPlayback = async () => {
+    if (sound) {
+      await sound.stopAsync();
+      setIsPlaying(false);
+    }
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [sound]);
+
+  if (!audioUri) {
+    return (
+      <View style={styles.playbackContainer}>
+        <Text style={styles.infoText}>Record audio first to test playback</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.playbackContainer}>
+      <Text style={styles.playbackTitle}>Playback Test</Text>
+      <TestButton
+        title={isLoading ? 'Loading...' : isPlaying ? 'Stop' : 'Play Recording'}
+        variant={isPlaying ? 'secondary' : 'primary'}
+        onPress={isPlaying ? stopPlayback : playRecording}
+        disabled={isLoading}
+      />
+      <Text style={styles.infoText}>
+        Note: May not work fully in Expo Go
+      </Text>
+    </View>
+  );
+};
 
 export const AudioServiceTest: React.FC = () => {
   const [recording, setRecording] = useState<Audio.Recording | undefined>();
@@ -158,7 +249,7 @@ export const AudioServiceTest: React.FC = () => {
       <View style={styles.buttonContainer}>
         <TestButton
           title={isRecording ? 'Stop Recording' : 'Start Recording'}
-          variant={isRecording ? 'danger' : 'primary'}
+          variant={isRecording ? 'secondary' : 'primary'}
           onPress={isRecording ? handleStopRecording : handleStartRecording}
         />
       </View>
@@ -172,6 +263,8 @@ export const AudioServiceTest: React.FC = () => {
           <Text style={styles.resultUri} numberOfLines={2}>URI: {lastRecording.uri}</Text>
         </View>
       )}
+
+      <AudioPlaybackTest audioUri={lastRecording?.uri} />
     </View>
   );
 };
@@ -224,7 +317,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: '#4ECDC4'
   },
-  dangerButton: {
+  secondaryButton: {
     backgroundColor: '#FF6B6B'
   },
   disabled: {
@@ -255,5 +348,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#B0B3B8',
     marginTop: 5
+  },
+  playbackContainer: {
+    padding: 15,
+    backgroundColor: '#0F3460',
+    borderRadius: 8,
+    marginTop: 15,
+    alignItems: 'center'
+  },
+  playbackTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4ECDC4',
+    marginBottom: 10
+  },
+  infoText: {
+    fontSize: 11,
+    color: '#B0B3B8',
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic'
   }
 });
