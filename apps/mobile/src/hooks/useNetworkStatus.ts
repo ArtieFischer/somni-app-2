@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
+import NetInfo from '@react-native-community/netinfo';
 
 export interface NetworkStatus {
   isConnected: boolean;
@@ -7,6 +7,7 @@ export interface NetworkStatus {
   type: string;
   isWifi: boolean;
   isCellular: boolean;
+  connectionQuality: 'poor' | 'good' | 'excellent' | 'unknown';
 }
 
 export const useNetworkStatus = () => {
@@ -16,27 +17,111 @@ export const useNetworkStatus = () => {
     type: 'unknown',
     isWifi: false,
     isCellular: false,
+    connectionQuality: 'unknown'
   });
 
+  const [lastConnectionCheck, setLastConnectionCheck] = useState<Date | null>(null);
+
   useEffect(() => {
-    const updateNetworkStatus = (state: NetInfoState) => {
-      setNetworkStatus({
+    const unsubscribe = NetInfo.addEventListener(state => {
+      console.log('Network state changed:', state);
+      
+      const newStatus: NetworkStatus = {
         isConnected: state.isConnected ?? false,
         isInternetReachable: state.isInternetReachable ?? false,
         type: state.type,
         isWifi: state.type === 'wifi',
         isCellular: state.type === 'cellular',
-      });
-    };
+        connectionQuality: determineConnectionQuality(state)
+      };
+
+      setNetworkStatus(newStatus);
+      setLastConnectionCheck(new Date());
+    });
 
     // Get initial state
-    NetInfo.fetch().then(updateNetworkStatus);
-
-    // Subscribe to network state changes
-    const unsubscribe = NetInfo.addEventListener(updateNetworkStatus);
+    NetInfo.fetch().then(state => {
+      const initialStatus: NetworkStatus = {
+        isConnected: state.isConnected ?? false,
+        isInternetReachable: state.isInternetReachable ?? false,
+        type: state.type,
+        isWifi: state.type === 'wifi',
+        isCellular: state.type === 'cellular',
+        connectionQuality: determineConnectionQuality(state)
+      };
+      setNetworkStatus(initialStatus);
+      setLastConnectionCheck(new Date());
+    });
 
     return () => unsubscribe();
   }, []);
 
-  return networkStatus;
+  const checkConnection = async (): Promise<boolean> => {
+    try {
+      const state = await NetInfo.fetch();
+      const isOnline = (state.isConnected && state.isInternetReachable) ?? false;
+      setLastConnectionCheck(new Date());
+      return isOnline;
+    } catch (error) {
+      console.error('Network check failed:', error);
+      return false;
+    }
+  };
+
+  const getConnectionStatusText = (): string => {
+    if (!networkStatus.isConnected) {
+      return 'No connection';
+    }
+    
+    if (!networkStatus.isInternetReachable) {
+      return 'Connected but no internet';
+    }
+
+    const typeText = networkStatus.isWifi ? 'WiFi' : 
+                    networkStatus.isCellular ? 'Cellular' : 
+                    networkStatus.type;
+    
+    return `Connected via ${typeText} (${networkStatus.connectionQuality})`;
+  };
+
+  return {
+    ...networkStatus,
+    checkConnection,
+    getConnectionStatusText,
+    lastConnectionCheck,
+    isOnline: networkStatus.isConnected && networkStatus.isInternetReachable
+  };
 };
+
+// Helper function to determine connection quality
+function determineConnectionQuality(state: any): 'poor' | 'good' | 'excellent' | 'unknown' {
+  // WiFi is generally good
+  if (state.type === 'wifi') {
+    return 'excellent';
+  }
+
+  // Cellular quality based on details if available
+  if (state.type === 'cellular' && state.details) {
+    const cellularGeneration = state.details.cellularGeneration;
+    
+    switch (cellularGeneration) {
+      case '5g':
+        return 'excellent';
+      case '4g':
+        return 'good';
+      case '3g':
+        return 'poor';
+      case '2g':
+        return 'poor';
+      default:
+        return 'good'; // Default for cellular
+    }
+  }
+
+  // Other connection types
+  if (state.type === 'ethernet') {
+    return 'excellent';
+  }
+
+  return 'unknown';
+}
