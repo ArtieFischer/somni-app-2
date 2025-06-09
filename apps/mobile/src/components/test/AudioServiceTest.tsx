@@ -1,8 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { Button } from '../atoms/Button';
-import { Text } from '../atoms/Text';
+import { View, StyleSheet, Alert, Text, TouchableOpacity } from 'react-native';
 import { useAudioRecorderService, AudioRecordingResult } from '../../hooks/useAudioRecorder';
+
+// Simple Button component for testing
+const TestButton: React.FC<{
+  title: string;
+  onPress: () => void;
+  variant?: 'primary' | 'danger';
+  disabled?: boolean;
+}> = ({ title, onPress, variant = 'primary', disabled = false }) => (
+  <TouchableOpacity
+    style={[
+      styles.button,
+      variant === 'danger' ? styles.dangerButton : styles.primaryButton,
+      disabled && styles.disabled
+    ]}
+    onPress={onPress}
+    disabled={disabled}
+  >
+    <Text style={styles.buttonText}>{title}</Text>
+  </TouchableOpacity>
+);
 
 export const AudioServiceTest: React.FC = () => {
   const [lastRecording, setLastRecording] = useState<AudioRecordingResult | null>(null);
@@ -56,36 +74,36 @@ export const AudioServiceTest: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text variant="heading" style={styles.title}>Audio Service Test</Text>
+      <Text style={styles.title}>Audio Service Test</Text>
       
       {error && (
-        <Text variant="body" style={styles.error}>{error}</Text>
+        <Text style={styles.error}>{error}</Text>
       )}
 
       <View style={styles.statusContainer}>
-        <Text variant="body">Status: {isRecording ? 'Recording' : 'Ready'}</Text>
+        <Text style={styles.statusText}>
+          Status: {isRecording ? 'Recording' : 'Ready'}
+        </Text>
         {isRecording && (
-          <Text variant="body" style={styles.duration}>{formatTime(recordingDuration)}</Text>
+          <Text style={styles.duration}>{formatTime(recordingDuration)}</Text>
         )}
       </View>
 
       <View style={styles.buttonContainer}>
-        <Button
+        <TestButton
+          title={isRecording ? 'Stop Recording' : 'Start Recording'}
           variant={isRecording ? 'danger' : 'primary'}
           onPress={isRecording ? handleStopRecording : handleStartRecording}
-          style={styles.button}
-        >
-          {isRecording ? 'Stop Recording' : 'Start Recording'}
-        </Button>
+        />
       </View>
 
       {lastRecording && (
         <View style={styles.resultContainer}>
-          <Text variant="subtitle">Last Recording:</Text>
-          <Text variant="body">Duration: {lastRecording.duration}s</Text>
-          <Text variant="body">Size: {Math.round(lastRecording.fileSize / 1024)}KB</Text>
-          <Text variant="body">Format: {lastRecording.format}</Text>
-          <Text variant="caption" numberOfLines={2}>URI: {lastRecording.uri}</Text>
+          <Text style={styles.resultTitle}>Last Recording:</Text>
+          <Text style={styles.resultText}>Duration: {lastRecording.duration}s</Text>
+          <Text style={styles.resultText}>Size: {Math.round(lastRecording.fileSize / 1024)}KB</Text>
+          <Text style={styles.resultText}>Format: {lastRecording.format}</Text>
+          <Text style={styles.resultUri} numberOfLines={2}>URI: {lastRecording.uri}</Text>
         </View>
       )}
     </View>
@@ -100,6 +118,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A2E'
   },
   title: {
+    fontSize: 24,
+    fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 30,
     color: '#EAEAEA'
@@ -107,11 +127,16 @@ const styles = StyleSheet.create({
   error: {
     color: '#E74C3C',
     textAlign: 'center',
-    marginBottom: 20
+    marginBottom: 20,
+    fontSize: 16
   },
   statusContainer: {
     alignItems: 'center',
     marginBottom: 30
+  },
+  statusText: {
+    fontSize: 16,
+    color: '#EAEAEA'
   },
   duration: {
     fontSize: 24,
@@ -124,11 +149,45 @@ const styles = StyleSheet.create({
     marginBottom: 30
   },
   button: {
-    minWidth: 200
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 25,
+    minWidth: 200,
+    alignItems: 'center'
+  },
+  primaryButton: {
+    backgroundColor: '#4ECDC4'
+  },
+  dangerButton: {
+    backgroundColor: '#FF6B6B'
+  },
+  disabled: {
+    opacity: 0.6
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16
   },
   resultContainer: {
     backgroundColor: '#16213E',
     padding: 15,
     borderRadius: 8
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#4ECDC4',
+    marginBottom: 10
+  },
+  resultText: {
+    fontSize: 16,
+    color: '#EAEAEA',
+    marginBottom: 5
+  },
+  resultUri: {
+    fontSize: 12,
+    color: '#B0B3B8',
+    marginTop: 5
   }
 });
