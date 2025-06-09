@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, Text, TouchableOpacity } from 'react-native';
-import { useAudioRecorderService, AudioRecordingResult } from '../../hooks/useAudioRecorder';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
+
+export interface AudioRecordingResult {
+  uri: string;
+  duration: number;
+  fileSize: number;
+  format: string;
+}
 
 // Simple Button component for testing
 const TestButton: React.FC<{
@@ -23,27 +31,59 @@ const TestButton: React.FC<{
 );
 
 export const AudioServiceTest: React.FC = () => {
+  const [recording, setRecording] = useState<Audio.Recording | undefined>();
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const [lastRecording, setLastRecording] = useState<AudioRecordingResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const {
-    isRecording,
-    recordingDuration,
-    startRecording,
-    stopRecording,
-    cleanup
-  } = useAudioRecorderService();
+  const [isRecording, setIsRecording] = useState(false);
 
   useEffect(() => {
     return () => {
-      cleanup();
+      if (recording) {
+        recording.stopAndUnloadAsync();
+      }
     };
-  }, [cleanup]);
+  }, [recording]);
+
+  const requestPermissions = async (): Promise<boolean> => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      return status === 'granted';
+    } catch (error) {
+      console.error('Permission request failed:', error);
+      return false;
+    }
+  };
 
   const handleStartRecording = async () => {
     try {
       setError(null);
-      await startRecording();
+      
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) {
+        throw new Error('Microphone permission denied');
+      }
+
+      // Configure audio mode for recording
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        (status) => {
+          if (status.isRecording) {
+            const durationMillis = status.durationMillis || 0;
+            setRecordingDuration(Math.floor(durationMillis / 1000));
+          }
+        }
+      );
+      
+      setRecording(newRecording);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
       setError(errorMessage);
@@ -52,13 +92,39 @@ export const AudioServiceTest: React.FC = () => {
   };
 
   const handleStopRecording = async () => {
+    if (!recording) {
+      return;
+    }
+
     try {
-      const result = await stopRecording();
+      await recording.stopAndUnloadAsync();
+      
+      const uri = recording.getURI();
+      if (!uri) {
+        throw new Error('Recording URI not available');
+      }
+
+      // Get file info
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      const duration = recordingDuration;
+      
+      const result: AudioRecordingResult = {
+        uri,
+        duration,
+        fileSize: fileInfo.size || 0,
+        format: 'wav'
+      };
+      
       setLastRecording(result);
+      setRecording(undefined);
+      setIsRecording(false);
+      setRecordingDuration(0);
+
       Alert.alert(
         'Recording Complete',
         `Duration: ${result.duration}s\nSize: ${Math.round(result.fileSize / 1024)}KB\nFormat: ${result.format}`
       );
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to stop recording';
       setError(errorMessage);
@@ -74,7 +140,7 @@ export const AudioServiceTest: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Audio Service Test</Text>
+      <Text style={styles.title}>Audio Service Test (expo-av)</Text>
       
       {error && (
         <Text style={styles.error}>{error}</Text>
