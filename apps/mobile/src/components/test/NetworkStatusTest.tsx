@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 
 const TestButton: React.FC<{
   title: string;
