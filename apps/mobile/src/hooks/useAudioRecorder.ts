@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { useAudioRecorder, RecordingPresets, AudioModule } from 'expo-audio';
+import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 
 export interface AudioRecordingResult {
@@ -12,21 +12,11 @@ export interface AudioRecordingResult {
 export const useAudioRecorderService = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const recordingStartTime = useRef<number>(0);
-  const durationTimer = useRef<NodeJS.Timeout | null>(null);
-
-  const audioRecorder = useAudioRecorder(
-    RecordingPresets.HIGH_QUALITY,
-    {
-      onRecordingStatusUpdate: (status) => {
-        console.log('Recording status:', status);
-      }
-    }
-  );
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   const requestPermissions = useCallback(async (): Promise<boolean> => {
     try {
-      const { status } = await AudioModule.requestRecordingPermissionsAsync();
+      const { status } = await Audio.requestPermissionsAsync();
       return status === 'granted';
     } catch (error) {
       console.error('Permission request failed:', error);
@@ -45,47 +35,50 @@ export const useAudioRecorderService = () => {
     }
 
     try {
-      await audioRecorder.prepareToRecordAsync();
-      audioRecorder.record();
-      setIsRecording(true);
-      recordingStartTime.current = Date.now();
-      setRecordingDuration(0);
+      // Configure audio mode for recording
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
 
-      // Start duration timer
-      durationTimer.current = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - recordingStartTime.current) / 1000);
-        setRecordingDuration(elapsed);
-      }, 1000);
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        (status) => {
+          if (status.isRecording) {
+            const durationMillis = status.durationMillis || 0;
+            setRecordingDuration(Math.floor(durationMillis / 1000));
+          }
+        }
+      );
+
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setRecordingDuration(0);
 
     } catch (error) {
       throw new Error(`Failed to start recording: ${error}`);
     }
-  }, [isRecording, audioRecorder, requestPermissions]);
+  }, [isRecording, requestPermissions]);
 
   const stopRecording = useCallback(async (): Promise<AudioRecordingResult> => {
-    if (!isRecording) {
+    if (!isRecording || !recordingRef.current) {
       throw new Error('No recording in progress');
     }
 
     try {
-      await audioRecorder.stop();
-      const uri = audioRecorder.uri;
+      await recordingRef.current.stopAndUnloadAsync();
       
+      const uri = recordingRef.current.getURI();
       if (!uri) {
         throw new Error('Recording URI not available');
       }
 
       const fileInfo = await FileSystem.getInfoAsync(uri);
-      const duration = Math.floor((Date.now() - recordingStartTime.current) / 1000);
+      const duration = recordingDuration;
       
       setIsRecording(false);
       setRecordingDuration(0);
-
-      // Clear timer
-      if (durationTimer.current) {
-        clearInterval(durationTimer.current);
-        durationTimer.current = null;
-      }
+      recordingRef.current = null;
 
       return {
         uri,
@@ -96,27 +89,20 @@ export const useAudioRecorderService = () => {
     } catch (error) {
       setIsRecording(false);
       setRecordingDuration(0);
-      
-      if (durationTimer.current) {
-        clearInterval(durationTimer.current);
-        durationTimer.current = null;
-      }
+      recordingRef.current = null;
       
       throw new Error(`Failed to stop recording: ${error}`);
     }
-  }, [isRecording, audioRecorder]);
+  }, [isRecording, recordingDuration]);
 
   const cleanup = useCallback(() => {
-    if (durationTimer.current) {
-      clearInterval(durationTimer.current);
-      durationTimer.current = null;
-    }
-    if (isRecording) {
-      audioRecorder.stop();
+    if (recordingRef.current && isRecording) {
+      recordingRef.current.stopAndUnloadAsync();
       setIsRecording(false);
       setRecordingDuration(0);
+      recordingRef.current = null;
     }
-  }, [isRecording, audioRecorder]);
+  }, [isRecording]);
 
   return {
     isRecording,
