@@ -1,40 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { Button } from '../atoms/Button';
 import { Text } from '../atoms/Text';
-import { AudioService, AudioRecordingResult } from '../../infrastructure/services/AudioService';
+import { useAudioRecorderService, AudioRecordingResult } from '../../hooks/useAudioRecorder';
 
 export const AudioServiceTest: React.FC = () => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [duration, setDuration] = useState(0);
   const [lastRecording, setLastRecording] = useState<AudioRecordingResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const audioServiceRef = useRef<AudioService | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const {
+    isRecording,
+    recordingDuration,
+    startRecording,
+    stopRecording,
+    cleanup
+  } = useAudioRecorderService();
 
   useEffect(() => {
-    audioServiceRef.current = new AudioService();
-    audioServiceRef.current.initialize();
-
     return () => {
-      audioServiceRef.current?.cleanup();
-      if (timerRef.current) clearInterval(timerRef.current);
+      cleanup();
     };
-  }, []);
+  }, [cleanup]);
 
-  const startRecording = async () => {
+  const handleStartRecording = async () => {
     try {
       setError(null);
-      await audioServiceRef.current?.startRecording();
-      setIsRecording(true);
-
-      // Update duration every second
-      timerRef.current = setInterval(() => {
-        const currentDuration = audioServiceRef.current?.getCurrentDuration() || 0;
-        setDuration(currentDuration);
-      }, 1000);
-
+      await startRecording();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
       setError(errorMessage);
@@ -42,22 +33,14 @@ export const AudioServiceTest: React.FC = () => {
     }
   };
 
-  const stopRecording = async () => {
+  const handleStopRecording = async () => {
     try {
-      const result = await audioServiceRef.current?.stopRecording();
-      if (result) {
-        setLastRecording(result);
-        Alert.alert(
-          'Recording Complete',
-          `Duration: ${result.duration}s\nSize: ${Math.round(result.fileSize / 1024)}KB\nFormat: ${result.format}`
-        );
-      }
-      setIsRecording(false);
-      setDuration(0);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      const result = await stopRecording();
+      setLastRecording(result);
+      Alert.alert(
+        'Recording Complete',
+        `Duration: ${result.duration}s\nSize: ${Math.round(result.fileSize / 1024)}KB\nFormat: ${result.format}`
+      );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to stop recording';
       setError(errorMessage);
@@ -73,7 +56,7 @@ export const AudioServiceTest: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text variant="h1" style={styles.title}>Audio Service Test</Text>
+      <Text variant="heading" style={styles.title}>Audio Service Test</Text>
       
       {error && (
         <Text variant="body" style={styles.error}>{error}</Text>
@@ -82,14 +65,14 @@ export const AudioServiceTest: React.FC = () => {
       <View style={styles.statusContainer}>
         <Text variant="body">Status: {isRecording ? 'Recording' : 'Ready'}</Text>
         {isRecording && (
-          <Text variant="body" style={styles.duration}>{formatTime(duration)}</Text>
+          <Text variant="body" style={styles.duration}>{formatTime(recordingDuration)}</Text>
         )}
       </View>
 
       <View style={styles.buttonContainer}>
         <Button
-          variant={isRecording ? 'secondary' : 'primary'}
-          onPress={isRecording ? stopRecording : startRecording}
+          variant={isRecording ? 'danger' : 'primary'}
+          onPress={isRecording ? handleStopRecording : handleStartRecording}
           style={styles.button}
         >
           {isRecording ? 'Stop Recording' : 'Start Recording'}
@@ -98,11 +81,11 @@ export const AudioServiceTest: React.FC = () => {
 
       {lastRecording && (
         <View style={styles.resultContainer}>
-          <Text variant="h3">Last Recording:</Text>
+          <Text variant="subtitle">Last Recording:</Text>
           <Text variant="body">Duration: {lastRecording.duration}s</Text>
           <Text variant="body">Size: {Math.round(lastRecording.fileSize / 1024)}KB</Text>
           <Text variant="body">Format: {lastRecording.format}</Text>
-          <Text variant="caption">URI: {lastRecording.uri}</Text>
+          <Text variant="caption" numberOfLines={2}>URI: {lastRecording.uri}</Text>
         </View>
       )}
     </View>
@@ -113,14 +96,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    backgroundColor: '#1A1A2E'
   },
   title: {
     textAlign: 'center',
-    marginBottom: 30
+    marginBottom: 30,
+    color: '#EAEAEA'
   },
   error: {
-    color: 'red',
+    color: '#E74C3C',
     textAlign: 'center',
     marginBottom: 20
   },
@@ -131,7 +116,8 @@ const styles = StyleSheet.create({
   duration: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginTop: 10
+    marginTop: 10,
+    color: '#4ECDC4'
   },
   buttonContainer: {
     alignItems: 'center',
@@ -141,7 +127,7 @@ const styles = StyleSheet.create({
     minWidth: 200
   },
   resultContainer: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#16213E',
     padding: 15,
     borderRadius: 8
   }
