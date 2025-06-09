@@ -1,577 +1,905 @@
-# React Native Expo Development Best Practices Guide 2024-2025
+# Somni Development Guidelines - Universal
 
-The React Native Expo ecosystem has matured significantly, offering robust solutions for complex app development while maintaining developer productivity. This comprehensive guide covers proven methodologies, architectural patterns, and code examples for building sophisticated apps with modern features.
+## PROJECT ARCHITECTURE
 
-## Expo SDK 50+ Capabilities and Native Module Integration
-
-**Expo SDK 50+ introduces transformative improvements** that bridge the gap between managed workflow convenience and bare React Native flexibility. The new architecture support, enhanced Expo Modules API, and development builds capability enable complex native integrations while preserving the Expo developer experience.
-
-### Key breakthroughs in SDK 50+
-
-**New Architecture Support** provides full bridgeless mode compatibility across nearly all Expo modules, delivering significant performance improvements. **Enhanced Config Plugins** allow native code modification without ejecting from managed workflow, while **Development Builds** enable any native module integration while maintaining Expo tooling benefits.
-
-For native modules like **HealthKit integration**, development builds are required but seamlessly supported:
-
-```json
-{
-  "expo": {
-    "plugins": [
-      ["react-native-health", {
-        "isClinicalDataEnabled": true,
-        "healthSharePermission": "Custom health share permission"
-      }]
-    ]
-  }
-}
+### Monorepo Structure
+```
+somni-app-2/
+├── apps/mobile/           # React Native Expo app
+├── packages/              # Shared packages
+│   ├── stores/           # Zustand state management
+│   ├── theme/            # Oniric design system
+│   ├── locales/          # i18n translations
+│   └── types/            # TypeScript definitions
+├── docs/                 # Project documentation
+└── supabase/            # Database migrations
 ```
 
-The **decision framework** is clear: choose Expo when you need rapid development, cross-platform consistency, and standard features. Opt for bare React Native only when you require complex native integrations or platform-specific optimizations. The recommended **hybrid approach** starts with Expo plus development builds, gradually adopting more native features as needed while retaining Expo's powerful tooling.
+### Technology Stack
+- **Frontend**: React Native (Expo SDK 53+), TypeScript
+- **State Management**: Zustand with persistence
+- **Database**: Supabase (PostgreSQL + Real-time + Auth)
+- **Navigation**: React Navigation with conditional routing
+- **Styling**: Custom oniric theme system
+- **Internationalization**: i18next with dreamlike translations
 
-## Voice Recording and Speech Recognition Implementation
-
-**expo-audio emerges as the new official standard** for voice recording in SDK 52+, replacing the deprecated expo-av Audio module. This modern library provides consistent cross-platform behavior and integrates seamlessly with speech recognition solutions.
-
-```javascript
-import { useAudioRecorder, RecordingPresets, AudioModule } from 'expo-audio';
-
-export default function VoiceRecorder() {
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  
-  const record = async () => {
-    const { status } = await AudioModule.requestRecordingPermissionsAsync();
-    if (status !== 'granted') return;
-    
-    await audioRecorder.prepareToRecordAsync();
-    audioRecorder.record();
-  };
-
-  const stopRecording = async () => {
-    await audioRecorder.stop();
-    // Recording available at audioRecorder.uri
-  };
-}
-```
-
-For **speech-to-text**, @jamsch/expo-speech-recognition provides the most robust cross-platform solution with advanced features like on-device recognition for privacy, volume metering, and custom vocabulary support:
-
-```javascript
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from '@jamsch/expo-speech-recognition';
-
-useSpeechRecognitionEvent('result', (event) => {
-  setTranscript(event.results[0]?.transcript);
-});
-
-const startRecognition = async () => {
-  ExpoSpeechRecognitionModule.start({
-    lang: 'en-US',
-    requiresOnDeviceRecognition: true, // For privacy
-    addsPunctuation: true,
-    contextualStrings: ['Custom', 'App', 'Specific', 'Terms']
-  });
-};
-```
-
-## State Management: Zustand vs Redux Toolkit Decision Framework
-
-**The choice between Zustand and Redux Toolkit depends critically on app complexity, team size, and specific requirements**. Research shows distinct performance and architectural trade-offs that guide optimal selection.
-
-### Performance benchmarks reveal clear winners in different scenarios
-
-| Metric | Zustand | Redux Toolkit |
-|--------|---------|---------------|
-| Bundle Size | <1KB | ~13KB |
-| Initial Load | 95ms | 120ms |
-| State Update | 2ms | 4ms |
-| Memory Usage | 15MB | 18MB |
-
-**Choose Zustand for** small to medium applications, rapid prototyping, performance-critical apps, and teams new to state management. Its lightweight architecture and minimal boilerplate accelerate development while delivering excellent performance.
-
-```javascript
-const useSocialStore = create((set, get) => ({
-  posts: [],
-  users: [],
-  addPost: (post) => set(state => ({
-    posts: [post, ...state.posts],
-    userPosts: {
-      ...state.userPosts,
-      [post.userId]: [post, ...(state.userPosts[post.userId] || [])]
-    }
-  })),
-  likePost: (postId, userId) => set(state => ({
-    likes: {
-      ...state.likes,
-      [postId]: [...(state.likes[postId] || []), userId]
-    }
-  }))
-}));
-```
-
-**Choose Redux Toolkit for** large, complex applications requiring extensive debugging, sophisticated offline sync, and multi-developer teams. Redux Toolkit excels with built-in optimizations, time-travel debugging, and mature ecosystem support for complex requirements like real-time sync and offline capabilities.
-
-### Advanced offline sync with Redux Offline
-
-```javascript
-const store = configureStore({
-  reducer: rootReducer,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(offline(offlineConfig))
-});
-
-const updateUserProfile = createSlice({
-  reducers: {
-    updateProfileOffline: (state, action) => {
-      state.offline.push({
-        type: 'UPDATE_PROFILE',
-        meta: {
-          offline: {
-            effect: { url: '/api/profile', method: 'PUT', body: action.payload },
-            commit: { type: 'UPDATE_PROFILE_SUCCESS' },
-            rollback: { type: 'UPDATE_PROFILE_FAILURE' }
-          }
-        }
-      });
-    }
-  }
-});
-```
-
-## Clean Architecture and Project Organization
-
-**Successful React Native apps implement clean architecture principles** that separate concerns across distinct layers, enabling testability, maintainability, and scalability. The architecture mirrors patterns used by companies like Meta and WhatsApp.
-
-### Recommended folder structure prioritizes separation of concerns
-
-```
-src/
-├── core/                    # Business logic layer
-│   ├── entities/           # Business entities
-│   ├── useCases/          # Application use cases
-│   └── repositories/      # Repository interfaces
-├── infrastructure/         # External interfaces layer
-│   ├── api/              # API clients
-│   ├── storage/          # Local storage
-│   └── services/         # External services
-├── presentation/          # Presentation layer
-│   ├── components/       # UI components
-│   │   ├── atoms/       # Basic UI elements
-│   │   ├── molecules/   # Compound components
-│   │   └── organisms/   # Complex components
-│   └── screens/         # Screen components
-```
-
-**Entity layer implementation** encapsulates business rules and validation:
-
-```typescript
-export class User {
-  constructor(
-    public readonly id: string,
-    public readonly email: string,
-    public readonly name: string
-  ) {}
-
-  static create(userData: UserData): User {
-    this.validateEmail(userData.email);
-    this.validateName(userData.name);
-    
-    return new User(userData.id, userData.email, userData.name);
-  }
-
-  private static validateEmail(email: string): void {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error('Invalid email format');
-    }
-  }
-}
-```
-
-**Use case layer** coordinates business logic without UI dependencies:
-
-```typescript
-export class AuthenticateUserUseCase {
-  constructor(
-    private userRepository: IUserRepository,
-    private authService: IAuthService
-  ) {}
-
-  async execute(credentials: LoginCredentials): Promise<User> {
-    const authToken = await this.authService.authenticate(credentials);
-    const userData = await this.userRepository.getByToken(authToken);
-    
-    return User.create(userData);
-  }
-}
-```
-
-## Testing Strategies: Modern Frameworks and Best Practices
-
-**Maestro has emerged as the preferred E2E testing framework for 2024-2025**, surpassing Detox due to its simplicity, excellent Expo integration, and YAML-based test definitions that enable non-technical team members to contribute.
-
-### Comprehensive testing stack recommendations
-
-**Unit testing** continues with Jest and React Native Testing Library, providing robust component testing with behavior-focused approaches rather than implementation details:
-
-```javascript
-import { render, fireEvent } from '@testing-library/react-native';
-
-test('calls onSubmit with email and password', async () => {
-  const mockSubmit = jest.fn();
-  const { getByPlaceholderText, getByText } = render(
-    <LoginForm onSubmit={mockSubmit} />
-  );
-  
-  fireEvent.changeText(getByPlaceholderText('Email'), 'test@example.com');
-  fireEvent.changeText(getByPlaceholderText('Password'), 'password123');
-  fireEvent.press(getByText('Submit'));
-  
-  expect(mockSubmit).toHaveBeenCalledWith({
-    email: 'test@example.com',
-    password: 'password123'
-  });
-});
-```
-
-**Maestro E2E testing** provides intuitive YAML-based flows with powerful EAS integration:
-
-```yaml
-# .maestro/login-flow.yml
-appId: com.yourapp.example
 ---
-- launchApp
-- assertVisible: "Welcome to MyApp"
-- tapOn: "Login"
-- inputText: "user@example.com"
-- tapOn: "Password"
-- inputText: "password123"
-- tapOn: "Submit"
-- assertVisible: "Dashboard"
-```
 
-**EAS Workflows integration** enables automated testing in CI/CD pipelines:
+## THEME SYSTEM (MANDATORY)
 
-```yaml
-name: e2e-test-android
-jobs:
-  maestro_test:
-    type: maestro
-    params:
-      flow_path: ['.maestro/login-flow.yml']
-```
+### Core Principles
+- **Consistent Theming** - ALL components MUST use theme system
+- **Dark-First Design** - Optimized for nighttime usage
+- **Accessibility Compliance** - WCAG 2.1 AA standards
+- **Minimum Touch Targets** - 48dp minimum for all interactive elements
 
-## Documentation Excellence with Modern Tools
+### Theme Usage (REQUIRED)
+```typescript
+// All components MUST use theme hook
+const theme = useTheme();
 
-**TypeDoc combined with Storybook represents the gold standard** for React Native documentation in 2024-2025. This combination provides automated API documentation generation with interactive component showcases.
-
-### TypeDoc configuration generates comprehensive API documentation
-
-```json
-{
-  "entryPoints": ["./src/index.ts"],
-  "out": "./docs",
-  "theme": "default",
-  "excludePrivate": true,
-  "readme": "./README.md"
+// Example theme structure
+interface Theme {
+  colors: {
+    background: { primary: string; elevated: string };
+    primary: string;
+    accent: string;
+    text: { primary: string; secondary: string; muted: string };
+  };
+  spacing: { xs: number; small: number; medium: number; large: number };
+  shadows: { small: object; medium: object };
 }
 ```
 
-**Storybook implementation** creates living component documentation:
-
-```javascript
-// Button.stories.js
-const meta: Meta<typeof Button> = {
-  title: 'UI/Button',
-  component: Button,
-  parameters: {
-    notes: 'This is a reusable button component with different variants.',
-  },
-  argTypes: {
-    variant: {
-      control: { type: 'select' },
-      options: ['primary', 'secondary', 'danger'],
-    },
-  },
+### Component Standards (MANDATORY)
+```typescript
+// Button heights - REQUIRED for accessibility
+const BUTTON_HEIGHTS = {
+  small: 40,   // Secondary actions
+  medium: 48,  // Standard minimum (WCAG)
+  large: 56,   // Primary actions
 };
 
-export const Primary: Story = {
-  args: {
-    title: 'Primary Button',
-    variant: 'primary',
-    onPress: () => console.log('Pressed!'),
-  },
-};
+// Spacing system - consistent across all components
+const spacing = { xs: 4, small: 8, medium: 16, large: 24, xl: 32 };
 ```
 
-## Supabase Vector Embeddings Implementation
+### Translation Requirements
+- ALL user-facing text MUST use translations
+- Use consistent, branded copy style
+- ALWAYS cast translations with String() for React Native compatibility
+- Example pattern: `{String(t('navigation.home'))}`
 
-**Supabase vector embeddings integration transforms React Native apps** with semantic search capabilities using pgvector and modern embedding models. The implementation leverages Transformers.js for client-side embedding generation and PostgreSQL for efficient similarity search.
+---
 
-### Vector embeddings setup and usage
+## STATE MANAGEMENT PATTERNS
 
-```sql
--- Enable vector extension and create table
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE TABLE documents (
-  id SERIAL PRIMARY KEY,
-  title TEXT NOT NULL,
-  body TEXT NOT NULL,
-  embedding vector(384)  -- 384 dimensions for Supabase/gte-small
+### Zustand Store Organization
+```typescript
+// Domain-driven store pattern
+interface AuthStore {
+  // State
+  user: User | null;
+  profile: UserProfile | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+
+  // Actions
+  setUser: (user: User | null) => void;
+  setProfile: (profile: UserProfile | null) => void;
+  signOut: () => void;
+}
+
+// Implementation with persistence
+export const useAuthStore = create<AuthStore>()(
+  persist(
+    (set, get) => ({
+      // Store implementation
+    }),
+    {
+      name: 'auth-storage',
+      partialize: (state) => ({
+        // Only persist essential state
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    },
+  ),
 );
 ```
 
-**Client-side implementation** generates embeddings and performs similarity search:
+### Store Usage Pattern
+```typescript
+// Correct usage - subscribes to updates
+const { user, profile, setUser } = useAuthStore();
 
-```javascript
-import { pipeline } from '@xenova/transformers'
-import { createClient } from '@supabase/supabase-js'
+// AVOID - doesn't subscribe to changes
+const store = useAuthStore();
+```
 
-const generateEmbedding = await pipeline('feature-extraction', 'Supabase/gte-small')
+---
 
-const searchDocuments = async (query) => {
-  const queryOutput = await generateEmbedding(query, {
-    pooling: 'mean',
-    normalize: true
-  })
-  const queryEmbedding = Array.from(queryOutput.data)
-  
-  const { data: documents } = await supabase.rpc('match_documents', {
-    query_embedding: queryEmbedding,
-    match_threshold: 0.78,
-    match_count: 10
-  })
-  
-  return documents
+## COMPONENT ARCHITECTURE
+
+### Atomic Design Structure (MANDATORY)
+```
+src/components/
+├── atoms/              # Basic building blocks
+│   ├── Button/        # 48dp height, oniric styling
+│   ├── Input/         # Focus states, validation
+│   └── Text/          # Typography with theme
+├── molecules/         # Component combinations
+│   ├── MultiSelectChip/  # Selection interface
+│   └── AuthInput/        # Specialized form input
+└── organisms/         # Complex components
+    └── OnboardingScreenLayout/  # Reusable layouts
+```
+
+### Button Component (REQUIRED Implementation)
+```typescript
+interface ButtonProps {
+  variant: 'primary' | 'secondary' | 'ghost';
+  size: 'small' | 'medium' | 'large';
+  children: React.ReactNode;
+  onPress: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+}
+
+export const Button: React.FC<ButtonProps> = ({ variant, size, children, onPress, loading, disabled }) => {
+  const theme = useTheme();
+
+  const styles = StyleSheet.create({
+    button: {
+      height: size === 'small' ? 40 : size === 'large' ? 56 : 48, // REQUIRED heights
+      backgroundColor: variant === 'primary' ? theme.colors.primary : 'transparent',
+      borderRadius: theme.borderRadius.medium,
+      paddingHorizontal: theme.spacing.medium,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...theme.shadows.small, // Theme-based shadow effects
+    },
+  });
+
+  return (
+    <TouchableOpacity style={styles.button} onPress={onPress} disabled={disabled || loading}>
+      <Text variant="button" color={variant === 'primary' ? 'white' : 'primary'}>
+        {children}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+```
+
+### Input Component (REQUIRED Implementation)
+```typescript
+export const Input: React.FC<InputProps> = ({ label, value, onChangeText, error, ...props }) => {
+  const theme = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
+
+  const styles = StyleSheet.create({
+    input: {
+      height: 48, // REQUIRED: Consistent height
+      borderWidth: 1,
+      borderColor: error ? theme.colors.error : isFocused ? theme.colors.primary : theme.colors.border,
+      borderRadius: theme.borderRadius.medium,
+      paddingHorizontal: theme.spacing.medium,
+      backgroundColor: theme.colors.background.elevated,
+      color: theme.colors.text.primary,
+      // Theme-based glow effect on focus
+      ...(isFocused && {
+        shadowColor: theme.colors.primary,
+        shadowRadius: 8,
+        shadowOpacity: 0.3,
+      }),
+    },
+  });
+
+  return (
+    <View>
+      {label && <Text variant="label">{label}</Text>}
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        placeholderTextColor={theme.colors.text.muted}
+        {...props}
+      />
+      {error && <Text variant="caption" color="error">{error}</Text>}
+    </View>
+  );
+};
+```
+
+---
+
+## NAVIGATION PATTERNS
+
+### Conditional Navigation (IMPLEMENTED Pattern)
+```typescript
+export const AppNavigator = () => {
+  const { isAuthenticated, profile, isLoading } = useAuthStore();
+
+  if (isLoading) return <LoadingScreen />;
+  if (!isAuthenticated) return <AuthNavigator />;
+  if (!profile?.onboarding_completed) return <OnboardingNavigator />;
+  return <MainNavigator />;
+};
+```
+
+### Navigation Types (REQUIRED)
+```typescript
+export type AuthStackParamList = {
+  Welcome: undefined;
+  SignIn: undefined;
+  SignUp: undefined;
+};
+
+export type OnboardingStackParamList = {
+  Welcome: undefined;
+  SleepSchedule: undefined;
+  Goals: undefined;
+  Lucidity: undefined;
+  Privacy: undefined;
+  Complete: undefined;
+};
+
+// Type-safe navigation usage
+type Props = NativeStackScreenProps<OnboardingStackParamList, 'Goals'>;
+const OnboardingGoalsScreen: React.FC<Props> = ({ navigation }) => {
+  navigation.navigate('Lucidity');
+};
+```
+
+---
+
+## DATABASE PATTERNS
+
+### Supabase Client Setup (REQUIRED)
+```typescript
+// apps/mobile/src/infrastructure/auth/supabase.ts
+import 'react-native-url-polyfill/auto';
+import { createClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL!,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      storage: AsyncStorage,        // REQUIRED for persistence
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  }
+);
+```
+
+### Repository Pattern
+```typescript
+export class UserRepository {
+  static async createProfile(userId: string, profileData: Partial<UserProfile>) {
+    const { data, error } = await supabase
+      .from('users_profile')
+      .insert({
+        id: userId,
+        ...profileData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async getProfile(userId: string): Promise<UserProfile | null> {
+    const { data, error } = await supabase
+      .from('users_profile')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
 }
 ```
 
-**Performance optimization** uses HNSW indexing for production-scale vector search:
+---
 
-```sql
--- Create HNSW index for optimal performance
-CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops);
-```
+## AUDIO & RECORDING PATTERNS
 
-## Localization and Internationalization Excellence
+### Audio Service Implementation
+```typescript
+import { useAudioRecorder, RecordingPresets, AudioModule } from 'expo-audio';
 
-**react-i18next maintains its position as the industry standard** for React Native localization, providing comprehensive features including pluralization, interpolation, and RTL support. Expo-localization integration enables automatic device locale detection.
+export class AudioService {
+  private audioRecorder: ReturnType<typeof useAudioRecorder> | null = null;
+  private isRecording = false;
 
-### Complete i18n setup with device locale detection
-
-```javascript
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import * as Localization from 'expo-localization';
-
-const initI18n = async () => {
-  let savedLanguage = await AsyncStorage.getItem("language");
-  
-  if (!savedLanguage) {
-    savedLanguage = Localization.getLocales()[0].languageCode;
+  async requestPermissions(): Promise<boolean> {
+    const { status } = await AudioModule.requestRecordingPermissionsAsync();
+    return status === 'granted';
   }
 
-  i18n.use(initReactI18next).init({
-    compatibilityJSON: "v3",
-    resources: {
-      "en-US": { translation: translationEn },
-      "es-ES": { translation: translationEs },
-      "ar-SA": { translation: translationAr }
-    },
-    lng: savedLanguage,
-    fallbackLng: "en-US"
+  async startRecording(): Promise<void> {
+    if (!this.audioRecorder) throw new Error('Not initialized');
+    
+    const hasPermission = await this.requestPermissions();
+    if (!hasPermission) throw new Error('Permission denied');
+
+    await this.audioRecorder.prepareToRecordAsync();
+    this.audioRecorder.record();
+    this.isRecording = true;
+  }
+
+  async stopRecording(): Promise<AudioRecordingResult> {
+    if (!this.isRecording || !this.audioRecorder) {
+      throw new Error('No recording in progress');
+    }
+
+    await this.audioRecorder.stop();
+    const uri = this.audioRecorder.uri;
+    
+    if (!uri) throw new Error('Recording URI not available');
+
+    return {
+      uri,
+      duration: this.getCurrentDuration(),
+      fileSize: await this.getFileSize(uri),
+      format: 'wav'
+    };
+  }
+}
+```
+
+### Recording Session Management
+```typescript
+interface RecordingSession {
+  id: string;
+  status: 'idle' | 'recording' | 'processing' | 'completed' | 'error';
+  startTime?: string;
+  endTime?: string;
+  duration?: number;
+  audioUri?: string;
+  dreamId?: string;
+}
+
+// Store pattern for recording sessions
+interface DreamState {
+  recordingSession: RecordingSession | null;
+  isRecording: boolean;
+  
+  startRecording: () => void;
+  stopRecording: () => void;
+  updateRecordingSession: (updates: Partial<RecordingSession>) => void;
+  clearRecordingSession: () => void;
+}
+```
+
+---
+
+## OFFLINE SUPPORT PATTERNS
+
+### Network Status Detection
+```typescript
+import NetInfo from '@react-native-community/netinfo';
+
+export const useNetworkStatus = () => {
+  const [networkStatus, setNetworkStatus] = useState({
+    isConnected: false,
+    isInternetReachable: false,
+    type: 'unknown',
   });
-};
-```
 
-**RTL support implementation** handles right-to-left languages automatically:
-
-```javascript
-const RTLContainer = ({ children }) => {
   useEffect(() => {
-    const deviceLocale = getLocales()[0];
-    const shouldBeRTL = deviceLocale.textDirection === 'rtl';
-    
-    if (shouldBeRTL !== I18nManager.isRTL && Platform.OS !== 'web') {
-      I18nManager.allowRTL(shouldBeRTL);
-      I18nManager.forceRTL(shouldBeRTL);
-      Updates.reloadAsync();
-    }
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setNetworkStatus({
+        isConnected: state.isConnected ?? false,
+        isInternetReachable: state.isInternetReachable ?? false,
+        type: state.type,
+      });
+    });
+
+    return () => unsubscribe();
   }, []);
+
+  return networkStatus;
 };
 ```
 
-## Theme Management and Dark Mode Implementation
+### Offline Queue Store Pattern
+```typescript
+interface OfflineRecording {
+  id: string;
+  sessionId: string;
+  audioUri: string;
+  duration: number;
+  fileSize: number;
+  recordedAt: string;
+  retryCount: number;
+  status: 'pending' | 'uploading' | 'failed' | 'completed';
+}
 
-**Context-based theme management with system preference detection** represents the modern standard for React Native theming. This approach provides automatic dark mode switching, persistent user preferences, and design system integration.
-
-### Comprehensive theme architecture
-
-```javascript
-export const themes = {
-  light: {
-    colors: {
-      primary: '#007AFF',
-      background: '#FFFFFF',
-      surface: '#F2F2F7',
-      text: '#000000',
-      textSecondary: '#6D6D70',
-    },
-    spacing: { xs: 4, sm: 8, md: 16, lg: 24 },
-    typography: {
-      h1: { fontSize: 32, fontWeight: 'bold' },
-      body: { fontSize: 16, fontWeight: '400' },
-    },
-  },
-  dark: {
-    colors: {
-      primary: '#0A84FF',
-      background: '#000000',
-      surface: '#1C1C1E',
-      text: '#FFFFFF',
-      textSecondary: '#8E8E93',
-    },
-    // ... same structure
-  },
-};
+interface OfflineQueueState {
+  recordings: OfflineRecording[];
+  isProcessing: boolean;
+  
+  addRecording: (recording: Omit<OfflineRecording, 'id' | 'retryCount' | 'status'>) => void;
+  processQueue: () => Promise<void>;
+  retryFailedRecordings: () => Promise<void>;
+}
 ```
 
-**Dynamic theme switching** preserves user preferences while respecting system settings:
+---
 
-```javascript
-export const ThemeProvider = ({ children }) => {
-  const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeMode] = useState('system');
-  
-  const setTheme = async (mode) => {
-    setThemeMode(mode);
-    await AsyncStorage.setItem('themeMode', mode);
-    
-    if (mode === 'system') {
-      setIsDark(systemColorScheme === 'dark');
-    } else {
-      setIsDark(mode === 'dark');
-    }
-  };
+## PERFORMANCE PATTERNS
 
-  const currentTheme = isDark ? themes.dark : themes.light;
-  
-  return (
-    <ThemeContext.Provider value={{ theme: currentTheme, isDark, setTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};
+### Memoization (REQUIRED for expensive components)
+```typescript
+const DreamListItem = React.memo<{ dream: Dream; onPress: (id: string) => void }>(
+  ({ dream, onPress }) => {
+    const handlePress = useCallback(() => {
+      onPress(dream.id);
+    }, [dream.id, onPress]);
+
+    const styles = useMemo(() => ({
+      container: {
+        backgroundColor: theme.colors.background.elevated,
+        padding: theme.spacing.medium,
+      },
+    }), [theme]);
+
+    return (
+      <Pressable style={styles.container} onPress={handlePress}>
+        <Text>{dream.rawTranscript}</Text>
+      </Pressable>
+    );
+  }
+);
 ```
 
-## Performance Optimization for Complex Features
-
-**Modern React Native performance optimization focuses on Hermes engine utilization, smart memoization strategies, and bundle optimization techniques**. These approaches deliver measurable improvements in startup times, memory usage, and user experience.
-
-### Hermes integration provides significant performance gains
-
-**Hermes benefits include 50% faster startup times, 30% smaller bundle sizes, and improved memory management**. Enable Hermes and leverage its built-in profiling capabilities:
-
-```javascript
-// metro.config.js
-module.exports = {
-  transformer: {
-    hermesCommand: 'path/to/hermesc',
-  },
-};
-```
-
-**Rendering optimization** prevents unnecessary re-renders through strategic memoization:
-
-```javascript
-const ListItem = memo(({ item, onPress }) => {
-  const processedData = useMemo(() => {
-    return expensiveDataProcessing(item);
-  }, [item]);
-  
-  const handlePress = useCallback(() => {
-    onPress(item.id);
-  }, [item.id, onPress]);
-  
-  return (
-    <TouchableOpacity onPress={handlePress}>
-      <Text>{processedData.title}</Text>
-    </TouchableOpacity>
-  );
-});
-```
-
-**FlatList optimization** handles large datasets efficiently:
-
-```javascript
+### FlatList Optimization
+```typescript
 <FlatList
-  data={data}
-  renderItem={renderItem}
-  keyExtractor={keyExtractor}
-  getItemLayout={getItemLayout}
-  removeClippedSubviews={true}
+  data={dreams}
+  renderItem={renderDreamItem}
+  keyExtractor={(item) => item.id}
+  getItemLayout={getItemLayout}      // If item height is fixed
+  removeClippedSubviews={true}       // Performance optimization
   maxToRenderPerBatch={10}
   windowSize={10}
   initialNumToRender={10}
 />
 ```
 
-**Bundle optimization** reduces app size through strategic imports and asset optimization:
+---
 
-```javascript
-// Good: imports only needed functions
-import debounce from 'lodash/debounce';
+## ERROR HANDLING PATTERNS
 
-// Use dynamic imports for code splitting
-const DynamicComponent = React.lazy(() => 
-  import('./HeavyComponent')
-);
+### Supabase Error Handling
+```typescript
+export const handleSupabaseError = (error: PostgrestError | AuthError): string => {
+  // Database constraint violations
+  if (error.code === '23505') {
+    if (error.message.includes('username')) {
+      return 'This username is already taken.';
+    }
+  }
+
+  // Row Level Security violations
+  if (error.code === '42501') {
+    return "You don't have permission to perform this action.";
+  }
+
+  // Network errors
+  if (error.message.includes('network')) {
+    return 'Network error. Please check your connection.';
+  }
+
+  return 'An unexpected error occurred.';
+};
 ```
 
-## Proven Methodologies from Successful Apps
+### Component Error Boundaries
+```typescript
+const ComponentWithErrorHandling = () => {
+  const [error, setError] = useState<string | null>(null);
 
-The most successful React Native applications implement these patterns consistently. **Facebook and Instagram leverage Redux for complex state management with custom middleware**, while **WhatsApp employs SQLite for offline message storage with sophisticated sync engines**. **Airbnb's architecture demonstrates clean separation between business logic and presentation layers**.
+  const handleAction = async () => {
+    try {
+      setError(null);
+      await performAction();
+    } catch (err) {
+      const errorMessage = err instanceof Error 
+        ? handleSupabaseError(err) 
+        : 'An unexpected error occurred';
+      setError(errorMessage);
+    }
+  };
 
-### Performance benchmarks from production apps
+  if (error) {
+    return <ErrorMessage message={error} onDismiss={() => setError(null)} />;
+  }
 
-Research shows that proper implementation of these practices delivers measurable results: **70% reduction in app launch times**, **66% app size reduction** with image optimization, and **significant memory usage improvements** through proper component lifecycle management.
+  return <MainContent />;
+};
+```
 
-### Essential optimization checklist
+---
 
-1. Enable Hermes JavaScript engine for performance gains
-2. Implement React.memo() for expensive components
-3. Optimize FlatList with proper configuration
-4. Remove console.log statements in production builds
-5. Use FastImage for efficient image handling
-6. Enable ProGuard for Android optimization
-7. Implement lazy loading for navigation screens
-8. Optimize image assets with WebP format
-9. Regular performance profiling with Hermes
-10. Bundle analysis with Expo Atlas
+## TESTING PATTERNS
 
-This comprehensive approach to React Native Expo development ensures scalable, performant, and maintainable applications that leverage the latest ecosystem improvements while following proven architectural patterns from successful production apps.
+### Component Testing
+```typescript
+import { render, fireEvent } from '@testing-library/react-native';
 
---
+describe('Button', () => {
+  it('should call onPress when pressed', () => {
+    const onPress = jest.fn();
+    const { getByText } = render(
+      <Button onPress={onPress}>Test Button</Button>
+    );
 
-Best Practices
-DO's:
+    fireEvent.press(getByText('Test Button'));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
 
-✅ Keep components under 150 lines
-✅ Use TypeScript strictly
-✅ Extract complex logic to hooks
-✅ Use semantic component names
-✅ Implement proper error boundaries
-✅ Add JSDoc comments for complex logic
-✅ Use React.memo for expensive components
-✅ Implement loading and error states
-✅ Use translation keys for all user-facing text
-✅ Format dates/numbers according to locale
+  it('should be disabled when loading', () => {
+    const onPress = jest.fn();
+    const { getByText } = render(
+      <Button onPress={onPress} loading>Test Button</Button>
+    );
 
-DON'Ts:
+    fireEvent.press(getByText('Loading...'));
+    expect(onPress).not.toHaveBeenCalled();
+  });
+});
+```
 
-❌ No inline styles
-❌ No business logic in components
-❌ No direct API calls in components
-❌ No hardcoded strings (use i18n)
-❌ No magic numbers (use theme constants)
-❌ No any types
-❌ No console.logs in production
-❌ No unnecessary re-renders
-❌ No mixing of concerns (styling/logic/presentation)
+### Store Testing
+```typescript
+describe('authStore', () => {
+  beforeEach(() => {
+    useAuthStore.getState().signOut(); // Reset state
+  });
+
+  it('should authenticate user', () => {
+    const { result } = renderHook(() => useAuthStore());
+
+    act(() => {
+      result.current.setUser(mockUser);
+    });
+
+    expect(result.current.isAuthenticated).toBe(true);
+    expect(result.current.user).toEqual(mockUser);
+  });
+});
+```
+
+---
+
+## CODE QUALITY STANDARDS
+
+### DO's
+- ✅ Keep components under 150 lines
+- ✅ Use TypeScript strictly (no `any`)
+- ✅ Extract complex logic to hooks
+- ✅ Use semantic component names
+- ✅ Implement proper error boundaries
+- ✅ Add JSDoc for complex logic
+- ✅ Use React.memo for expensive components
+- ✅ Implement loading and error states
+- ✅ Use translation keys for ALL user-facing text
+- ✅ Format dates/numbers according to locale
+- ✅ Follow 48dp minimum button heights
+- ✅ Use oniric color palette consistently
+
+### DON'Ts
+- ❌ No inline styles (use StyleSheet)
+- ❌ No business logic in components
+- ❌ No direct API calls in components
+- ❌ No hardcoded strings (use i18n)
+- ❌ No magic numbers (use theme constants)
+- ❌ No `any` types
+- ❌ No console.logs in production
+- ❌ No unnecessary re-renders
+- ❌ No mixing concerns (styling/logic/presentation)
+- ❌ Never use light theme colors
+
+---
+
+## ELEVENLABS INTEGRATION PATTERNS
+
+### API Configuration (REQUIRED)
+```typescript
+// Environment variables
+EXPO_PUBLIC_ELEVENLABS_API_KEY=your_elevenlabs_api_key
+EXPO_PUBLIC_ELEVENLABS_VOICE_ID=default_voice_id
+
+// Service initialization
+export class ElevenLabsService {
+  private apiKey: string;
+  private baseUrl = 'https://api.elevenlabs.io/v1';
+  
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  private getHeaders() {
+    return {
+      'Accept': 'audio/mpeg',
+      'xi-api-key': this.apiKey,
+      'Content-Type': 'application/json',
+    };
+  }
+}
+```
+
+### Text-to-Speech Implementation
+```typescript
+interface TTSOptions {
+  text: string;
+  voiceId: string;
+  stability?: number;        // 0-1, default 0.5
+  similarityBoost?: number;  // 0-1, default 0.5
+  style?: number;           // 0-1, default 0
+  useSpeakerBoost?: boolean; // default true
+}
+
+export class ElevenLabsService {
+  async generateSpeech(options: TTSOptions): Promise<string> {
+    const {
+      text,
+      voiceId,
+      stability = 0.5,
+      similarityBoost = 0.5,
+      style = 0,
+      useSpeakerBoost = true
+    } = options;
+
+    const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        text,
+        model_id: "eleven_monolingual_v1", // or eleven_multilingual_v2
+        voice_settings: {
+          stability,
+          similarity_boost: similarityBoost,
+          style,
+          use_speaker_boost: useSpeakerBoost
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`ElevenLabs API error: ${response.status}`);
+    }
+
+    // Convert response to base64 for React Native audio playback
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    
+    // Save to temporary file
+    const filename = `speech_${Date.now()}.mp3`;
+    const filepath = `${FileSystem.cacheDirectory}${filename}`;
+    
+    await FileSystem.writeAsStringAsync(filepath, base64, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    return filepath;
+  }
+}
+```
+
+### Voice Cloning (Advanced)
+```typescript
+interface VoiceCloneOptions {
+  name: string;
+  description?: string;
+  files: string[];  // Array of audio file URIs
+  labels?: Record<string, string>;
+}
+
+export class ElevenLabsService {
+  async cloneVoice(options: VoiceCloneOptions): Promise<string> {
+    const formData = new FormData();
+    
+    formData.append('name', options.name);
+    if (options.description) {
+      formData.append('description', options.description);
+    }
+
+    // Add audio files
+    for (let i = 0; i < options.files.length; i++) {
+      const fileUri = options.files[i];
+      formData.append('files', {
+        uri: fileUri,
+        type: 'audio/mpeg',
+        name: `voice_sample_${i}.mp3`
+      } as any);
+    }
+
+    // Add labels if provided
+    if (options.labels) {
+      formData.append('labels', JSON.stringify(options.labels));
+    }
+
+    const response = await fetch(`${this.baseUrl}/voices/add`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'xi-api-key': this.apiKey,
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`Voice cloning failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.voice_id;
+  }
+}
+```
+
+### Error Handling (MANDATORY)
+```typescript
+export const handleElevenLabsError = (error: any): string => {
+  if (error.status === 401) {
+    return 'Invalid ElevenLabs API key';
+  }
+  
+  if (error.status === 422) {
+    return 'Invalid request parameters';
+  }
+  
+  if (error.status === 429) {
+    return 'Rate limit exceeded. Please try again later.';
+  }
+  
+  if (error.status >= 500) {
+    return 'ElevenLabs service temporarily unavailable';
+  }
+  
+  return 'Speech generation failed. Please try again.';
+};
+
+// Usage in components
+const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false);
+const [speechError, setSpeechError] = useState<string | null>(null);
+
+const generateSpeech = async (text: string) => {
+  try {
+    setIsGeneratingSpeech(true);
+    setSpeechError(null);
+    
+    const audioPath = await elevenLabsService.generateSpeech({
+      text,
+      voiceId: DEFAULT_VOICE_ID
+    });
+    
+    // Play audio using expo-av or similar
+    await playAudio(audioPath);
+    
+  } catch (error) {
+    setSpeechError(handleElevenLabsError(error));
+  } finally {
+    setIsGeneratingSpeech(false);
+  }
+};
+```
+
+### Audio Playback Integration
+```typescript
+import { Audio } from 'expo-av';
+
+export class AudioPlaybackService {
+  private sound: Audio.Sound | null = null;
+
+  async playGeneratedSpeech(audioPath: string): Promise<void> {
+    try {
+      // Stop any currently playing audio
+      if (this.sound) {
+        await this.sound.unloadAsync();
+      }
+
+      // Load and play new audio
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioPath },
+        { shouldPlay: true }
+      );
+      
+      this.sound = sound;
+
+      // Set up completion handler
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          this.cleanup();
+        }
+      });
+
+    } catch (error) {
+      console.error('Audio playback failed:', error);
+      throw new Error('Failed to play generated speech');
+    }
+  }
+
+  async cleanup(): Promise<void> {
+    if (this.sound) {
+      await this.sound.unloadAsync();
+      this.sound = null;
+    }
+  }
+}
+```
+
+### Best Practices (MANDATORY)
+- **Rate Limiting**: Implement client-side rate limiting (max 20 requests/minute)
+- **Caching**: Cache generated audio files to avoid redundant API calls
+- **Error Recovery**: Always implement retry logic with exponential backoff
+- **Audio Cleanup**: Always cleanup audio resources to prevent memory leaks
+- **User Feedback**: Show clear loading states during speech generation
+- **Offline Handling**: Queue speech generation requests when offline
+- **Voice Selection**: Allow users to choose from available voices
+- **Text Limits**: Respect ElevenLabs character limits (5000 chars for standard)
+
+---
+
+## IMPORT PATTERNS
+
+### Import Organization (REQUIRED)
+```typescript
+// 1. React and external libraries
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useForm } from 'react-hook-form';
+
+// 2. Internal packages (absolute imports)
+import { useAuthStore } from '@somni/stores';
+import type { UserProfile } from '@somni/types';
+
+// 3. Local imports (relative paths)
+import { Text, Button } from '../../components/atoms';
+import { useTheme } from '../../hooks/useTheme';
+import { useStyles } from './Component.styles';
+```
+
+### Path Conventions
+- **Relative imports** for local files: `../../../hooks/useTheme`
+- **Absolute imports** for packages: `@somni/stores`
+- **Consistent organization** across all components
+
+---
+
+## ENVIRONMENT SETUP
+
+### Required Environment Variables
+```env
+# Mobile App (.env)
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### Package Scripts
+```json
+{
+  "scripts": {
+    "dev": "npx expo start",
+    "ios": "npx expo run:ios",
+    "android": "npx expo run:android",
+    "lint": "eslint src --ext .ts,.tsx",
+    "type-check": "tsc --noEmit"
+  }
+}
+```
+
+This guide serves as the definitive reference for Somni development. All new implementations should follow these patterns and standards.
