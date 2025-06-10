@@ -1,0 +1,22 @@
+{
+  "name": "@somni/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for Somni app",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./dream": "./src/dream.ts",
+    "./dreamEntity": "./src/dreamEntity.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
