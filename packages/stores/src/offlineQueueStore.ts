@@ -184,13 +184,18 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
 
         try {
           // Check if file still exists
-          const fileInfo = await FileSystem.getInfoAsync(recording.audioUri);
-          if (!fileInfo.exists) {
-            get().updateRecording(recordingId, { 
-              status: 'failed', 
-              error: 'Audio file no longer exists' 
-            });
-            return { success: false, error: 'File not found' };
+                    const isMockFile = recording.audioUri.includes('mock_audio');
+          
+          if (!isMockFile) {
+            // Check if file still exists (only for real files)
+            const fileInfo = await FileSystem.getInfoAsync(recording.audioUri);
+            if (!fileInfo.exists) {
+              get().updateRecording(recordingId, { 
+                status: 'failed', 
+                error: 'Audio file no longer exists' 
+              });
+              return { success: false, error: 'File not found' };
+            }
           }
 
           get().updateRecording(recordingId, { status: 'uploading' });
@@ -472,17 +477,24 @@ async function simulateUploadWithProgress(
       if (step >= steps) {
         clearInterval(interval);
         
-        // Simulate occasional failures for testing
-        const success = Math.random() < 0.7; // 70% success rate
-        
-        // For retries, give better chance of success
+        // FIXED: Better success rates for testing
         const isRetry = recording.retryCount > 0;
-        const finalSuccess = isRetry ? Math.random() < 0.8 : success; // 80% on retry
+        let successChance;
+        
+        if (isRetry) {
+          // Higher success rate on retries
+          successChance = 0.8; // 80% success on retry
+        } else {
+          // First attempt success rate
+          successChance = 0.6; // 60% success on first try
+        }
+        
+        const success = Math.random() < successChance;
         
         resolve({
-          success: finalSuccess,
-          dreamId: finalSuccess ? `dream_${recording.sessionId}` : undefined,
-          error: finalSuccess ? undefined : 'Simulated upload failure',
+          success,
+          dreamId: success ? `dream_${recording.sessionId}` : undefined,
+          error: success ? undefined : `Simulated ${isRetry ? 'retry' : 'upload'} failure`,
           uploadDuration: Date.now() - startTime,
           finalFileSize: recording.fileSize
         });
