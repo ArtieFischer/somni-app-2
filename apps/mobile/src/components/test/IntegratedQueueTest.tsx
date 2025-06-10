@@ -80,7 +80,7 @@ export const IntegratedQueueTest: React.FC = () => {
           isWifi: true,
           isConnected: true,
           isInternetReachable: true,
-          connectionQuality: 'excellent'
+          connectionQuality: 'excellent',
           offlineCard: {
     backgroundColor: '#2C1810',
     padding: 20,
