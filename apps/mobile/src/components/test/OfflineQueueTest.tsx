@@ -3,8 +3,6 @@ import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'rea
 import { useOfflineRecordingQueue } from '../../hooks/useOfflineRecordingQueue.ts'; // Import the hook
 import { OfflineRecording } from '@somni/types';
 
-
-
 const TestButton: React.FC<{
   title: string;
   onPress: () => void;
@@ -115,6 +113,52 @@ export const OfflineQueueTest: React.FC = () => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Offline Queue Test</Text>
+
+      {/* WiFi-Only Control - PROMINENT */}
+      <View style={styles.wifiControlCard}>
+        <Text style={styles.cardTitle}>🔧 Network Controls</Text>
+        
+        <TouchableOpacity 
+          style={[styles.bigToggle, { backgroundColor: wifiOnlyMode ? '#E74C3C' : '#4ECDC4' }]}
+          onPress={() => {
+            const newMode = !wifiOnlyMode;
+            setWifiOnlyMode(newMode);
+            queueHook.setWifiOnlyMode(newMode);
+            
+            Alert.alert(
+              'WiFi-Only Mode', 
+              `WiFi-only mode ${newMode ? 'enabled' : 'disabled'}. ${newMode ? 'Will only upload on WiFi.' : 'Will upload on WiFi and cellular.'}`
+            );
+          }}
+        >
+          <Text style={styles.bigToggleTitle}>
+            📶 WiFi-Only Mode: {wifiOnlyMode ? 'ON' : 'OFF'}
+          </Text>
+          <Text style={styles.bigToggleSubtitle}>
+            {wifiOnlyMode 
+              ? 'Tap to allow cellular uploads' 
+              : 'Tap to restrict to WiFi only'}
+          </Text>
+        </TouchableOpacity>
+        
+        <View style={styles.networkStatusRow}>
+          <Text style={styles.statusLabel}>Current Network:</Text>
+          <Text style={[styles.statusValue, { 
+            color: queueHook.networkStatus.isWifi ? '#4ECDC4' : '#F39C12' 
+          }]}>
+            {queueHook.networkStatus.type.toUpperCase()} ({queueHook.networkStatus.quality})
+          </Text>
+        </View>
+        
+        <View style={styles.networkStatusRow}>
+          <Text style={styles.statusLabel}>Upload Allowed:</Text>
+          <Text style={[styles.statusValue, { 
+            color: queueHook.networkStatus.shouldUpload ? '#4ECDC4' : '#E74C3C' 
+          }]}>
+            {queueHook.networkStatus.shouldUpload ? '✅ YES' : '❌ NO'}
+          </Text>
+        </View>
+      </View>
 
       {/* Network Status Card */}
       <View style={styles.networkCard}>
@@ -276,6 +320,21 @@ export const OfflineQueueTest: React.FC = () => {
             variant="secondary"
           />
         </View>
+
+        <TestButton
+          title="Clear All Queue"
+          onPress={() => {
+            Alert.alert(
+              'Clear Queue',
+              'Remove all recordings from queue?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Clear', style: 'destructive', onPress: queueHook.clearAllRecordings }
+              ]
+            );
+          }}
+          variant="danger"
+        />
       </View>
 
       {/* Queue Statistics */}
@@ -320,42 +379,10 @@ export const OfflineQueueTest: React.FC = () => {
         </View>
       </View>
 
-      {/* Queue Settings - FIXED: Now includes WiFi-only toggle */}
+      {/* Queue Settings */}
       <View style={styles.settingsCard}>
         <Text style={styles.cardTitle}>Upload Settings</Text>
         
-        {/* WiFi-Only Mode Toggle - FIXED */}
-        <TouchableOpacity 
-          style={styles.prominentToggle}
-          onPress={() => {
-            const newMode = !wifiOnlyMode;
-            setWifiOnlyMode(newMode);
-            queueHook.setWifiOnlyMode(newMode);
-            
-            // Show feedback
-            Alert.alert(
-              'WiFi-Only Mode', 
-              `WiFi-only mode ${newMode ? 'enabled' : 'disabled'}. ${newMode ? 'Will only upload on WiFi.' : 'Will upload on WiFi and cellular.'}`
-            );
-          }}
-        >
-          <View style={styles.toggleContent}>
-            <View>
-              <Text style={styles.toggleTitle}>WiFi-Only Mode</Text>
-              <Text style={styles.toggleSubtitle}>
-                {wifiOnlyMode 
-                  ? 'Only upload on WiFi networks' 
-                  : 'Upload on WiFi and cellular'}
-              </Text>
-            </View>
-            <Text style={[styles.toggleStatus, { 
-              color: wifiOnlyMode ? '#E74C3C' : '#4ECDC4' 
-            }]}>
-              {wifiOnlyMode ? 'ON' : 'OFF'}
-            </Text>
-          </View>
-        </TouchableOpacity>
-
         <View style={styles.settingRow}>
           <Text style={styles.settingLabel}>Max Retries: {stats.totalRecordings > 0 ? 3 : 'N/A'}</Text>
           <View style={styles.settingButtons}>
@@ -376,7 +403,7 @@ export const OfflineQueueTest: React.FC = () => {
 
         <TouchableOpacity 
           style={styles.toggleSetting}
-          onPress={() => queueHook.setAutoRetryEnabled(true)} // This would need to be tracked in the hook
+          onPress={() => queueHook.setAutoRetryEnabled(true)}
         >
           <Text style={styles.settingLabel}>Auto Retry</Text>
           <Text style={[styles.toggleStatus, { color: '#4ECDC4' }]}>
@@ -437,6 +464,46 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
     color: '#EAEAEA',
+  },
+  wifiControlCard: {
+    backgroundColor: '#16213E',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#4ECDC4',
+  },
+  bigToggle: {
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  bigToggleTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 5,
+  },
+  bigToggleSubtitle: {
+    fontSize: 14,
+    color: 'white',
+    opacity: 0.9,
+  },
+  networkStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statusLabel: {
+    fontSize: 14,
+    color: '#EAEAEA',
+    fontWeight: '500',
+  },
+  statusValue: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   networkCard: {
     backgroundColor: '#16213E',
@@ -590,27 +657,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 12,
     marginBottom: 20,
-  },
-  prominentToggle: {
-    backgroundColor: '#0F3460',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  toggleContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  toggleTitle: {
-    fontSize: 16,
-    color: '#EAEAEA',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  toggleSubtitle: {
-    fontSize: 12,
-    color: '#B0B3B8',
   },
   settingRow: {
     flexDirection: 'row',
