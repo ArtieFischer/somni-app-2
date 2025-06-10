@@ -7,8 +7,9 @@ import { AudioServiceTest } from './src/components/test/AudioServiceTest';
 import { NetworkStatusTest } from './src/components/test/NetworkStatusTest';
 import { DreamStoreTest } from './src/components/test/DreamStoreTest';
 import { OfflineQueueTest } from './src/components/test/OfflineQueueTest';
+import { UploadServiceTest } from './src/components/test/UploadServiceTest';
 
-type TestView = 'menu' | 'audio' | 'network' | 'dreams' | 'offline';
+type TestView = 'menu' | 'audio' | 'network' | 'dreams' | 'offline' | 'upload';
 
 const TestButton: React.FC<{
   title: string;
@@ -55,6 +56,14 @@ export default function App() {
             <OfflineQueueTest />
           </View>
         );
+
+      case 'upload':
+        return (
+          <View style={styles.testContainer}>
+            <BackButton onPress={() => setCurrentView('menu')} />
+            <UploadServiceTest />
+          </View>
+        );
       
       default:
         return (
@@ -86,6 +95,12 @@ export default function App() {
                 icon="📤"
                 onPress={() => setCurrentView('offline')}
               />
+
+              <TestButton
+                title="Upload Service"
+                icon="🚀"
+                onPress={() => setCurrentView('upload')}
+              />
             </View>
             
             <View style={styles.infoContainer}>
@@ -95,6 +110,7 @@ export default function App() {
                 • Network: Test connection states{'\n'}
                 • Dreams: Test Zustand store operations{'\n'}
                 • Offline: Test queue management & uploads{'\n'}
+                • Upload: Test progressive upload strategies{'\n'}
                 • Switch between WiFi/Cellular/Airplane mode{'\n'}
                 • Check console for detailed logs
               </Text>

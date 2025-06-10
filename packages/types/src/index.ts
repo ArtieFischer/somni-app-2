@@ -47,6 +47,29 @@ export type {
   QueueError
 } from './offlineQueue';
 
+// Upload service types
+export type {
+  UploadOptions,
+  UploadChunk,
+  ChunkedUploadSession,
+  UploadEndpoint,
+  UploadConfig,
+  InitializeUploadRequest,
+  InitializeUploadResponse,
+  UploadChunkRequest,
+  UploadChunkResponse,
+  CompleteUploadRequest,
+  CompleteUploadResponse,
+  UploadError,
+  NetworkCondition,
+  AdaptiveUploadStrategy,
+  UploadMetrics,
+  UploadServiceState,
+  UploadService,
+  UploadStrategy,
+  UploadStrategyConfig
+} from './uploadService';
+
 // Export the DreamEntity class
 export { DreamEntity } from './dreamEntity';
 
