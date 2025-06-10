@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useOfflineRecordingQueue } from '../../hooks/useOfflineRecordingQueue';
+import { useOfflineRecordingQueue } from '../hooks/useOfflineRecordingQueue';
 import { useDreamStore } from '@somni/stores';
-import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 const TestButton: React.FC<{
   title: string;
@@ -81,7 +81,36 @@ export const IntegratedQueueTest: React.FC = () => {
           isConnected: true,
           isInternetReachable: true,
           connectionQuality: 'excellent'
-        });
+          offlineCard: {
+    backgroundColor: '#2C1810',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F39C12',
+  },
+  offlineTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F39C12',
+    marginBottom: 8,
+  },
+  offlineReason: {
+    fontSize: 14,
+    color: '#EAEAEA',
+    marginBottom: 8,
+  },
+  offlineDetail: {
+    fontSize: 13,
+    color: '#B0B3B8',
+    marginBottom: 8,
+  },
+  offlineHint: {
+    fontSize: 12,
+    color: '#B0B3B8',
+    fontStyle: 'italic',
+  },
+});
         break;
       case 'poor':
         networkStatus.simulateNetworkCondition({
@@ -178,7 +207,7 @@ export const IntegratedQueueTest: React.FC = () => {
       </View>
 
       {/* Current Upload Progress */}
-      {queueHook.currentUpload && (
+      {queueHook.currentUpload && queueHook.networkStatus.shouldUpload ? (
         <View style={styles.progressCard}>
           <Text style={styles.cardTitle}>Upload in Progress</Text>
           <Text style={styles.progressText}>
@@ -204,6 +233,23 @@ export const IntegratedQueueTest: React.FC = () => {
               Speed: {formatFileSize(queueHook.currentUpload.progress.speed)}/s
             </Text>
           )}
+        </View>
+      ) : null}
+
+      {/* Offline/Block Status */}
+      {!queueHook.networkStatus.shouldUpload && queueHook.pendingCount > 0 && (
+        <View style={styles.offlineCard}>
+          <Text style={styles.offlineTitle}>📱 Uploads Paused</Text>
+          <Text style={styles.offlineReason}>
+            {queueHook.networkStatus.blockReason || 'Network conditions not suitable'}
+          </Text>
+          <Text style={styles.offlineDetail}>
+            {queueHook.pendingCount} recording{queueHook.pendingCount !== 1 ? 's' : ''} waiting to upload
+            {queueHook.totalSize > 0 && ` (${formatFileSize(queueHook.totalSize)})`}
+          </Text>
+          <Text style={styles.offlineHint}>
+            Uploads will resume automatically when conditions improve
+          </Text>
         </View>
       )}
 
@@ -291,19 +337,17 @@ export const IntegratedQueueTest: React.FC = () => {
           />
         </View>
 
-        <View style={styles.buttonRow}>
-          <TestButton
-            title="Go Offline"
-            onPress={() => simulateNetworkChange('offline')}
-            variant="danger"
-          />
+        <TestButton
+          title="Go Offline"
+          onPress={() => simulateNetworkChange('offline')}
+          variant="danger"
+        />
 
-          <TestButton
-            title="Clear Simulation"
-            onPress={clearNetworkSimulation}
-            variant="secondary"
-          />
-        </View>
+        <TestButton
+          title="Clear Simulation"
+          onPress={clearNetworkSimulation}
+          variant="secondary"
+        />
       </View>
 
       {/* Enhanced Statistics */}
