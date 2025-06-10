@@ -15,7 +15,7 @@
     "noUnusedParameters": true,
     "baseUrl": ".",
     "paths": {
-      "@somni/types": ["types/src"],
+      "@somni/types": ["packages/types/src"],
       "@somni/utils": ["utils/src"],
       "@somni/core": ["packages/core/src"],
       "@somni/locales": ["packages/locales/src"],

@@ -18,7 +18,6 @@
   "workspaces": [
     "apps/*",
     "packages/*",
-    "types",
     "utils"
   ],
   "devDependencies": {

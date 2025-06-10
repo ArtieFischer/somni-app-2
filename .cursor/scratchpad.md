@@ -141,7 +141,69 @@ The complete onboarding flow is implemented with oniric design, proper data coll
 
 ## Executor's Feedback or Assistance Requests
 
-**LATEST UPDATE - Comprehensive Documentation Update Implementation:**
+**LATEST UPDATE - Duplicate Types Workspace Issue Resolution:**
+
+✅ **CRITICAL ISSUE RESOLVED** - Fixed duplicate `@somni/types` workspace causing npm install failures
+
+#### Issue Description:
+
+- Two `@somni/types` packages existed: one in `types/` and one in `packages/types/`
+- Workspace configuration included both locations, causing "must not have multiple workspaces with the same name" error
+- TypeScript path mapping pointed to old `types/src` location
+- Multiple package.json files referenced incorrect paths
+
+#### Resolution Steps Completed:
+
+1. **Content Consolidation** ✅
+
+   - Merged all types from `types/src/index.ts` into `packages/types/src/index.ts`
+   - Added missing types: `SleepPhase`, `DreamEntity`, `User`, `DreamEntry`
+   - Enhanced `UserProfile` interface with backward compatibility fields
+   - Maintained all existing type exports to prevent breaking changes
+
+2. **Configuration Updates** ✅
+
+   - Updated `tsconfig.base.json` path mapping: `"@somni/types": ["packages/types/src"]`
+   - Removed `types` from workspace array in root `package.json`
+   - Updated all package.json dependencies to point to correct paths:
+     - `apps/mobile/package.json`: `"@somni/types": "file:../../packages/types"`
+     - `packages/core/package.json`: `"@somni/types": "file:../types"`
+     - `packages/stores/package.json`: `"@somni/types": "file:../types"`
+     - `utils/package.json`: `"@somni/types": "file:../packages/types"`
+
+3. **Cleanup** ✅
+
+   - Removed old `types/` directory completely
+   - Cleaned up `node_modules` and `package-lock.json`
+   - Fresh npm install completed successfully
+
+4. **Verification** ✅
+   - TypeScript compilation works in all packages
+   - All 11 existing `@somni/types` imports resolve correctly
+   - No duplicate workspace errors
+   - Package structure properly recognized
+
+#### Files Modified:
+
+- `packages/types/src/index.ts` - Consolidated all type definitions
+- `tsconfig.base.json` - Updated path mapping
+- `package.json` - Removed duplicate workspace entry
+- `apps/mobile/package.json` - Fixed dependency path
+- `packages/core/package.json` - Fixed dependency path
+- `packages/stores/package.json` - Fixed dependency path
+- `utils/package.json` - Fixed dependency path
+
+#### Impact:
+
+- ✅ npm install now works without errors
+- ✅ All TypeScript imports resolve correctly
+- ✅ No breaking changes to existing code
+- ✅ Monorepo workspace structure is clean and consistent
+- ✅ Development environment fully functional
+
+**Status: RESOLVED** - The duplicate types workspace issue has been completely fixed and the development environment is ready for continued work.
+
+**PREVIOUS UPDATE - Comprehensive Documentation Update Implementation:**
 
 ✅ **Phase 1 Documentation Updates Complete** - Core documentation updated to reflect current project state
 

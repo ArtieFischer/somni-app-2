@@ -22,7 +22,7 @@
     "@somni/locales": "file:../../packages/locales",
     "@somni/stores": "file:../../packages/stores",
     "@somni/theme": "file:../../packages/theme",
-    "@somni/types": "file:../../types",
+    "@somni/types": "file:../../packages/types",
     "@somni/utils": "file:../../utils",
     "@supabase/supabase-js": "^2.49.10",
     "expo": "~53.0.10",
