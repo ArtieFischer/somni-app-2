@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   Dream, 
   DreamDTO, 
@@ -407,13 +408,19 @@ export const useDreamStore = create<DreamStore>()(
     }),
     {
       name: 'somni-dream-store',
+      storage: createJSONStorage(() => AsyncStorage),
       // Only persist essential data, not transient states
       partialize: (state) => ({ 
         dreams: state.dreams,
         totalDreams: state.totalDreams,
         totalRecordingTime: state.totalRecordingTime,
-        lastRecordingDate: state.lastRecordingDate
-        // Don't persist: recordingSession, isRecording, error, isLoading
+        lastRecordingDate: state.lastRecordingDate,
+        // Include required state properties with default values
+        recordingSession: null,
+        isRecording: false,
+        error: null,
+        isLoading: false
+        // Don't persist actual transient states, use defaults
       })
     }
   )

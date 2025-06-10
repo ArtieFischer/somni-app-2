@@ -48,8 +48,10 @@ export const DreamStoreTest: React.FC = () => {
     const interval = setInterval(() => {
       setSessionTimer((prev) => {
         const newTime = prev + 1;
-        // Update session duration in real-time
-        dreamStore.updateRecordingSession({ duration: newTime });
+        // Update session duration in real-time (use setTimeout to avoid render issues)
+        setTimeout(() => {
+          dreamStore.updateRecordingSession({ duration: newTime });
+        }, 0);
         return newTime;
       });
     }, 1000);
@@ -129,10 +131,10 @@ export const DreamStoreTest: React.FC = () => {
   };
 
   const searchDreams = () => {
-    const results = dreamStore.searchDreams('flying');
+    const results = dreamStore.searchDreams({ text: 'flying' });
     Alert.alert(
       'Search Results',
-      `Found ${results.length} dreams containing "flying"`,
+      `Found ${results.dreams.length} dreams containing "flying"`,
     );
   };
 

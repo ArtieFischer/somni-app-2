@@ -312,6 +312,59 @@ somni-monorepo@1.0.0
 
 **Status: ALL PATH ISSUES COMPLETELY RESOLVED** - The monorepo has consistent, reliable import paths throughout. No more bundling or resolution errors expected.
 
+**LATEST UPDATE - Dream Store Runtime Issues Resolution:**
+
+✅ **STORAGE AND RENDER ISSUES RESOLVED** - Fixed Zustand persist storage warnings and React setState errors
+
+#### Issues Found and Fixed:
+
+1. **Zustand Persist Storage Issue** ✅
+
+   - **Problem**: `[zustand persist middleware] Unable to update item 'somni-dream-store', the given storage is currently unavailable`
+   - **Root Cause**: Persist middleware was missing storage configuration
+   - **Fix**:
+     - Added AsyncStorage import: `import AsyncStorage from '@react-native-async-storage/async-storage'`
+     - Added proper storage configuration: `storage: createJSONStorage(() => AsyncStorage)`
+     - Fixed partialize function to include all required DreamStore properties
+
+2. **React setState in Render Warning** ✅
+
+   - **Problem**: `Cannot update a component (DreamStoreTest) while rendering a different component`
+   - **Root Cause**: `dreamStore.updateRecordingSession()` called inside setInterval callback during render
+   - **Fix**: Wrapped store update in `setTimeout(() => {...}, 0)` to defer execution outside render cycle
+
+3. **TypeScript Search Function Errors** ✅
+   - **Problem**: Search function using string instead of DreamSearchQuery object
+   - **Fix**: Updated to use proper query object: `dreamStore.searchDreams({ text: 'flying' })`
+
+#### Files Modified:
+
+- `packages/stores/src/dreamStore.ts` - Added AsyncStorage configuration and fixed persist setup
+- `apps/mobile/src/components/test/DreamStoreTest.tsx` - Fixed setState in render and search function
+
+#### Technical Details:
+
+- **Storage Configuration**: Now using `createJSONStorage(() => AsyncStorage)` for proper React Native storage
+- **Persist Strategy**: Only persisting essential data (dreams, stats) while keeping transient states (recording session, loading, errors) as runtime-only
+- **Render Safety**: Store updates now deferred outside render cycle to prevent React warnings
+
+#### Verification Results:
+
+- ✅ No more Zustand persist storage warnings
+- ✅ No more React setState in render errors
+- ✅ TypeScript compilation passes for all packages
+- ✅ Dream store persistence working correctly
+- ✅ Recording session functionality intact
+
+#### Known Outstanding Issues:
+
+- ⚠️ **Expo AV Deprecation**: Several files still use `expo-av` which will be removed in SDK 54
+  - Files affected: AudioPlaybackService.ts, AudioServiceTest.tsx, useAudioRecorder.ts
+  - **Recommendation**: Update to `expo-audio` package in future sprint
+  - **Impact**: Warning only, no functional issues currently
+
+**Status: STORAGE AND RENDER ISSUES RESOLVED** - Dream store is now fully functional with proper persistence and no runtime warnings.
+
 **PREVIOUS UPDATE - Comprehensive Documentation Update Implementation:**
 
 ✅ **Phase 1 Documentation Updates Complete** - Core documentation updated to reflect current project state
