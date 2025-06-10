@@ -473,12 +473,16 @@ async function simulateUploadWithProgress(
         clearInterval(interval);
         
         // Simulate occasional failures for testing
-        const success = Math.random() > 0.1; // 90% success rate
+        const success = Math.random() < 0.7; // 70% success rate
+        
+        // For retries, give better chance of success
+        const isRetry = recording.retryCount > 0;
+        const finalSuccess = isRetry ? Math.random() < 0.8 : success; // 80% on retry
         
         resolve({
-          success,
-          dreamId: success ? `dream_${recording.sessionId}` : undefined,
-          error: success ? undefined : 'Simulated upload failure',
+          success: finalSuccess,
+          dreamId: finalSuccess ? `dream_${recording.sessionId}` : undefined,
+          error: finalSuccess ? undefined : 'Simulated upload failure',
           uploadDuration: Date.now() - startTime,
           finalFileSize: recording.fileSize
         });
