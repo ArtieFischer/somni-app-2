@@ -33,11 +33,15 @@ export type {
   DreamValidationResult
 } from './dream';
 
+// Export the DreamEntity class
+export { DreamEntity } from './dreamEntity';
+
 // Sleep and dream types from the old types directory
 export type SleepPhase = 'rem' | 'nrem' | 'light' | 'deep' | 'awake';
 
 // Corresponds to the 'dreams' table - Alternative Dream interface for backward compatibility
-export interface DreamEntity {
+// Renamed to avoid conflict with DreamEntity class
+export interface DreamEntityData {
   id: string; // UUID
   user_id: string; // UUID
   created_at: string; // ISO 8601 string

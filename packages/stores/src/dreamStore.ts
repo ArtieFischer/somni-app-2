@@ -7,9 +7,9 @@ import {
   DreamStats,
   DreamSearchQuery,
   DreamSearchResult,
-  RecordingSession 
+  RecordingSession,
+  DreamEntity
 } from '@somni/types';
-import { DreamEntity } from '@somni/types/dreamEntity';
 
 // Create the store
 export const useDreamStore = create<DreamStore>()(

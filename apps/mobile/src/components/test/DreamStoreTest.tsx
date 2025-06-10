@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useDreamStore } from '../../../packages/stores/src/dreamStore';
+import {
+  View,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { useDreamStore } from '@somni/stores';
 import { DreamDTO } from '@somni/types';
 
 const TestButton: React.FC<{
@@ -12,9 +19,12 @@ const TestButton: React.FC<{
   <TouchableOpacity
     style={[
       styles.button,
-      variant === 'secondary' ? styles.secondaryButton : 
-      variant === 'danger' ? styles.dangerButton : styles.primaryButton,
-      disabled && styles.disabled
+      variant === 'secondary'
+        ? styles.secondaryButton
+        : variant === 'danger'
+          ? styles.dangerButton
+          : styles.primaryButton,
+      disabled && styles.disabled,
     ]}
     onPress={onPress}
     disabled={disabled}
@@ -26,22 +36,24 @@ const TestButton: React.FC<{
 export const DreamStoreTest: React.FC = () => {
   const dreamStore = useDreamStore();
   const [sessionTimer, setSessionTimer] = useState(0);
-  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
+  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(
+    null,
+  );
 
   // Mock recording session with timer
   const startMockRecording = () => {
     dreamStore.startRecording();
     setSessionTimer(0);
-    
+
     const interval = setInterval(() => {
-      setSessionTimer(prev => {
+      setSessionTimer((prev) => {
         const newTime = prev + 1;
         // Update session duration in real-time
         dreamStore.updateRecordingSession({ duration: newTime });
         return newTime;
       });
     }, 1000);
-    
+
     setTimerInterval(interval);
   };
 
@@ -50,9 +62,9 @@ export const DreamStoreTest: React.FC = () => {
       clearInterval(timerInterval);
       setTimerInterval(null);
     }
-    
+
     dreamStore.stopRecording();
-    
+
     // Create a mock dream after recording
     setTimeout(() => {
       addMockDream();
@@ -72,42 +84,45 @@ export const DreamStoreTest: React.FC = () => {
       status: 'completed',
       fileSize: Math.floor(Math.random() * 1000000) + 500000,
       tags: ['flying', 'landscape', 'adventure'],
-      emotions: ['wonder', 'freedom', 'joy']
+      emotions: ['wonder', 'freedom', 'joy'],
     };
 
     const dream = dreamStore.addDream(mockDream);
-    
+
     Alert.alert(
       'Dream Added!',
-      `Created dream: ${dream.id.substring(0, 12)}...\nDuration: ${dream.duration}s\nConfidence: ${Math.round(dream.confidence * 100)}%`
+      `Created dream: ${dream.id.substring(0, 12)}...\nDuration: ${dream.duration}s\nConfidence: ${Math.round(dream.confidence * 100)}%`,
     );
   };
 
   const addRandomDream = () => {
     const mockTranscripts = [
-      "I was swimming in an ocean of stars, each one singing a different melody.",
-      "Found myself in a library where books flew around like birds, reading themselves aloud.",
-      "Walking through a forest where the trees were made of crystal and rang like bells in the wind.",
-      "Riding a train that traveled through different seasons, each car was a different time of year.",
-      "In a city where buildings grew like plants, reaching toward a purple sky.",
-      "Dancing with my shadow under a moon that changed colors every few seconds."
+      'I was swimming in an ocean of stars, each one singing a different melody.',
+      'Found myself in a library where books flew around like birds, reading themselves aloud.',
+      'Walking through a forest where the trees were made of crystal and rang like bells in the wind.',
+      'Riding a train that traveled through different seasons, each car was a different time of year.',
+      'In a city where buildings grew like plants, reaching toward a purple sky.',
+      'Dancing with my shadow under a moon that changed colors every few seconds.',
     ];
 
-    const randomTranscript = mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
+    const randomTranscript =
+      mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
     const randomDuration = Math.floor(Math.random() * 180) + 30; // 30-210 seconds
-    
+
     const mockDream: DreamDTO = {
       userId: 'test-user-123',
       rawTranscript: randomTranscript,
       duration: randomDuration,
       confidence: 0.7 + Math.random() * 0.3,
       wasEdited: Math.random() > 0.7,
-      recordedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(), // Random within last week
+      recordedAt: new Date(
+        Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000,
+      ).toISOString(), // Random within last week
       createdAt: new Date().toISOString(),
       status: Math.random() > 0.8 ? 'pending' : 'completed',
       fileSize: Math.floor(Math.random() * 2000000) + 300000,
       tags: ['random', 'test'],
-      emotions: ['curiosity', 'surprise']
+      emotions: ['curiosity', 'surprise'],
     };
 
     dreamStore.addDream(mockDream);
@@ -117,7 +132,7 @@ export const DreamStoreTest: React.FC = () => {
     const results = dreamStore.searchDreams('flying');
     Alert.alert(
       'Search Results',
-      `Found ${results.length} dreams containing "flying"`
+      `Found ${results.length} dreams containing "flying"`,
     );
   };
 
@@ -131,7 +146,7 @@ export const DreamStoreTest: React.FC = () => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m ${seconds}s`;
     }
@@ -147,7 +162,7 @@ export const DreamStoreTest: React.FC = () => {
       {/* Recording Session Status */}
       <View style={styles.sessionCard}>
         <Text style={styles.cardTitle}>Recording Session</Text>
-        
+
         {dreamStore.recordingSession ? (
           <View>
             <Text style={styles.sessionText}>
@@ -168,9 +183,13 @@ export const DreamStoreTest: React.FC = () => {
 
         <View style={styles.buttonRow}>
           <TestButton
-            title={dreamStore.isRecording ? 'Stop Recording' : 'Start Recording'}
+            title={
+              dreamStore.isRecording ? 'Stop Recording' : 'Start Recording'
+            }
             variant={dreamStore.isRecording ? 'danger' : 'primary'}
-            onPress={dreamStore.isRecording ? stopMockRecording : startMockRecording}
+            onPress={
+              dreamStore.isRecording ? stopMockRecording : startMockRecording
+            }
           />
         </View>
       </View>
@@ -178,14 +197,14 @@ export const DreamStoreTest: React.FC = () => {
       {/* Dream Management */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Dream Management</Text>
-        
+
         <View style={styles.buttonRow}>
           <TestButton
             title="Add Random Dream"
             onPress={addRandomDream}
             variant="secondary"
           />
-          
+
           <TestButton
             title="Search Dreams"
             onPress={searchDreams}
@@ -201,8 +220,12 @@ export const DreamStoreTest: React.FC = () => {
               'Are you sure? This will delete all stored dreams.',
               [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Clear', style: 'destructive', onPress: dreamStore.clearAllData }
-              ]
+                {
+                  text: 'Clear',
+                  style: 'destructive',
+                  onPress: dreamStore.clearAllData,
+                },
+              ],
             );
           }}
           variant="danger"
@@ -212,7 +235,7 @@ export const DreamStoreTest: React.FC = () => {
       {/* Statistics */}
       <View style={styles.statsCard}>
         <Text style={styles.cardTitle}>Statistics</Text>
-        
+
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>Total Dreams:</Text>
           <Text style={styles.statValue}>{stats.totalDreams}</Text>
@@ -220,12 +243,16 @@ export const DreamStoreTest: React.FC = () => {
 
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>Total Duration:</Text>
-          <Text style={styles.statValue}>{formatDuration(stats.totalDuration)}</Text>
+          <Text style={styles.statValue}>
+            {formatDuration(stats.totalDuration)}
+          </Text>
         </View>
 
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>Average Duration:</Text>
-          <Text style={styles.statValue}>{formatDuration(Math.round(stats.averageDuration))}</Text>
+          <Text style={styles.statValue}>
+            {formatDuration(Math.round(stats.averageDuration))}
+          </Text>
         </View>
 
         <View style={styles.statRow}>
@@ -250,27 +277,39 @@ export const DreamStoreTest: React.FC = () => {
 
       {/* Dreams List */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recent Dreams ({dreamStore.dreams.length})</Text>
-        
+        <Text style={styles.sectionTitle}>
+          Recent Dreams ({dreamStore.dreams.length})
+        </Text>
+
         {dreamStore.dreams.slice(0, 3).map((dream, index) => (
           <View key={dream.id} style={styles.dreamCard}>
             <View style={styles.dreamHeader}>
               <Text style={styles.dreamId}>#{index + 1}</Text>
-              <Text style={[styles.dreamStatus, { 
-                color: dream.status === 'completed' ? '#4ECDC4' : 
-                       dream.status === 'pending' ? '#F39C12' : '#E74C3C' 
-              }]}>
+              <Text
+                style={[
+                  styles.dreamStatus,
+                  {
+                    color:
+                      dream.status === 'completed'
+                        ? '#4ECDC4'
+                        : dream.status === 'pending'
+                          ? '#F39C12'
+                          : '#E74C3C',
+                  },
+                ]}
+              >
                 {dream.status}
               </Text>
             </View>
-            
+
             <Text style={styles.dreamText} numberOfLines={2}>
               {dream.rawTranscript}
             </Text>
-            
+
             <View style={styles.dreamFooter}>
               <Text style={styles.dreamDetail}>
-                {formatDuration(dream.duration)} • {Math.round(dream.confidence * 100)}% confidence
+                {formatDuration(dream.duration)} •{' '}
+                {Math.round(dream.confidence * 100)}% confidence
               </Text>
               <Text style={styles.dreamDetail}>
                 {new Date(dream.recordedAt).toLocaleDateString()}

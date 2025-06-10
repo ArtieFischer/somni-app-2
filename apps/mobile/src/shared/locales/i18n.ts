@@ -3,8 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import * as Localization from 'expo-localization';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import en from '@somni/locales/en';
-import es from '@somni/locales/es';
+import { en, es } from '@somni/locales';
 
 const LANGUAGE_STORAGE_KEY = '@somni/language';
 

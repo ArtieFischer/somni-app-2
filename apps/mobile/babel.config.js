@@ -14,7 +14,7 @@ module.exports = function (api) {
             '@services': './src/services',
             '@navigation': './src/navigation',
             '@somni/core': '../../packages/core/src',
-            '@somni/types': '../../types/src',
+            '@somni/types': '../../packages/types/src',
             '@somni/utils': '../../utils/src',
             '@somni/locales': '../../packages/locales/src',
             '@somni/theme': '../../packages/theme/src',
