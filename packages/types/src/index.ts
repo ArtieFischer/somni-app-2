@@ -33,6 +33,20 @@ export type {
   DreamValidationResult
 } from './dream';
 
+// Offline queue types
+export type {
+  OfflineRecording,
+  UploadProgress,
+  UploadResult,
+  QueueStats,
+  QueueFilter,
+  OfflineQueueState,
+  OfflineQueueActions,
+  OfflineQueueStore,
+  QueueEvent,
+  QueueError
+} from './offlineQueue';
+
 // Export the DreamEntity class
 export { DreamEntity } from './dreamEntity';
 
