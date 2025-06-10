@@ -5,8 +5,9 @@ import { StatusBar } from 'expo-status-bar';
 // Import test components
 import { AudioServiceTest } from './src/components/test/AudioServiceTest';
 import { NetworkStatusTest } from './src/components/test/NetworkStatusTest';
+import { DreamStoreTest } from './src/components/test/DreamStoreTest';
 
-type TestView = 'menu' | 'audio' | 'network';
+type TestView = 'menu' | 'audio' | 'network' | 'dreams';
 
 const TestButton: React.FC<{
   title: string;
@@ -38,11 +39,11 @@ export default function App() {
           </View>
         );
       
-      case 'network':
+      case 'dreams':
         return (
           <View style={styles.testContainer}>
             <BackButton onPress={() => setCurrentView('menu')} />
-            <NetworkStatusTest />
+            <DreamStoreTest />
           </View>
         );
       
@@ -64,6 +65,12 @@ export default function App() {
                 icon="📶"
                 onPress={() => setCurrentView('network')}
               />
+              
+              <TestButton
+                title="Dream Store"
+                icon="💭"
+                onPress={() => setCurrentView('dreams')}
+              />
             </View>
             
             <View style={styles.infoContainer}>
@@ -71,6 +78,7 @@ export default function App() {
               <Text style={styles.infoText}>
                 • Audio: Test recording with timer{'\n'}
                 • Network: Test connection states{'\n'}
+                • Dreams: Test Zustand store operations{'\n'}
                 • Switch between WiFi/Cellular/Airplane mode{'\n'}
                 • Check console for detailed logs
               </Text>
