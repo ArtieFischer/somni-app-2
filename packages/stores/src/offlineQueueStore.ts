@@ -224,7 +224,9 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
 
             // Clean up local file after successful upload
             try {
-              await FileSystem.deleteAsync(recording.audioUri);
+              if (!isMockFile) {
+                await FileSystem.deleteAsync(recording.audioUri);
+              }
             } catch (deleteError) {
               console.warn('Failed to delete local file:', deleteError);
             }

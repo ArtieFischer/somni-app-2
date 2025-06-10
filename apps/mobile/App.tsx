@@ -8,8 +8,9 @@ import { NetworkStatusTest } from './src/components/test/NetworkStatusTest';
 import { DreamStoreTest } from './src/components/test/DreamStoreTest';
 import { OfflineQueueTest } from './src/components/test/OfflineQueueTest';
 import { UploadServiceTest } from './src/components/test/UploadServiceTest';
+import { IntegratedQueueTest } from './src/components/test/IntegratedQueueTest';
 
-type TestView = 'menu' | 'audio' | 'network' | 'dreams' | 'offline' | 'upload';
+type TestView = 'menu' | 'audio' | 'network' | 'dreams' | 'offline' | 'upload' | 'integrated';
 
 const TestButton: React.FC<{
   title: string;
@@ -64,6 +65,14 @@ export default function App() {
             <UploadServiceTest />
           </View>
         );
+
+      case 'integrated':
+        return (
+          <View style={styles.testContainer}>
+            <BackButton onPress={() => setCurrentView('menu')} />
+            <IntegratedQueueTest />
+          </View>
+        );
       
       default:
         return (
@@ -101,6 +110,12 @@ export default function App() {
                 icon="🚀"
                 onPress={() => setCurrentView('upload')}
               />
+
+              <TestButton
+                title="Integrated Queue"
+                icon="🔗"
+                onPress={() => setCurrentView('integrated')}
+              />
             </View>
             
             <View style={styles.infoContainer}>
@@ -111,6 +126,7 @@ export default function App() {
                 • Dreams: Test Zustand store operations{'\n'}
                 • Offline: Test queue management & uploads{'\n'}
                 • Upload: Test progressive upload strategies{'\n'}
+                • Integrated: Test complete system integration{'\n'}
                 • Switch between WiFi/Cellular/Airplane mode{'\n'}
                 • Check console for detailed logs
               </Text>
