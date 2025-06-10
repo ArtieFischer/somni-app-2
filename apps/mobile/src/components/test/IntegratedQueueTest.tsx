@@ -72,23 +72,47 @@ export const IntegratedQueueTest: React.FC = () => {
   };
 
   const simulateNetworkChange = (type: 'excellent' | 'poor' | 'offline') => {
-    let condition;
-    
     switch (type) {
       case 'excellent':
-        condition = { type: 'wifi', quality: 'excellent', isWifi: true, isConnected: true, isInternetReachable: true };
+        networkStatus.simulateNetworkCondition({
+          type: 'wifi',
+          quality: 'excellent',
+          isWifi: true,
+          isConnected: true,
+          isInternetReachable: true,
+          connectionQuality: 'excellent'
+        });
         break;
       case 'poor':
-        condition = { type: 'cellular', quality: 'poor', isWifi: false, isConnected: true, isInternetReachable: true };
+        networkStatus.simulateNetworkCondition({
+          type: 'cellular',
+          quality: 'poor',
+          isWifi: false,
+          isCellular: true,
+          isConnected: true,
+          isInternetReachable: true,
+          connectionQuality: 'poor'
+        });
         break;
       case 'offline':
-        condition = { type: 'unknown', quality: 'unknown', isWifi: false, isConnected: false, isInternetReachable: false };
+        networkStatus.simulateNetworkCondition({
+          type: 'none',
+          quality: 'unknown',
+          isWifi: false,
+          isCellular: false,
+          isConnected: false,
+          isInternetReachable: false,
+          connectionQuality: 'unknown'
+        });
         break;
     }
     
-    // This would normally be done by the network status hook, but for testing:
-    console.log(`📶 Simulating network change to: ${type}`);
-    Alert.alert('Network Simulation', `Changed to ${type} network`);
+    Alert.alert('Network Simulation', `Changed to ${type} network conditions`);
+  };
+
+  const clearNetworkSimulation = () => {
+    networkStatus.clearSimulation();
+    Alert.alert('Network Simulation', 'Using real network conditions');
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -129,6 +153,7 @@ export const IntegratedQueueTest: React.FC = () => {
           <Text style={styles.statusLabel}>Network:</Text>
           <Text style={[styles.statusValue, { color: getNetworkStatusColor() }]}>
             {queueHook.networkStatus.type.toUpperCase()} • {queueHook.networkStatus.quality.toUpperCase()}
+            {networkStatus.isSimulated && ' (SIMULATED)'}
           </Text>
         </View>
 
@@ -266,11 +291,19 @@ export const IntegratedQueueTest: React.FC = () => {
           />
         </View>
 
-        <TestButton
-          title="Go Offline"
-          onPress={() => simulateNetworkChange('offline')}
-          variant="danger"
-        />
+        <View style={styles.buttonRow}>
+          <TestButton
+            title="Go Offline"
+            onPress={() => simulateNetworkChange('offline')}
+            variant="danger"
+          />
+
+          <TestButton
+            title="Clear Simulation"
+            onPress={clearNetworkSimulation}
+            variant="secondary"
+          />
+        </View>
       </View>
 
       {/* Enhanced Statistics */}

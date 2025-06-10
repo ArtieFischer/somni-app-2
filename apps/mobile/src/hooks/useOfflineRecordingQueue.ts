@@ -105,7 +105,7 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     };
   }, [uploadService]);
 
-  // Update network condition in upload service
+  // Update network condition in upload service (only when it changes)
   useEffect(() => {
     if (!isServiceInitialized) return;
 
@@ -118,7 +118,16 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     };
 
     uploadService.setNetworkCondition(networkCondition);
-  }, [uploadService, networkStatus, isServiceInitialized]);
+    console.log('📡 Updated upload service network condition:', networkCondition);
+  }, [
+    uploadService, 
+    isServiceInitialized,
+    networkStatus.type,
+    networkStatus.connectionQuality,
+    networkStatus.isCellular,
+    networkStatus.isConnected,
+    networkStatus.isInternetReachable
+  ]); // Only trigger when actual network properties change
 
   // Auto-process queue when network conditions improve
   useEffect(() => {
