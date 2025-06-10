@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useOfflineRecordingQueue } from '@somni/hooks'; // Import the hook
+import { useOfflineRecordingQueue } from '../../hooks/useOfflineRecordingQueue.ts'; // Import the hook
 import { OfflineRecording } from '@somni/types';
 
 const TestButton: React.FC<{
