@@ -184,7 +184,7 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
 
         try {
           // Check if file still exists
-                    const isMockFile = recording.audioUri.includes('mock_audio');
+          const isMockFile = recording.audioUri.includes('mock_audio');
           
           if (!isMockFile) {
             // Check if file still exists (only for real files)
