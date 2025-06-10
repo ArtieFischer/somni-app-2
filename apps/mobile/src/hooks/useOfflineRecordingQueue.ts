@@ -82,9 +82,25 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
   const [uploadService] = useState(() => new ProgressiveUploadService());
   const [isServiceInitialized, setIsServiceInitialized] = useState(false);
   
+  // Force re-renders when network or queue state changes
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+  
   // Prevent infinite loops with refs
   const lastNetworkState = useRef<string>('');
   const isProcessingRef = useRef(false);
+
+  // Force re-render when network status changes
+  useEffect(() => {
+    setUpdateTrigger(prev => prev + 1);
+  }, [
+    networkStatus.isOnline,
+    networkStatus.isConnected,
+    networkStatus.isInternetReachable,
+    networkStatus.type,
+    networkStatus.connectionQuality,
+    queueStore.wifiOnlyMode,
+    queueStore.isProcessing
+  ]);
 
   // Initialize upload service
   useEffect(() => {
@@ -127,8 +143,9 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
       return { allowed: false, reason: 'No internet access' };
     }
     
+    // FIXED: Check WiFi-only mode properly
     if (queueStore.wifiOnlyMode && !networkStatus.isWifi) {
-      return { allowed: false, reason: 'WiFi-only mode enabled' };
+      return { allowed: false, reason: 'WiFi-only mode enabled (disable in settings)' };
     }
     
     if (networkStatus.connectionQuality === 'poor') {
@@ -184,8 +201,10 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
       }, delay);
 
       return () => clearTimeout(timer);
+    } else if (hasPendingRecordings && !uploadCheck.allowed) {
+      console.log(`🚫 Cannot process queue - ${uploadCheck.reason}. Keeping ${hasPendingRecordings} recordings in pending state.`);
     }
-  }, [networkStatus.isOnline, networkStatus.isConnected, networkStatus.isInternetReachable, isServiceInitialized]);
+  }, [networkStatus.isOnline, networkStatus.isConnected, networkStatus.isInternetReachable, networkStatus.isWifi, queueStore.wifiOnlyMode, isServiceInitialized]);
 
   // Enhanced queue processing with upload service integration
   const processQueue = useCallback(async () => {
