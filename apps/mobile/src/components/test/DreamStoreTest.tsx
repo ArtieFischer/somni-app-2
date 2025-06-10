@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useDreamStore } from '../../../packages/stores/src/dreamStore';
+import { useDreamStore } from '@somni/stores';
 import { DreamDTO } from '@somni/types';
 
 const TestButton: React.FC<{
