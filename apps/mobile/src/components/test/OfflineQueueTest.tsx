@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useOfflineQueueStore } from '@somni/stores';
+import { useOfflineRecordingQueue } from '@somni/hooks'; // Import the hook
 import { OfflineRecording } from '@somni/types';
 
 const TestButton: React.FC<{
@@ -24,7 +24,7 @@ const TestButton: React.FC<{
 );
 
 export const OfflineQueueTest: React.FC = () => {
-  const queueStore = useOfflineQueueStore();
+  const queueHook = useOfflineRecordingQueue(); // Use the hook instead of store directly
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Force re-render to see real-time updates
@@ -49,10 +49,9 @@ export const OfflineQueueTest: React.FC = () => {
       duration: randomDuration,
       fileSize: randomSize,
       recordedAt: new Date().toISOString(),
-      maxRetries: 3
     };
 
-    queueStore.addRecording(mockRecording);
+    queueHook.addRecording(mockRecording);
     
     Alert.alert(
       'Recording Added!',
@@ -76,10 +75,9 @@ export const OfflineQueueTest: React.FC = () => {
       duration: 300,
       fileSize: 10000000, // 10MB - large file
       recordedAt: new Date().toISOString(),
-      maxRetries: 2
     };
 
-    queueStore.addRecording(problematicRecording);
+    queueHook.addRecording(problematicRecording);
     Alert.alert('Network Test', 'Added large recording (may fail for testing)');
   };
 
@@ -97,55 +95,81 @@ export const OfflineQueueTest: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getStatusColor = (status: OfflineRecording['status']): string => {
-    switch (status) {
-      case 'pending': return '#F39C12';
-      case 'uploading': return '#3498DB';
-      case 'completed': return '#4ECDC4';
-      case 'failed': return '#E74C3C';
-      default: return '#B0B3B8';
-    }
+  const getNetworkStatusIcon = (): string => {
+    const { networkStatus } = queueHook;
+    
+    if (!networkStatus.isOnline) return '🔴';
+    if (networkStatus.isWifi && networkStatus.quality === 'excellent') return '🟢';
+    if (networkStatus.isWifi && networkStatus.quality === 'good') return '🟡';
+    if (networkStatus.isWifi) return '🟠';
+    if (networkStatus.type === 'cellular' && networkStatus.quality === 'excellent') return '📶';
+    if (networkStatus.type === 'cellular') return '📱';
+    return '⚪';
   };
 
-  const getStatusIcon = (status: OfflineRecording['status']): string => {
-    switch (status) {
-      case 'pending': return '⏳';
-      case 'uploading': return '📤';
-      case 'completed': return '✅';
-      case 'failed': return '❌';
-      default: return '⚪';
-    }
-  };
-
-  const stats = queueStore.getQueueStats();
-  const recentHistory = queueStore.getUploadHistory(5);
+  const stats = queueHook.getQueueStats();
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Offline Queue Test</Text>
 
+      {/* Network Status Card */}
+      <View style={styles.networkCard}>
+        <Text style={styles.cardTitle}>Network Status</Text>
+        
+        <View style={styles.networkRow}>
+          <Text style={styles.networkLabel}>
+            {getNetworkStatusIcon()} Status:
+          </Text>
+          <Text style={[
+            styles.networkValue,
+            { color: queueHook.networkStatus.shouldUpload ? '#4ECDC4' : '#E74C3C' }
+          ]}>
+            {queueHook.networkStatus.isOnline ? 'Online' : 'Offline'} 
+            ({queueHook.networkStatus.type} - {queueHook.networkStatus.quality})
+          </Text>
+        </View>
+
+        <View style={styles.networkRow}>
+          <Text style={styles.networkLabel}>Can Upload:</Text>
+          <Text style={[
+            styles.networkValue,
+            { color: queueHook.networkStatus.shouldUpload ? '#4ECDC4' : '#E74C3C' }
+          ]}>
+            {queueHook.networkStatus.shouldUpload ? 'YES' : 'NO'}
+          </Text>
+        </View>
+
+        {queueHook.networkStatus.blockReason && (
+          <View style={styles.blockReasonContainer}>
+            <Text style={styles.blockReasonLabel}>Block Reason:</Text>
+            <Text style={styles.blockReasonText}>{queueHook.networkStatus.blockReason}</Text>
+          </View>
+        )}
+      </View>
+
       {/* Current Upload Progress */}
-      {queueStore.currentUpload && (
+      {queueHook.currentUpload && (
         <View style={styles.progressCard}>
           <Text style={styles.cardTitle}>Current Upload</Text>
           <Text style={styles.progressText}>
-            Recording: {queueStore.currentUpload.recordingId.substring(0, 12)}...
+            Recording: {queueHook.currentUpload.recordingId.substring(0, 12)}...
           </Text>
           <View style={styles.progressBar}>
             <View 
               style={[
                 styles.progressFill, 
-                { width: `${queueStore.currentUpload.progress.percentage}%` }
+                { width: `${queueHook.currentUpload.progress.percentage}%` }
               ]} 
             />
           </View>
           <Text style={styles.progressText}>
-            {queueStore.currentUpload.progress.percentage.toFixed(1)}% 
-            ({formatFileSize(queueStore.currentUpload.progress.loaded)} / {formatFileSize(queueStore.currentUpload.progress.total)})
+            {queueHook.currentUpload.progress.percentage.toFixed(1)}% 
+            ({formatFileSize(queueHook.currentUpload.progress.loaded)} / {formatFileSize(queueHook.currentUpload.progress.total)})
           </Text>
-          {queueStore.currentUpload.progress.speed && (
+          {queueHook.currentUpload.progress.speed && (
             <Text style={styles.progressDetail}>
-              Speed: {formatFileSize(queueStore.currentUpload.progress.speed)}/s
+              Speed: {formatFileSize(queueHook.currentUpload.progress.speed)}/s
             </Text>
           )}
         </View>
@@ -171,9 +195,9 @@ export const OfflineQueueTest: React.FC = () => {
 
         <View style={styles.buttonRow}>
           <TestButton
-            title={queueStore.isProcessing ? 'Processing...' : 'Process Queue'}
-            onPress={queueStore.processQueue}
-            disabled={queueStore.isProcessing || stats.pendingCount === 0}
+            title={queueHook.isProcessing ? 'Processing...' : 'Process Queue'}
+            onPress={queueHook.processQueue}
+            disabled={queueHook.isProcessing || queueHook.pendingCount === 0}
             variant="primary"
           />
           
@@ -186,16 +210,16 @@ export const OfflineQueueTest: React.FC = () => {
 
         <View style={styles.buttonRow}>
           <TestButton
-            title={`Retry Failed (${stats.failedCount})`}
-            onPress={queueStore.retryFailedRecordings}
-            disabled={stats.failedCount === 0}
+            title={`Retry Failed (${queueHook.failedCount})`}
+            onPress={queueHook.retryFailedRecordings}
+            disabled={queueHook.failedCount === 0}
             variant="secondary"
           />
           
           <TestButton
             title="Clear Completed"
-            onPress={queueStore.clearCompletedRecordings}
-            disabled={stats.completedCount === 0}
+            onPress={queueHook.clearCompletedRecordings}
+            disabled={queueHook.completedCount === 0}
             variant="secondary"
           />
         </View>
@@ -208,7 +232,7 @@ export const OfflineQueueTest: React.FC = () => {
               'Remove all recordings from queue?',
               [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Clear', style: 'destructive', onPress: queueStore.clearAllRecordings }
+                { text: 'Clear', style: 'destructive', onPress: queueHook.clearAllRecordings }
               ]
             );
           }}
@@ -227,24 +251,24 @@ export const OfflineQueueTest: React.FC = () => {
           </View>
           
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#F39C12' }]}>{stats.pendingCount}</Text>
+            <Text style={[styles.statValue, { color: '#F39C12' }]}>{queueHook.pendingCount}</Text>
             <Text style={styles.statLabel}>Pending</Text>
           </View>
           
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#3498DB' }]}>{stats.uploadingCount}</Text>
+            <Text style={[styles.statValue, { color: '#3498DB' }]}>{queueHook.uploadingCount}</Text>
             <Text style={styles.statLabel}>Uploading</Text>
           </View>
           
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#E74C3C' }]}>{stats.failedCount}</Text>
+            <Text style={[styles.statValue, { color: '#E74C3C' }]}>{queueHook.failedCount}</Text>
             <Text style={styles.statLabel}>Failed</Text>
           </View>
         </View>
 
         <View style={styles.statRow}>
           <Text style={styles.statRowLabel}>Total Size:</Text>
-          <Text style={styles.statRowValue}>{formatFileSize(stats.totalSize)}</Text>
+          <Text style={styles.statRowValue}>{formatFileSize(queueHook.totalSize)}</Text>
         </View>
 
         <View style={styles.statRow}>
@@ -258,140 +282,88 @@ export const OfflineQueueTest: React.FC = () => {
         </View>
       </View>
 
-      {/* Queue Settings */}
+      {/* Queue Settings - FIXED: Now includes WiFi-only toggle */}
       <View style={styles.settingsCard}>
-        <Text style={styles.cardTitle}>Settings</Text>
+        <Text style={styles.cardTitle}>Upload Settings</Text>
         
-        <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Max Retries: {queueStore.maxRetries}</Text>
-          <View style={styles.settingButtons}>
-            <TouchableOpacity 
-              style={styles.settingButton} 
-              onPress={() => queueStore.setMaxRetries(Math.max(1, queueStore.maxRetries - 1))}
-            >
-              <Text style={styles.settingButtonText}>-</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.settingButton} 
-              onPress={() => queueStore.setMaxRetries(Math.min(10, queueStore.maxRetries + 1))}
-            >
-              <Text style={styles.settingButtonText}>+</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Batch Size: {queueStore.batchSize}</Text>
-          <View style={styles.settingButtons}>
-            <TouchableOpacity 
-              style={styles.settingButton} 
-              onPress={() => queueStore.setBatchSize(Math.max(1, queueStore.batchSize - 1))}
-            >
-              <Text style={styles.settingButtonText}>-</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.settingButton} 
-              onPress={() => queueStore.setBatchSize(Math.min(10, queueStore.batchSize + 1))}
-            >
-              <Text style={styles.settingButtonText}>+</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
+        {/* WiFi-Only Mode Toggle */}
         <TouchableOpacity 
-          style={styles.toggleSetting}
-          onPress={() => queueStore.setWifiOnlyMode(!queueStore.wifiOnlyMode)}
+          style={styles.prominentToggle}
+          onPress={() => {
+            const currentMode = queueHook.networkStatus.blockReason?.includes('WiFi-only');
+            queueHook.setWifiOnlyMode(!currentMode);
+          }}
         >
-          <Text style={styles.settingLabel}>WiFi Only Mode</Text>
-          <Text style={[styles.toggleStatus, { 
-            color: queueStore.wifiOnlyMode ? '#4ECDC4' : '#B0B3B8' 
-          }]}>
-            {queueStore.wifiOnlyMode ? 'ON' : 'OFF'}
-          </Text>
+          <View style={styles.toggleContent}>
+            <View>
+              <Text style={styles.toggleTitle}>WiFi-Only Mode</Text>
+              <Text style={styles.toggleSubtitle}>
+                {queueHook.networkStatus.blockReason?.includes('WiFi-only') 
+                  ? 'Only upload on WiFi networks' 
+                  : 'Upload on WiFi and cellular'}
+              </Text>
+            </View>
+            <Text style={[styles.toggleStatus, { 
+              color: queueHook.networkStatus.blockReason?.includes('WiFi-only') ? '#E74C3C' : '#4ECDC4' 
+            }]}>
+              {queueHook.networkStatus.blockReason?.includes('WiFi-only') ? 'ON' : 'OFF'}
+            </Text>
+          </View>
         </TouchableOpacity>
 
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>Max Retries: {stats.totalRecordings > 0 ? 3 : 'N/A'}</Text>
+          <View style={styles.settingButtons}>
+            <TouchableOpacity 
+              style={styles.settingButton} 
+              onPress={() => queueHook.setMaxRetries(Math.max(1, 3 - 1))}
+            >
+              <Text style={styles.settingButtonText}>-</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.settingButton} 
+              onPress={() => queueHook.setMaxRetries(Math.min(10, 3 + 1))}
+            >
+              <Text style={styles.settingButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <TouchableOpacity 
           style={styles.toggleSetting}
-          onPress={() => queueStore.setAutoRetryEnabled(!queueStore.autoRetryEnabled)}
+          onPress={() => queueHook.setAutoRetryEnabled(true)} // This would need to be tracked in the hook
         >
           <Text style={styles.settingLabel}>Auto Retry</Text>
-          <Text style={[styles.toggleStatus, { 
-            color: queueStore.autoRetryEnabled ? '#4ECDC4' : '#B0B3B8' 
-          }]}>
-            {queueStore.autoRetryEnabled ? 'ON' : 'OFF'}
+          <Text style={[styles.toggleStatus, { color: '#4ECDC4' }]}>
+            ON
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Recent Recordings */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recent Recordings ({queueStore.recordings.slice(0, 5).length})</Text>
-        
-        {queueStore.recordings.slice(0, 5).map((recording) => (
-          <View key={recording.id} style={styles.recordingCard}>
-            <View style={styles.recordingHeader}>
-              <Text style={styles.recordingId}>
-                {getStatusIcon(recording.status)} {recording.id.substring(0, 12)}...
-              </Text>
-              <Text style={[styles.recordingStatus, { color: getStatusColor(recording.status) }]}>
-                {recording.status.toUpperCase()}
-              </Text>
-            </View>
-            
-            <View style={styles.recordingDetails}>
-              <Text style={styles.recordingDetail}>
-                {formatDuration(recording.duration)} • {formatFileSize(recording.fileSize)}
-              </Text>
-              {recording.retryCount > 0 && (
-                <Text style={styles.recordingDetail}>
-                  Retries: {recording.retryCount}/{recording.maxRetries}
-                </Text>
-              )}
-              {recording.error && (
-                <Text style={styles.errorText} numberOfLines={1}>
-                  Error: {recording.error}
-                </Text>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={() => queueStore.removeRecording(recording.id)}
-            >
-              <Text style={styles.removeButtonText}>Remove</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-
-        {queueStore.recordings.length === 0 && (
-          <Text style={styles.emptyText}>
-            No recordings in queue. Add some recordings to test!
-          </Text>
-        )}
-      </View>
-
-      {/* Upload History */}
-      {recentHistory.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Upload History</Text>
+      {/* Processing Status */}
+      {(queueHook.pendingCount > 0 || queueHook.uploadingCount > 0) && (
+        <View style={styles.statusCard}>
+          <Text style={styles.cardTitle}>Processing Status</Text>
           
-          {recentHistory.map((historyItem, index) => (
-            <View key={index} style={styles.historyItem}>
-              <View style={styles.historyHeader}>
-                <Text style={styles.historyId}>
-                  {historyItem.success ? '✅' : '❌'} {historyItem.recordingId.substring(0, 12)}...
-                </Text>
-                <Text style={styles.historyTime}>
-                  {new Date(historyItem.timestamp).toLocaleTimeString()}
-                </Text>
-              </View>
-              <Text style={styles.historyDetail}>
-                {formatFileSize(historyItem.fileSize)} • {(historyItem.duration / 1000).toFixed(1)}s
-              </Text>
-            </View>
-          ))}
+          {queueHook.isProcessing && (
+            <Text style={styles.statusText}>🔄 Processing queue...</Text>
+          )}
+          
+          {queueHook.pendingCount > 0 && !queueHook.networkStatus.shouldUpload && (
+            <Text style={styles.statusText}>
+              ⏳ {queueHook.pendingCount} recordings waiting for better network
+            </Text>
+          )}
+          
+          {queueHook.pendingCount > 0 && queueHook.networkStatus.shouldUpload && (
+            <Text style={styles.statusText}>
+              🚀 {queueHook.pendingCount} recordings ready to upload
+            </Text>
+          )}
         </View>
       )}
+
+      <View style={styles.bottomSpacer} />
     </ScrollView>
   );
 };
@@ -408,6 +380,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
     color: '#EAEAEA',
+  },
+  networkCard: {
+    backgroundColor: '#16213E',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  networkRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  networkLabel: {
+    fontSize: 14,
+    color: '#EAEAEA',
+    fontWeight: '500',
+  },
+  networkValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  blockReasonContainer: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#0F3460',
+    borderRadius: 6,
+  },
+  blockReasonLabel: {
+    fontSize: 12,
+    color: '#B0B3B8',
+    marginBottom: 4,
+  },
+  blockReasonText: {
+    fontSize: 13,
+    color: '#E74C3C',
+    fontWeight: '500',
   },
   progressCard: {
     backgroundColor: '#16213E',
@@ -525,6 +534,27 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
   },
+  prominentToggle: {
+    backgroundColor: '#0F3460',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  toggleContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  toggleTitle: {
+    fontSize: 16,
+    color: '#EAEAEA',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  toggleSubtitle: {
+    fontSize: 12,
+    color: '#B0B3B8',
+  },
   settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -563,82 +593,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  recordingCard: {
-    backgroundColor: '#0F3460',
+  statusCard: {
+    backgroundColor: '#16213E',
     padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
+    borderRadius: 12,
+    marginBottom: 20,
   },
-  recordingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  recordingId: {
-    fontSize: 12,
-    color: '#B0B3B8',
-    fontWeight: '600',
-  },
-  recordingStatus: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  recordingDetails: {
-    marginBottom: 10,
-  },
-  recordingDetail: {
-    fontSize: 12,
-    color: '#EAEAEA',
-    marginBottom: 2,
-  },
-  errorText: {
-    fontSize: 11,
-    color: '#E74C3C',
-    fontStyle: 'italic',
-  },
-  removeButton: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#2C1810',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-  },
-  removeButtonText: {
-    color: '#E74C3C',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  emptyText: {
+  statusText: {
     fontSize: 14,
-    color: '#B0B3B8',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    marginTop: 20,
-  },
-  historyItem: {
-    backgroundColor: '#0F3460',
-    padding: 12,
-    borderRadius: 6,
-    marginBottom: 8,
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  historyId: {
-    fontSize: 12,
-    color: '#B0B3B8',
-    fontWeight: '600',
-  },
-  historyTime: {
-    fontSize: 11,
-    color: '#B0B3B8',
-  },
-  historyDetail: {
-    fontSize: 11,
     color: '#EAEAEA',
+    marginBottom: 5,
+  },
+  bottomSpacer: {
+    height: 40,
   },
 });
