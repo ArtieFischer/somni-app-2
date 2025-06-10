@@ -3,6 +3,7 @@ import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'rea
 import { useOfflineRecordingQueue } from '../../hooks/useOfflineRecordingQueue.ts'; // Import the hook
 import { OfflineRecording } from '@somni/types';
 
+<TestButton
 
 const TestButton: React.FC<{
   title: string;
