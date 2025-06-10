@@ -3,23 +3,6 @@ import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'rea
 import { useOfflineRecordingQueue } from '../../hooks/useOfflineRecordingQueue.ts'; // Import the hook
 import { OfflineRecording } from '@somni/types';
 
-<TestButton
-          title="Clear All Queue"
-          onPress={() => {
-            Alert.alert(
-              'Clear Queue',
-              'Remove all recordings from queue?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Clear', style: 'destructive', onPress: queueHook.clearAllRecordings }
-              ]
-            );
-          }}
-          variant="danger"
-        />import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useOfflineRecordingQueue } from '@somni/hooks'; // Import the hook
-import { OfflineRecording } from '@somni/types';
 
 const TestButton: React.FC<{
   title: string;
