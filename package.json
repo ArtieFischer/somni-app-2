@@ -34,6 +34,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "react-native-web": "^0.20.0"
+    "react-native-web": "^0.20.0",
+    "zustand": "^5.0.5"
   }
 }
