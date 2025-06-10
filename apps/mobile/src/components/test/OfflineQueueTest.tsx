@@ -3,6 +3,24 @@ import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'rea
 import { useOfflineRecordingQueue } from '../../hooks/useOfflineRecordingQueue.ts'; // Import the hook
 import { OfflineRecording } from '@somni/types';
 
+<TestButton
+          title="Clear All Queue"
+          onPress={() => {
+            Alert.alert(
+              'Clear Queue',
+              'Remove all recordings from queue?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Clear', style: 'destructive', onPress: queueHook.clearAllRecordings }
+              ]
+            );
+          }}
+          variant="danger"
+        />import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useOfflineRecordingQueue } from '@somni/hooks'; // Import the hook
+import { OfflineRecording } from '@somni/types';
+
 const TestButton: React.FC<{
   title: string;
   onPress: () => void;
@@ -26,6 +44,7 @@ const TestButton: React.FC<{
 export const OfflineQueueTest: React.FC = () => {
   const queueHook = useOfflineRecordingQueue(); // Use the hook instead of store directly
   const [refreshKey, setRefreshKey] = useState(0);
+  const [wifiOnlyMode, setWifiOnlyMode] = useState(true); // Track WiFi-only state locally
 
   // Force re-render to see real-time updates
   useEffect(() => {
@@ -131,6 +150,16 @@ export const OfflineQueueTest: React.FC = () => {
         </View>
 
         <View style={styles.networkRow}>
+          <Text style={styles.networkLabel}>WiFi-Only Mode:</Text>
+          <Text style={[
+            styles.networkValue,
+            { color: wifiOnlyMode ? '#E74C3C' : '#4ECDC4' }
+          ]}>
+            {wifiOnlyMode ? 'ENABLED' : 'DISABLED'}
+          </Text>
+        </View>
+
+        <View style={styles.networkRow}>
           <Text style={styles.networkLabel}>Can Upload:</Text>
           <Text style={[
             styles.networkValue,
@@ -195,13 +224,6 @@ export const OfflineQueueTest: React.FC = () => {
 
         <View style={styles.buttonRow}>
           <TestButton
-            title={queueHook.isProcessing ? 'Processing...' : 'Process Queue'}
-            onPress={queueHook.processQueue}
-            disabled={queueHook.isProcessing || queueHook.pendingCount === 0}
-            variant="primary"
-          />
-          
-          <TestButton
             title="Force Auto-Retry Test"
             onPress={() => {
               // Add multiple recordings to test auto-retry
@@ -221,14 +243,31 @@ export const OfflineQueueTest: React.FC = () => {
             }}
             variant="secondary"
           />
+          
+          <TestButton
+            title="Test Failed Upload"
+            onPress={() => {
+              // Add a recording that's designed to fail for testing
+              const failTestRecording = {
+                sessionId: `fail_test_${Date.now()}`,
+                audioUri: `file://fail_test_${Date.now()}.wav`,
+                duration: 45,
+                fileSize: 1500000, // 1.5MB
+                recordedAt: new Date().toISOString(),
+              };
+              queueHook.addRecording(failTestRecording);
+              Alert.alert('Failure Test', 'Added recording that may fail to test auto-retry behavior.');
+            }}
+            variant="secondary"
+          />
         </View>
 
         <View style={styles.buttonRow}>
           <TestButton
-            title={`Retry Failed (${queueHook.failedCount})`}
-            onPress={queueHook.retryFailedRecordings}
-            disabled={queueHook.failedCount === 0}
-            variant="secondary"
+            title={queueHook.isProcessing ? 'Processing...' : 'Process Queue'}
+            onPress={queueHook.processQueue}
+            disabled={queueHook.isProcessing || queueHook.pendingCount === 0}
+            variant="primary"
           />
           
           <TestButton
@@ -240,25 +279,17 @@ export const OfflineQueueTest: React.FC = () => {
 
         <View style={styles.buttonRow}>
           <TestButton
-            title="Clear Completed"
-            onPress={queueHook.clearCompletedRecordings}
-            disabled={queueHook.completedCount === 0}
+            title={`Retry Failed (${queueHook.failedCount})`}
+            onPress={queueHook.retryFailedRecordings}
+            disabled={queueHook.failedCount === 0}
             variant="secondary"
           />
           
           <TestButton
-            title="Clear All Queue"
-            onPress={() => {
-              Alert.alert(
-                'Clear Queue',
-                'Remove all recordings from queue?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Clear', style: 'destructive', onPress: queueHook.clearAllRecordings }
-                ]
-              );
-            }}
-            variant="danger"
+            title="Clear Completed"
+            onPress={queueHook.clearCompletedRecordings}
+            disabled={queueHook.completedCount === 0}
+            variant="secondary"
           />
         </View>
       </View>
@@ -313,14 +344,14 @@ export const OfflineQueueTest: React.FC = () => {
         <TouchableOpacity 
           style={styles.prominentToggle}
           onPress={() => {
-            // Use a simple state toggle - assume WiFi-only starts as true
-            const isCurrentlyWifiOnly = queueHook.networkStatus.blockReason?.includes('WiFi-only');
-            queueHook.setWifiOnlyMode(!isCurrentlyWifiOnly);
+            const newMode = !wifiOnlyMode;
+            setWifiOnlyMode(newMode);
+            queueHook.setWifiOnlyMode(newMode);
             
             // Show feedback
             Alert.alert(
               'WiFi-Only Mode', 
-              `WiFi-only mode ${isCurrentlyWifiOnly ? 'disabled' : 'enabled'}. ${!isCurrentlyWifiOnly ? 'Will only upload on WiFi.' : 'Will upload on WiFi and cellular.'}`
+              `WiFi-only mode ${newMode ? 'enabled' : 'disabled'}. ${newMode ? 'Will only upload on WiFi.' : 'Will upload on WiFi and cellular.'}`
             );
           }}
         >
@@ -328,15 +359,15 @@ export const OfflineQueueTest: React.FC = () => {
             <View>
               <Text style={styles.toggleTitle}>WiFi-Only Mode</Text>
               <Text style={styles.toggleSubtitle}>
-                {queueHook.networkStatus.blockReason?.includes('WiFi-only') 
+                {wifiOnlyMode 
                   ? 'Only upload on WiFi networks' 
                   : 'Upload on WiFi and cellular'}
               </Text>
             </View>
             <Text style={[styles.toggleStatus, { 
-              color: queueHook.networkStatus.blockReason?.includes('WiFi-only') ? '#E74C3C' : '#4ECDC4' 
+              color: wifiOnlyMode ? '#E74C3C' : '#4ECDC4' 
             }]}>
-              {queueHook.networkStatus.blockReason?.includes('WiFi-only') ? 'ON' : 'OFF'}
+              {wifiOnlyMode ? 'ON' : 'OFF'}
             </Text>
           </View>
         </TouchableOpacity>
