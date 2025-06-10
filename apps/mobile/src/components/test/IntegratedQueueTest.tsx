@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useOfflineRecordingQueue } from '../hooks/useOfflineRecordingQueue';
+import { useOfflineRecordingQueue } from '../../hooks/useOfflineRecordingQueue';
 import { useDreamStore } from '@somni/stores';
-import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 
 const TestButton: React.FC<{
   title: string;
