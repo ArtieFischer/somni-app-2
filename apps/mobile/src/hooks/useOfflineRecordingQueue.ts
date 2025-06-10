@@ -1,3 +1,5 @@
+// apps/mobile/src/hooks/useOfflineRecordingQueue.ts
+
 import { useEffect, useCallback, useState } from 'react';
 import { useOfflineQueueStore } from '@somni/stores';
 import { ProgressiveUploadService } from '@somni/stores';
@@ -37,6 +39,7 @@ interface UseOfflineRecordingQueueReturn {
     quality: string;
     isWifi: boolean;
     shouldUpload: boolean;
+    blockReason?: string;
   };
   
   // Queue management actions
@@ -129,35 +132,93 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     networkStatus.isInternetReachable
   ]); // Only trigger when actual network properties change
 
+  // Helper functions (moved up for better organization)
+  const shouldUploadNow = useCallback((): { allowed: boolean; reason?: string } => {
+    // Check the actual network status from our hook
+    if (!networkStatus.isOnline) {
+      return { allowed: false, reason: 'Not online' };
+    }
+    
+    if (!networkStatus.isConnected) {
+      return { allowed: false, reason: 'Not connected' };
+    }
+    
+    if (!networkStatus.isInternetReachable) {
+      return { allowed: false, reason: 'No internet access' };
+    }
+    
+    if (queueStore.wifiOnlyMode && !networkStatus.isWifi) {
+      return { allowed: false, reason: 'WiFi-only mode enabled' };
+    }
+    
+    if (networkStatus.connectionQuality === 'poor') {
+      return { allowed: false, reason: 'Poor connection quality' };
+    }
+    
+    return { allowed: true };
+  }, [networkStatus, queueStore.wifiOnlyMode]);
+
+  const shouldUploadImmediately = useCallback((): boolean => {
+    const uploadCheck = shouldUploadNow();
+    const goodConditions = networkStatus.connectionQuality !== 'fair';
+    const notBusy = !queueStore.isProcessing;
+    
+    const result = uploadCheck.allowed && goodConditions && notBusy;
+    
+    if (!result) {
+      console.log(`🚀 Immediate upload blocked: ${uploadCheck.reason || 'Conditions not met'}`);
+    }
+    
+    return result;
+  }, [shouldUploadNow, networkStatus.connectionQuality, queueStore.isProcessing]);
+
+  // Override the queue store's auto-processing behavior
+  useEffect(() => {
+    // Disable queue store's auto-retry when network conditions are bad
+    const uploadCheck = shouldUploadNow();
+    if (!uploadCheck.allowed) {
+      queueStore.setAutoRetryEnabled(false);
+      console.log(`🚫 Auto-retry disabled: ${uploadCheck.reason}`);
+    } else {
+      queueStore.setAutoRetryEnabled(true);
+      console.log('✅ Auto-retry enabled: Good network conditions');
+    }
+  }, [shouldUploadNow, queueStore]);
+
   // Auto-process queue when network conditions improve
   useEffect(() => {
     if (!isServiceInitialized) return;
 
-    const shouldProcess = networkStatus.isOnline && 
-                         networkStatus.isConnected &&
-                         networkStatus.isInternetReachable &&
+    const uploadCheck = shouldUploadNow();
+    const hasPendingRecordings = queueStore.getRecordingsByStatus('pending').length > 0;
+    const shouldProcess = uploadCheck.allowed && 
                          !queueStore.isProcessing && 
-                         queueStore.getRecordingsByStatus('pending').length > 0;
+                         hasPendingRecordings;
 
     // Intelligent auto-processing based on network conditions
     if (shouldProcess) {
       const delay = getProcessingDelay(networkStatus);
-      console.log(`🔄 Network restored, will process queue in ${delay}ms (isOnline: ${networkStatus.isOnline}, connected: ${networkStatus.isConnected}, internet: ${networkStatus.isInternetReachable})`);
+      console.log(`🔄 Network conditions good, will process queue in ${delay}ms`);
       
       const timer = setTimeout(() => {
         processQueue();
       }, delay);
 
       return () => clearTimeout(timer);
-    } else {
-      console.log(`⏸️ Not processing queue - isOnline: ${networkStatus.isOnline}, connected: ${networkStatus.isConnected}, internet: ${networkStatus.isInternetReachable}, processing: ${queueStore.isProcessing}, pending: ${queueStore.getRecordingsByStatus('pending').length}`);
+    } else if (!uploadCheck.allowed && hasPendingRecordings) {
+      console.log(`⏸️ Keeping ${hasPendingRecordings} recordings in queue - ${uploadCheck.reason}`);
     }
-  }, [networkStatus.isOnline, networkStatus.isConnected, networkStatus.isInternetReachable, networkStatus.type, queueStore.isProcessing]);
+  }, [networkStatus.isOnline, networkStatus.isConnected, networkStatus.isInternetReachable, networkStatus.type, queueStore.isProcessing, shouldUploadNow]);
 
   // Enhanced queue processing with upload service integration
   const processQueue = useCallback(async () => {
-    if (!isServiceInitialized || queueStore.isProcessing) {
-      console.log('⏳ Service not ready or already processing');
+    if (!isServiceInitialized) {
+      console.log('⏳ Upload service not ready');
+      return;
+    }
+
+    if (queueStore.isProcessing) {
+      console.log('⏳ Queue already processing');
       return;
     }
 
@@ -168,29 +229,40 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     }
 
     // Check if we should upload based on current conditions
-    if (!shouldUploadNow()) {
-      console.log('🚫 Network conditions not suitable for upload - keeping recordings in queue');
+    const uploadCheck = shouldUploadNow();
+    if (!uploadCheck.allowed) {
+      console.log(`🚫 Cannot process queue - ${uploadCheck.reason}. Keeping ${pendingRecordings.length} recordings in pending state.`);
       return;
     }
 
     console.log(`🚀 Processing ${pendingRecordings.length} recordings with upload service`);
 
-    // Process recordings with the upload service
-    for (const recording of pendingRecordings) {
-      try {
-        await processRecordingWithUploadService(recording);
-      } catch (error) {
-        console.error(`❌ Failed to process recording ${recording.id}:`, error);
+    // Manually set processing state since we're bypassing queue store's processQueue
+    queueStore.pauseProcessing(); // This sets isProcessing to true
+    
+    try {
+      // Process recordings one by one to avoid overwhelming the service
+      for (const recording of pendingRecordings) {
+        try {
+          await processRecordingWithUploadService(recording);
+        } catch (error) {
+          console.error(`❌ Failed to process recording ${recording.id}:`, error);
+        }
       }
+    } finally {
+      queueStore.resumeProcessing(); // This sets isProcessing to false
     }
-  }, [isServiceInitialized, queueStore, networkStatus]);
+
+    console.log('✅ Queue processing completed');
+  }, [isServiceInitialized, queueStore, shouldUploadNow]);
 
   // Process individual recording using upload service
   const processRecordingWithUploadService = async (recording: OfflineRecording) => {
     try {
-      // Double-check network before starting upload
-      if (!shouldUploadNow()) {
-        console.log(`🚫 Skipping upload for ${recording.id} - network conditions changed`);
+      // Triple-check network before starting upload
+      const uploadCheck = shouldUploadNow();
+      if (!uploadCheck.allowed) {
+        console.log(`🚫 Skipping upload for ${recording.id} - ${uploadCheck.reason}`);
         return;
       }
 
@@ -210,7 +282,7 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
         }
       };
 
-      console.log(`📤 Uploading recording ${recording.id} via upload service`);
+      console.log(`📤 Starting upload for recording ${recording.id}`);
 
       const result: UploadResult = await uploadService.uploadFile(
         recording.audioUri,
@@ -315,11 +387,20 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     if (shouldUploadImmediately()) {
       console.log('🚀 Good network conditions, attempting immediate upload');
       setTimeout(() => processQueue(), 500); // Small delay to ensure queue is updated
+    } else {
+      const uploadCheck = shouldUploadNow();
+      console.log(`📱 Recording queued for later upload - ${uploadCheck.reason || 'Conditions not optimal'}`);
     }
-  }, [queueStore, networkStatus, processQueue]);
+  }, [queueStore, networkStatus, processQueue, shouldUploadImmediately, shouldUploadNow]);
 
   // Enhanced retry with exponential backoff
   const retryFailedRecordings = useCallback(async () => {
+    const uploadCheck = shouldUploadNow();
+    if (!uploadCheck.allowed) {
+      console.log(`🚫 Cannot retry failed recordings - ${uploadCheck.reason}`);
+      return;
+    }
+
     const failedRecordings = queueStore.getRecordingsByStatus('failed');
     const retryableRecordings = failedRecordings.filter(
       r => r.retryCount < r.maxRetries
@@ -348,50 +429,7 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
 
     // Process queue after all retries are scheduled
     setTimeout(() => processQueue(), 1000);
-  }, [queueStore, processQueue]);
-
-  // Helper functions
-  const shouldUploadNow = (): boolean => {
-    // Check the actual network status from our hook
-    if (!networkStatus.isOnline) {
-      console.log('🚫 Upload blocked: Not online');
-      return false;
-    }
-    
-    if (!networkStatus.isConnected) {
-      console.log('🚫 Upload blocked: Not connected');
-      return false;
-    }
-    
-    if (!networkStatus.isInternetReachable) {
-      console.log('🚫 Upload blocked: No internet');
-      return false;
-    }
-    
-    if (queueStore.wifiOnlyMode && !networkStatus.isWifi) {
-      console.log('🚫 Upload blocked: WiFi-only mode and not on WiFi');
-      return false;
-    }
-    
-    if (networkStatus.connectionQuality === 'poor') {
-      console.log('🚫 Upload blocked: Poor connection quality');
-      return false;
-    }
-    
-    console.log('✅ Upload allowed: Good network conditions');
-    return true;
-  };
-
-  const shouldUploadImmediately = (): boolean => {
-    const canUpload = shouldUploadNow();
-    const goodConditions = networkStatus.connectionQuality !== 'fair';
-    const notBusy = !queueStore.isProcessing;
-    
-    const result = canUpload && goodConditions && notBusy;
-    console.log(`🚀 Immediate upload: ${result} (canUpload: ${canUpload}, goodConditions: ${goodConditions}, notBusy: ${notBusy})`);
-    
-    return result;
-  };
+  }, [queueStore, processQueue, shouldUploadNow]);
 
   const getRecordingPriority = (
     recording: { duration: number; fileSize: number },
@@ -459,6 +497,12 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     };
   }, [queueStore]);
 
+  // Get current upload status reason
+  const getUploadStatusReason = (): string | undefined => {
+    const uploadCheck = shouldUploadNow();
+    return uploadCheck.allowed ? undefined : uploadCheck.reason;
+  };
+
   return {
     // Queue status
     pendingCount: queueStore.getRecordingsByStatus('pending').length,
@@ -468,16 +512,17 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     totalSize: queueStore.getQueueStats().totalSize,
     isProcessing: queueStore.isProcessing,
     
-    // Current upload
+    // Current upload (only show if actually uploading)
     currentUpload: queueStore.currentUpload,
     
-    // Network status
+    // Network status with block reason
     networkStatus: {
       isOnline: networkStatus.isOnline,
       type: networkStatus.type,
       quality: networkStatus.connectionQuality,
       isWifi: networkStatus.isWifi,
-      shouldUpload: shouldUploadNow()
+      shouldUpload: shouldUploadNow().allowed,
+      blockReason: getUploadStatusReason()
     },
     
     // Actions
