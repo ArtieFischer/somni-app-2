@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useOfflineQueueStore } from '@somni/stores';
 import { ProgressiveUploadService } from '@somni/stores';
-import { useNetworkStatus } from './useNetworkStatus';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus/useNetworkStatus.ts';
 import { useDreamStore } from '@somni/stores';
 import { 
   OfflineRecording, 
