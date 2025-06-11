@@ -11,21 +11,6 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
-// For type-safe navigation in screens
-export type MainTabScreenProps<T extends keyof MainTabParamList> = 
-  CompositeScreenProps<
-    BottomTabScreenProps<MainTabParamList, T>,
-    NativeStackScreenProps<any>
-  >;
-
-export type MainTabParamList = {
-  Feed: undefined;
-  DreamDiary: undefined;
-  Record: undefined;
-  MetaAnalysis: undefined;
-  Profile: undefined;
-};
-
 export type TabIconName = 'feed' | 'diary' | 'record' | 'analysis' | 'profile';
 
 export const TAB_NAMES = {
