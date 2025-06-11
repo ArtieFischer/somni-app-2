@@ -1,0 +1,184 @@
+import { useState, useCallback } from 'react';
+import { Alert } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import { supabase } from '../lib/supabase';
+import { useDreamStore } from '@somni/stores';
+import { useAuth } from './useAuth';
+import { useTranslation } from './useTranslation';
+
+interface PendingRecording {
+  sessionId: string;
+  audioUri: string;
+  duration: number;
+  fileSize: number;
+}
+
+export const useRecordingHandler = () => {
+  const { t } = useTranslation('dreams');
+  const dreamStore = useDreamStore();
+  const { session, user } = useAuth();
+  const [pendingRecording, setPendingRecording] = useState<PendingRecording | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  const savePendingRecording = useCallback((result: any) => {
+    if (result && dreamStore.recordingSession) {
+      const recordingData = {
+        sessionId: dreamStore.recordingSession.id,
+        audioUri: result.uri,
+        duration: result.duration,
+        fileSize: result.fileSize
+      };
+      
+      setPendingRecording(recordingData);
+      console.log('📼 Pending recording saved:', recordingData);
+      return true;
+    }
+    return false;
+  }, [dreamStore.recordingSession]);
+
+  const acceptRecording = useCallback(async () => {
+    console.log('🎯 Accept recording clicked');
+    
+    const audioUri = pendingRecording?.audioUri || dreamStore.recordingSession?.audioUri;
+    
+    if (!audioUri) {
+      Alert.alert('Error', 'No audio file found');
+      return;
+    }
+    
+    if (!dreamStore.recordingSession?.dreamId) {
+      Alert.alert('Error', 'No dream session found');
+      return;
+    }
+
+    if (!session?.access_token || !user?.id) {
+      Alert.alert(
+        'Authentication Required',
+        'Please log in to transcribe your dreams',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    try {
+      setIsTranscribing(true);
+      
+      // Verify file exists
+      const fileInfo = await FileSystem.getInfoAsync(audioUri);
+      if (!fileInfo.exists) {
+        throw new Error('Audio file does not exist');
+      }
+
+      // Create dream in Supabase
+      console.log('📝 Creating dream in database...');
+      const { data: createdDream, error: createError } = await supabase
+        .from('dreams')
+        .insert({
+          user_id: user.id,
+          raw_transcript: '',
+          duration: pendingRecording?.duration || dreamStore.recordingSession.duration,
+          transcription_status: 'pending',
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (createError || !createdDream) {
+        throw new Error('Failed to create dream record');
+      }
+
+      console.log('✅ Dream created in database:', createdDream.id);
+
+      // Update local dream with the real ID
+      dreamStore.updateDream(dreamStore.recordingSession.dreamId, {
+        id: createdDream.id,
+        status: 'transcribing'
+      });
+      
+      // Read the audio file as base64
+      const audioBase64 = await FileSystem.readAsStringAsync(
+        audioUri,
+        { encoding: FileSystem.EncodingType.Base64 }
+      );
+
+      // Call edge function
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/dreams-transcribe-init`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dreamId: createdDream.id,
+            audioBase64,
+            duration: pendingRecording?.duration || dreamStore.recordingSession.duration
+          })
+        }
+      );
+
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Transcription failed');
+      }
+
+      console.log('✅ Transcription initiated:', responseData);
+
+      // Delete the local audio file
+      try {
+        await FileSystem.deleteAsync(audioUri);
+        console.log('🗑️ Deleted local audio file');
+      } catch (deleteError) {
+        console.warn('Failed to delete audio file:', deleteError);
+      }
+
+      // Clear pending recording
+      setPendingRecording(null);
+      dreamStore.clearRecordingSession();
+      
+      Alert.alert(
+        String(t('notifications.dreamCaptured.title')),
+        'Your dream is being transcribed!',
+        [{ text: String(t('actions.ok')) }]
+      );
+
+    } catch (error) {
+      console.error('Transcription error:', error);
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to start transcription',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsTranscribing(false);
+    }
+  }, [pendingRecording, dreamStore, session, user, t]);
+
+  const cancelRecording = useCallback(async () => {
+    if (pendingRecording?.audioUri) {
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(pendingRecording.audioUri);
+        if (fileInfo.exists) {
+          await FileSystem.deleteAsync(pendingRecording.audioUri);
+          console.log('🗑️ Deleted audio file');
+        }
+      } catch (error) {
+        console.error('Failed to delete audio file:', error);
+      }
+      
+      setPendingRecording(null);
+      dreamStore.clearRecordingSession();
+    }
+  }, [pendingRecording, dreamStore]);
+
+  return {
+    pendingRecording,
+    setPendingRecording,
+    isTranscribing,
+    savePendingRecording,
+    acceptRecording,
+    cancelRecording,
+  };
+};
