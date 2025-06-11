@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { TabIconName } from '@somni/types';
 import { useStyles } from './TabBarIcon.styles';
+import { useDreamStore } from '@somni/stores';
 
 export interface TabBarIconProps {
   name: TabIconName;
@@ -14,6 +15,11 @@ export const TabBarIcon: React.FC<TabBarIconProps> = ({
   focused,
   color,
 }) => {
+  // Only check recording state for the record tab icon
+  const isRecording = useDreamStore(state => 
+    name === 'record' ? state.isRecording : false
+  );
+  
   const styles = useStyles(focused);
 
   // Using emojis temporarily - will replace with proper icons
@@ -24,7 +30,8 @@ export const TabBarIcon: React.FC<TabBarIconProps> = ({
       case 'diary':
         return '📖';
       case 'record':
-        return focused ? '🔴' : '⭕';
+        // Show different icon based on recording state
+        return isRecording ? '🔴' : (focused ? '⭕' : '⭕');
       case 'analysis':
         return '📊';
       case 'profile':
@@ -34,17 +41,30 @@ export const TabBarIcon: React.FC<TabBarIconProps> = ({
     }
   };
 
+  const isRecordTab = name === 'record';
+  const showRecordingState = isRecordTab && isRecording;
+
   return (
     <View style={styles.container}>
-      <View style={[styles.iconWrapper, name === 'record' && styles.recordIconWrapper]}>
+      <View style={[
+        styles.iconWrapper, 
+        isRecordTab && styles.recordIconWrapper,
+        showRecordingState && styles.recordingIconWrapper
+      ]}>
         <View style={styles.icon}>
-          <View style={{ opacity: focused ? 1 : 0.6 }}>
-            <Text style={[styles.iconText, { color, fontSize: name === 'record' ? 30 : 24 }]}>
+          <View style={{ opacity: focused || showRecordingState ? 1 : 0.6 }}>
+            <Text style={[
+              styles.iconText, 
+              { 
+                color: showRecordingState ? '#FF0000' : color, 
+                fontSize: isRecordTab ? 30 : 24 
+              }
+            ]}>
               {getIcon()}
             </Text>
           </View>
         </View>
-        {name === 'record' && focused && (
+        {showRecordingState && (
           <View style={styles.recordingGlow} />
         )}
       </View>
