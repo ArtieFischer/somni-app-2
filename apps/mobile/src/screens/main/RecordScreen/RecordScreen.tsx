@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Animated, ScrollView } from 'react-native';
-import { Text, Button } from '../../../components/atoms';
+import { View, Animated, SafeAreaView, Alert } from 'react-native';
+import { Text } from '../../../components/atoms';
 import { MorphingRecordButton } from '../../../components/atoms/MorphingRecordButton';
 import { RecordingTimer } from '../../../components/molecules/RecordingTimer';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -10,7 +10,16 @@ import { useStyles } from './RecordScreen.styles';
 
 export const RecordScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
-  const { isRecording, startRecording, stopRecording, duration } = useDreamRecorder();
+  const { 
+    isRecording, 
+    startRecording, 
+    stopRecording, 
+    recordingDuration,
+    isProcessing,
+    error,
+    clearError,
+    offlineQueueStatus
+  } = useDreamRecorder();
   const { isOnline } = useNetworkStatus();
   const styles = useStyles();
   
@@ -50,96 +59,101 @@ export const RecordScreen: React.FC = () => {
     }
   }, [isRecording]);
 
-  const handleRecordPress = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
+  // Show error alerts
+  useEffect(() => {
+    if (error) {
+      Alert.alert('Recording Error', error, [
+        { text: 'OK', onPress: clearError }
+      ]);
+    }
+  }, [error, clearError]);
+
+  const handleRecordPress = async () => {
+    try {
+      if (isRecording) {
+        await stopRecording();
+      } else {
+        await startRecording();
+      }
+    } catch (err) {
+      console.error('Record button error:', err);
     }
   };
 
+  const getStatusText = () => {
+    if (isProcessing) {
+      return t('record.processing');
+    }
+    if (isRecording) {
+      return t('record.whisperMode');
+    }
+    if (offlineQueueStatus.pendingCount > 0) {
+      return `${offlineQueueStatus.pendingCount} ${t('dreams.offline.pending')}`;
+    }
+    return t('record.button.start');
+  };
+
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        {/* Title section */}
-        <View style={styles.header}>
-          <Text variant="h1" style={styles.title}>
-            {t('record.title')}
-          </Text>
-          <Text variant="body" color="secondary" style={styles.subtitle}>
-            {t('record.subtitle')}
-          </Text>
-        </View>
-
-        {/* Main recording button with morphing animation */}
-        <View style={styles.buttonSection}>
-          <MorphingRecordButton
-            isRecording={isRecording}
-            onPress={handleRecordPress}
-            amplitude={amplitude}
-          />
-        </View>
-
-        {/* Recording timer */}
-        <RecordingTimer
-          isRecording={isRecording}
-          duration={duration || 0}
-        />
-
-        {/* Instructions or status */}
-        <View style={styles.instructionSection}>
-          {!isRecording ? (
-            <>
-              <Text variant="body" color="secondary" style={styles.instruction}>
-                {t('record.button.start')}
-              </Text>
-              {!isOnline && (
-                <View style={styles.offlineNotice}>
-                  <Text variant="caption" style={styles.offlineText}>
-                    📡 {t('record.offline')}
-                  </Text>
-                </View>
-              )}
-            </>
-          ) : (
-            <Text variant="body" color="secondary" style={styles.instruction}>
-              {t('record.whisperMode')}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.innerContainer}>
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          {/* Title section */}
+          <View style={styles.header}>
+            <Text variant="h1" style={styles.title}>
+              {t('record.title')}
             </Text>
-          )}
-        </View>
+            <Text variant="body" color="secondary" style={styles.subtitle}>
+              {t('record.subtitle')}
+            </Text>
+          </View>
 
-        {/* Bottom actions */}
-        {isRecording && (
-          <Animated.View
-            style={[
-              styles.actions,
-              {
-                opacity: fadeAnim,
-              },
-            ]}
-          >
-            <Button
-              variant="secondary"
-              size="medium"
-              onPress={() => console.log('Pause')}
-            >
-              Pause
-            </Button>
-          </Animated.View>
-        )}
-      </Animated.View>
-    </ScrollView>
+          {/* Main recording button with morphing animation */}
+          <View style={styles.buttonSection}>
+            <MorphingRecordButton
+              isRecording={isRecording}
+              onPress={handleRecordPress}
+              amplitude={amplitude}
+            />
+          </View>
+
+          {/* Recording timer */}
+          <RecordingTimer
+            isRecording={isRecording}
+            duration={recordingDuration}
+          />
+
+          {/* Instructions or status */}
+          <View style={styles.instructionSection}>
+            <Text variant="body" color="secondary" style={styles.instruction}>
+              {getStatusText()}
+            </Text>
+            
+            {!isOnline && (
+              <View style={styles.offlineNotice}>
+                <Text variant="caption" style={styles.offlineText}>
+                  📡 {t('record.offline')}
+                </Text>
+              </View>
+            )}
+
+            {offlineQueueStatus.failedCount > 0 && (
+              <View style={styles.errorNotice}>
+                <Text variant="caption" style={styles.errorText}>
+                  ⚠️ {offlineQueueStatus.failedCount} {t('dreams.offline.failed')}
+                </Text>
+              </View>
+            )}
+          </View>
+        </Animated.View>
+      </View>
+    </SafeAreaView>
   );
 };
