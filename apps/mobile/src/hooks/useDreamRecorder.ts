@@ -46,19 +46,11 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
   
   // Prevent race conditions
   const isTransitioningRef = useRef(false);
-  const clearSessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const clearTimer = useCallback(() => {
     if (durationTimerRef.current) {
       clearInterval(durationTimerRef.current);
       durationTimerRef.current = null;
-    }
-  }, []);
-
-  const clearSessionTimeout = useCallback(() => {
-    if (clearSessionTimeoutRef.current) {
-      clearTimeout(clearSessionTimeoutRef.current);
-      clearSessionTimeoutRef.current = null;
     }
   }, []);
 
@@ -68,9 +60,6 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       console.log('⚠️ Recording transition in progress, ignoring');
       return;
     }
-
-    // Cancel any pending session clear
-    clearSessionTimeout();
 
     try {
       isTransitioningRef.current = true;
@@ -113,7 +102,7 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
         isTransitioningRef.current = false;
       }, 100);
     }
-  }, [dreamStore, audioService, clearTimer, clearSessionTimeout]);
+  }, [dreamStore, audioService, clearTimer]);
 
   const stopRecording = useCallback(async () => {
     // Prevent multiple simultaneous transitions
@@ -170,14 +159,11 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
 
       dreamStore.updateRecordingSession({ 
         status: 'completed',
-        dreamId: `temp_${currentSession.id}`
+        dreamId: `temp_${currentSession.id}`,
+        audioUri: audioResult.uri
       });
 
-      // Clear session after a delay (but can be cancelled if new recording starts)
-      clearSessionTimeoutRef.current = setTimeout(() => {
-        dreamStore.clearRecordingSession();
-        setRecordingDuration(0);
-      }, 2000);
+      // REMOVED: Auto-clear session timeout - let RecordScreen handle this
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process recording';
@@ -199,12 +185,11 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
   useEffect(() => {
     return () => {
       clearTimer();
-      clearSessionTimeout();
       if (audioService.getIsRecording()) {
         audioService.cleanup();
       }
     };
-  }, [clearTimer, clearSessionTimeout, audioService]);
+  }, [clearTimer, audioService]);
 
   return {
     isRecording: dreamStore.isRecording && !isTransitioningRef.current,
