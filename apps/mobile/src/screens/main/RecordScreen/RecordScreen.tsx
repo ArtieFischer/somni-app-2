@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Animated, SafeAreaView, Alert } from 'react-native';
+import { View, Animated, SafeAreaView, Alert, StyleSheet } from 'react-native';
 import { Text } from '../../../components/atoms';
 import { MorphingRecordButton } from '../../../components/atoms/MorphingRecordButton';
 import { RecordingTimer } from '../../../components/molecules/RecordingTimer';
@@ -7,10 +7,11 @@ import { OfflineQueueStatus } from '../../../components/molecules/OfflineQueueSt
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamRecorder } from '../../../hooks/useDreamRecorder';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
-import { useStyles } from './RecordScreen.styles';
+import { useTheme } from '../../../hooks/useTheme';
 
 export const RecordScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
+  const theme = useTheme();
   const { 
     isRecording, 
     startRecording, 
@@ -22,7 +23,6 @@ export const RecordScreen: React.FC = () => {
     offlineQueueStatus
   } = useDreamRecorder();
   const { isOnline } = useNetworkStatus();
-  const styles = useStyles();
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -105,6 +105,79 @@ export const RecordScreen: React.FC = () => {
     }
     return t('record.button.start');
   };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background.primary,
+    },
+    innerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingVertical: theme.spacing.large,
+      paddingHorizontal: theme.spacing.medium,
+    },
+    header: {
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.large,
+      marginBottom: theme.spacing.large,
+    },
+    title: {
+      textAlign: 'center',
+      marginBottom: theme.spacing.small,
+    },
+    subtitle: {
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    buttonSection: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginVertical: theme.spacing.medium,
+    },
+    instructionSection: {
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.large,
+      marginTop: theme.spacing.large,
+    },
+    instruction: {
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    offlineNotice: {
+      marginTop: theme.spacing.medium,
+      paddingHorizontal: theme.spacing.medium,
+      paddingVertical: theme.spacing.small,
+      backgroundColor: theme.colors.background.secondary,
+      borderRadius: theme.borderRadius.medium,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.colors.status.warning,
+    },
+    offlineText: {
+      color: theme.colors.text.secondary,
+    },
+    errorNotice: {
+      marginTop: theme.spacing.small,
+      paddingHorizontal: theme.spacing.medium,
+      paddingVertical: theme.spacing.small,
+      backgroundColor: theme.colors.background.secondary,
+      borderRadius: theme.borderRadius.medium,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.colors.status.error,
+    },
+    errorText: {
+      color: theme.colors.status.error,
+    },
+    processingText: {
+      marginTop: theme.spacing.small,
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
+  });
 
   return (
     <SafeAreaView style={styles.container}>
