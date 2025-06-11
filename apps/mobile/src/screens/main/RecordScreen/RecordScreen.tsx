@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Animated, SafeAreaView, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
-import { supabase } from '../../../infrastructure/supabase/client'; // Use consistent import
+import { supabase } from '../../../infrastructure/supabase/client';
 import { Text } from '../../../components/atoms';
 import { Button } from '../../../components/atoms/Button';
 import { MorphingRecordButton } from '../../../components/atoms/MorphingRecordButton';
@@ -13,14 +13,14 @@ import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useUploadNotifications } from '../../../hooks/useUploadNotifications';
 import { useOfflineRecordingQueue } from '../../../hooks/useOfflineRecordingQueue';
 import { useDreamStore } from '@somni/stores';
-import { useAuth } from '../../../hooks/useAuth'; // Use your auth hook
+import { useAuth } from '../../../hooks/useAuth';
 import { useStyles } from './RecordScreen.styles';
 
 export const RecordScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
   const styles = useStyles();
   const dreamStore = useDreamStore();
-  const { session, user } = useAuth(); // Get auth info
+  const { session, user } = useAuth();
   const offlineQueue = useOfflineRecordingQueue();
   
   const { 
@@ -147,8 +147,19 @@ export const RecordScreen: React.FC = () => {
   };
 
   const handleAcceptRecording = async () => {
-    if (!pendingRecording || !dreamStore.recordingSession?.dreamId) {
-      console.error('No pending recording to accept');
+    console.log('🎯 Accept recording clicked');
+    console.log('Pending recording:', pendingRecording);
+    console.log('Dream session:', dreamStore.recordingSession);
+    
+    if (!pendingRecording) {
+      console.error('No pending recording object');
+      Alert.alert('Error', 'No recording to accept');
+      return;
+    }
+    
+    if (!dreamStore.recordingSession?.dreamId) {
+      console.error('No dream ID in session');
+      Alert.alert('Error', 'No dream session found');
       return;
     }
 
@@ -165,10 +176,20 @@ export const RecordScreen: React.FC = () => {
     try {
       setIsTranscribing(true);
       
-      // Make sure we have the audio URI
+      // Use the audio URI from pendingRecording
       const audioUri = pendingRecording.audioUri;
+      console.log('📁 Audio URI:', audioUri);
+      
       if (!audioUri) {
-        throw new Error('No audio file found');
+        throw new Error('Audio URI is missing from pending recording');
+      }
+      
+      // Verify file exists
+      const fileInfo = await FileSystem.getInfoAsync(audioUri);
+      console.log('📁 File info:', fileInfo);
+      
+      if (!fileInfo.exists) {
+        throw new Error('Audio file does not exist at path: ' + audioUri);
       }
       
       // Read the audio file as base64
@@ -215,16 +236,11 @@ export const RecordScreen: React.FC = () => {
       });
 
       // Delete the local audio file since we've sent it
-      if (audioUri) {
-        try {
-          const fileInfo = await FileSystem.getInfoAsync(audioUri);
-          if (fileInfo.exists) {
-            await FileSystem.deleteAsync(audioUri);
-            console.log('🗑️ Deleted local audio file');
-          }
-        } catch (deleteError) {
-          console.warn('Failed to delete audio file:', deleteError);
-        }
+      try {
+        await FileSystem.deleteAsync(audioUri);
+        console.log('🗑️ Deleted local audio file');
+      } catch (deleteError) {
+        console.warn('Failed to delete audio file:', deleteError);
       }
 
       // Clear pending recording
@@ -267,8 +283,8 @@ export const RecordScreen: React.FC = () => {
     }
   };
 
-  // Regular function to get status text
-  const getStatusText = () => {
+  // Memoize status text to avoid recalculation
+  const statusText = React.useMemo(() => {
     if (isProcessing) {
       return String(t('record.processing'));
     }
@@ -279,7 +295,7 @@ export const RecordScreen: React.FC = () => {
       return String(t('record.acceptOrCancel'));
     }
     return String(t('record.button.start'));
-  };
+  }, [isProcessing, isRecording, pendingRecording, t]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -350,7 +366,7 @@ export const RecordScreen: React.FC = () => {
           {/* Instructions or status */}
           <View style={styles.instructionSection}>
             <Text variant="body" color="secondary" style={styles.instruction}>
-              {getStatusText()}
+              {statusText}
             </Text>
             
             {!isOnline && (
