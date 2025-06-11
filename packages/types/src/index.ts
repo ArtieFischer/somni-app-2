@@ -70,6 +70,15 @@ export type {
   UploadStrategyConfig
 } from './uploadService';
 
+// Navigation types
+export type {
+  MainTabParamList,
+  MainTabScreenProps,
+  TabIconName
+} from './navigation';
+
+export { TAB_NAMES } from './navigation';
+
 // Export the DreamEntity class
 export { DreamEntity } from './dreamEntity';
 
