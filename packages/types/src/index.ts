@@ -235,3 +235,6 @@ export interface Theme {
     large: object;
   };
 }
+
+export * from './offlineQueue';
+export * from './uploadService';
