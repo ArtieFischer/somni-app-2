@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Animated, SafeAreaView, Alert } from 'react-native';
-import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../../lib/supabase';
 import { Text } from '../../../components/atoms';
-import { Button } from '../../../components/atoms/Button';
 import { MorphingRecordButton } from '../../../components/atoms/MorphingRecordButton';
 import { RecordingTimer } from '../../../components/molecules/RecordingTimer';
+import { RecordingActions } from '../../../components/molecules/RecordingActions';
+import { RecordingStatus } from '../../../components/molecules/RecordingStatus';
 import { OfflineQueueStatus } from '../../../components/molecules/OfflineQueueStatus';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamRecorder } from '../../../hooks/useDreamRecorder';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useUploadNotifications } from '../../../hooks/useUploadNotifications';
-import { useOfflineRecordingQueue } from '../../../hooks/useOfflineRecordingQueue';
+import { useRecordingHandler } from '../../../hooks/useRecordingHandler';
 import { useDreamStore } from '@somni/stores';
 import { useAuth } from '../../../hooks/useAuth';
 import { useStyles } from './RecordScreen.styles';
@@ -20,8 +20,7 @@ export const RecordScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
   const styles = useStyles();
   const dreamStore = useDreamStore();
-  const { session, user } = useAuth();
-  const offlineQueue = useOfflineRecordingQueue();
+  const { user } = useAuth();
   
   const { 
     isRecording, 
@@ -31,21 +30,17 @@ export const RecordScreen: React.FC = () => {
     isProcessing,
     error,
     clearError,
-    offlineQueueStatus
   } = useDreamRecorder();
   
   const { isOnline } = useNetworkStatus();
   
-  // State for pending recording
-  const [pendingRecording, setPendingRecording] = useState<{
-    sessionId: string;
-    audioUri: string;
-    duration: number;
-    fileSize: number;
-  } | null>(null);
-  
-  // State for transcription processing
-  const [isTranscribing, setIsTranscribing] = useState(false);
+  const {
+    pendingRecording,
+    isTranscribing,
+    savePendingRecording,
+    acceptRecording,
+    cancelRecording,
+  } = useRecordingHandler();
   
   // Use upload notifications hook
   useUploadNotifications({
@@ -61,22 +56,11 @@ export const RecordScreen: React.FC = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   
-  // Simulated amplitude for demo (replace with real audio amplitude)
+  // Simulated amplitude for demo
   const [amplitude, setAmplitude] = useState(0);
   
   // Prevent double clicks
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
-
-  // Fix for render warning - defer any immediate state updates
-  useEffect(() => {
-    // Cleanup on unmount
-    return () => {
-      if (pendingRecording?.audioUri) {
-        // Don't delete the file here, just clear the state
-        setPendingRecording(null);
-      }
-    };
-  }, []);
 
   // Monitor real-time updates for transcription completion
   useEffect(() => {
@@ -96,13 +80,11 @@ export const RecordScreen: React.FC = () => {
           console.log('Dream update received:', payload);
           
           if (payload.new.transcription_status === 'completed') {
-            // Update local dream store
             dreamStore.updateDream(payload.new.id, {
               rawTranscript: payload.new.raw_transcript,
               status: 'completed',
             });
             
-            // Show notification
             Alert.alert(
               'Transcription Complete!',
               'Your dream has been transcribed.',
@@ -162,7 +144,6 @@ export const RecordScreen: React.FC = () => {
   }, [error, clearError, t]);
 
   const handleRecordPress = async () => {
-    // Prevent double clicks
     if (isButtonDisabled || isProcessing) {
       return;
     }
@@ -172,212 +153,22 @@ export const RecordScreen: React.FC = () => {
     try {
       if (isRecording) {
         const result = await stopRecording();
-        
-        // Save the recording info for acceptance
-        if (result && dreamStore.recordingSession) {
-          const recordingData = {
-            sessionId: dreamStore.recordingSession.id,
-            audioUri: result.uri, // FIX: Use 'uri' not 'audioUri'
-            duration: result.duration,
-            fileSize: result.fileSize
-          };
-          
-          setPendingRecording(recordingData);
-          console.log('📼 Pending recording saved:', recordingData);
-          
-          // Also log what we got from stopRecording
-          console.log('📼 Raw result from stopRecording:', result);
-        } else {
-          console.error('❌ No result from stopRecording or no session');
-        }
+        savePendingRecording(result);
       } else {
-        setPendingRecording(null); // Clear any pending recording
         await startRecording();
       }
     } catch (err) {
       console.error('Record button error:', err);
     } finally {
-      // Re-enable button after a short delay
       setTimeout(() => {
         setIsButtonDisabled(false);
       }, 500);
     }
   };
 
-  const handleAcceptRecording = async () => {
-    console.log('🎯 Accept recording clicked');
-    console.log('Pending recording:', pendingRecording);
-    console.log('Dream session:', dreamStore.recordingSession);
-    
-    // Try to get audio URI from multiple sources
-    const audioUri = pendingRecording?.audioUri || dreamStore.recordingSession?.audioUri;
-    
-    if (!audioUri) {
-      console.error('No audio URI found in pending recording or session');
-      Alert.alert('Error', 'No audio file found');
-      return;
-    }
-    
-    if (!dreamStore.recordingSession?.dreamId) {
-      console.error('No dream ID in session');
-      Alert.alert('Error', 'No dream session found');
-      return;
-    }
-
-    // Check if we have a valid session
-    if (!session?.access_token || !user?.id) {
-      Alert.alert(
-        'Authentication Required',
-        'Please log in to transcribe your dreams',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    try {
-      setIsTranscribing(true);
-      
-      console.log('📁 Audio URI:', audioUri);
-      
-      // Verify file exists
-      const fileInfo = await FileSystem.getInfoAsync(audioUri);
-      console.log('📁 File info:', fileInfo);
-      
-      if (!fileInfo.exists) {
-        throw new Error('Audio file does not exist at path: ' + audioUri);
-      }
-
-      // First, create the dream in Supabase
-      console.log('📝 Creating dream in database...');
-      const { data: createdDream, error: createError } = await supabase
-        .from('dreams')
-        .insert({
-          user_id: user.id,
-          raw_transcript: '',
-          duration: pendingRecording?.duration || dreamStore.recordingSession.duration,
-          transcription_status: 'pending',
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (createError || !createdDream) {
-        console.error('Failed to create dream:', createError);
-        throw new Error('Failed to create dream record');
-      }
-
-      console.log('✅ Dream created in database:', createdDream.id);
-
-      // Update local dream with the real ID
-      dreamStore.updateDream(dreamStore.recordingSession.dreamId, {
-        id: createdDream.id,
-        status: 'transcribing'
-      });
-      
-      // Read the audio file as base64
-      console.log('📖 Reading audio file from:', audioUri);
-      const audioBase64 = await FileSystem.readAsStringAsync(
-        audioUri,
-        { encoding: FileSystem.EncodingType.Base64 }
-      );
-
-      console.log('📤 Sending to transcription service...');
-      console.log('Dream ID:', createdDream.id);
-      console.log('Audio size:', audioBase64.length);
-      console.log('Duration:', pendingRecording?.duration || dreamStore.recordingSession.duration);
-      console.log('User ID:', user.id);
-
-      // Call your edge function with the real dream ID
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/dreams-transcribe-init`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            dreamId: createdDream.id, // Use the real dream ID from Supabase
-            audioBase64,
-            duration: pendingRecording?.duration || dreamStore.recordingSession.duration
-          })
-        }
-      );
-
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(responseData.error || 'Transcription failed');
-      }
-
-      console.log('✅ Transcription initiated:', responseData);
-
-      // Delete the local audio file since we've sent it
-      try {
-        await FileSystem.deleteAsync(audioUri);
-        console.log('🗑️ Deleted local audio file');
-      } catch (deleteError) {
-        console.warn('Failed to delete audio file:', deleteError);
-      }
-
-      // Clear pending recording
-      setPendingRecording(null);
-      dreamStore.clearRecordingSession();
-      
-      Alert.alert(
-        String(t('notifications.dreamCaptured.title')),
-        'Your dream is being transcribed!',
-        [{ text: String(t('actions.ok')) }]
-      );
-
-    } catch (error) {
-      console.error('Transcription error:', error);
-      Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'Failed to start transcription',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
-
-  const handleCancelRecording = async () => {
-    if (pendingRecording && pendingRecording.audioUri) {
-      // Delete the audio file
-      try {
-        const fileInfo = await FileSystem.getInfoAsync(pendingRecording.audioUri);
-        if (fileInfo.exists) {
-          await FileSystem.deleteAsync(pendingRecording.audioUri);
-          console.log('🗑️ Deleted audio file');
-        }
-      } catch (error) {
-        console.error('Failed to delete audio file:', error);
-      }
-      
-      setPendingRecording(null);
-      dreamStore.clearRecordingSession();
-    }
-  };
-
-  // Memoize status text to avoid recalculation
-  const statusText = React.useMemo(() => {
-    if (isProcessing) {
-      return String(t('record.processing'));
-    }
-    if (isRecording) {
-      return String(t('record.whisperMode'));
-    }
-    if (pendingRecording) {
-      return String(t('record.acceptOrCancel'));
-    }
-    return String(t('record.button.start'));
-  }, [isProcessing, isRecording, pendingRecording, t]);
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.innerContainer}>
-        {/* Offline queue status at the top */}
         <OfflineQueueStatus />
 
         <Animated.View
@@ -408,27 +199,11 @@ export const RecordScreen: React.FC = () => {
                 amplitude={amplitude}
               />
             ) : (
-              <View style={styles.actionButtons}>
-                <Button
-                  variant="primary"
-                  size="large"
-                  onPress={handleAcceptRecording}
-                  loading={isTranscribing}
-                  disabled={isTranscribing}
-                  style={styles.acceptButton}
-                >
-                  {String(t('record.acceptRecording'))}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="medium"
-                  onPress={handleCancelRecording}
-                  disabled={isTranscribing}
-                  style={styles.cancelButton}
-                >
-                  {String(t('record.cancelRecording'))}
-                </Button>
-              </View>
+              <RecordingActions
+                onAccept={acceptRecording}
+                onCancel={cancelRecording}
+                isLoading={isTranscribing}
+              />
             )}
           </View>
 
@@ -441,25 +216,13 @@ export const RecordScreen: React.FC = () => {
           )}
 
           {/* Instructions or status */}
-          <View style={styles.instructionSection}>
-            <Text variant="body" color="secondary" style={styles.instruction}>
-              {statusText}
-            </Text>
-            
-            {!isOnline && (
-              <View style={styles.offlineNotice}>
-                <Text variant="caption" style={styles.offlineText}>
-                  📡 {String(t('record.offline'))}
-                </Text>
-              </View>
-            )}
-
-            {(isProcessing || isTranscribing) && (
-              <Text variant="caption" color="secondary" style={styles.processingText}>
-                {isTranscribing ? String(t('record.transcribing')) : String(t('record.processing'))}
-              </Text>
-            )}
-          </View>
+          <RecordingStatus
+            isRecording={isRecording}
+            isProcessing={isProcessing}
+            isTranscribing={isTranscribing}
+            hasPendingRecording={!!pendingRecording}
+            isOnline={isOnline}
+          />
         </Animated.View>
       </View>
     </SafeAreaView>
