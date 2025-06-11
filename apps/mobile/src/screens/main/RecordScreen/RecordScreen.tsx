@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Animated, SafeAreaView, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
-import { supabase } from '../../../infrastructure/supabase/client';
+import { supabase } from '../../../lib/supabase';
 import { Text } from '../../../components/atoms';
 import { Button } from '../../../components/atoms/Button';
 import { MorphingRecordButton } from '../../../components/atoms/MorphingRecordButton';
