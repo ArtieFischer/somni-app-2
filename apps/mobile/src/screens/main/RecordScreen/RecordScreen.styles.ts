@@ -37,21 +37,6 @@ export const useStyles = () => {
       justifyContent: 'center',
       marginVertical: theme.spacing.medium,
     },
-    
-    // NEW: Accept/Discard button styles
-    acceptButtonsContainer: {
-      alignItems: 'center',
-      marginTop: theme.spacing.large,
-      paddingHorizontal: theme.spacing.large,
-    },
-    acceptButton: {
-      width: '100%',
-      marginBottom: theme.spacing.medium,
-    },
-    discardButton: {
-      width: '60%',
-    },
-    
     instructionSection: {
       alignItems: 'center',
       paddingHorizontal: theme.spacing.large,
@@ -89,6 +74,17 @@ export const useStyles = () => {
       marginTop: theme.spacing.small,
       textAlign: 'center',
       fontStyle: 'italic',
+    },
+    actionButtons: {
+      alignItems: 'center',
+      gap: theme.spacing.medium,
+    },
+    acceptButton: {
+      width: 200,
+      marginBottom: theme.spacing.small,
+    },
+    cancelButton: {
+      width: 150,
     },
   });
 };
