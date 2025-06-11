@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Animated, SafeAreaView, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../../lib/supabase';
@@ -67,6 +67,17 @@ export const RecordScreen: React.FC = () => {
   // Prevent double clicks
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
+  // Fix for render warning - defer any immediate state updates
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      if (pendingRecording?.audioUri) {
+        // Don't delete the file here, just clear the state
+        setPendingRecording(null);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     // Animate content on mount
     Animated.parallel([
@@ -124,13 +135,20 @@ export const RecordScreen: React.FC = () => {
         
         // Save the recording info for acceptance
         if (result && dreamStore.recordingSession) {
-          setPendingRecording({
+          const recordingData = {
             sessionId: dreamStore.recordingSession.id,
-            audioUri: result.audioUri,
+            audioUri: result.uri, // FIX: Use 'uri' not 'audioUri'
             duration: result.duration,
             fileSize: result.fileSize
-          });
-          console.log('📼 Pending recording saved:', result);
+          };
+          
+          setPendingRecording(recordingData);
+          console.log('📼 Pending recording saved:', recordingData);
+          
+          // Also log what we got from stopRecording
+          console.log('📼 Raw result from stopRecording:', result);
+        } else {
+          console.error('❌ No result from stopRecording or no session');
         }
       } else {
         setPendingRecording(null); // Clear any pending recording
@@ -151,9 +169,12 @@ export const RecordScreen: React.FC = () => {
     console.log('Pending recording:', pendingRecording);
     console.log('Dream session:', dreamStore.recordingSession);
     
-    if (!pendingRecording) {
-      console.error('No pending recording object');
-      Alert.alert('Error', 'No recording to accept');
+    // Try to get audio URI from multiple sources
+    const audioUri = pendingRecording?.audioUri || dreamStore.recordingSession?.audioUri;
+    
+    if (!audioUri) {
+      console.error('No audio URI found in pending recording or session');
+      Alert.alert('Error', 'No audio file found');
       return;
     }
     
@@ -176,13 +197,7 @@ export const RecordScreen: React.FC = () => {
     try {
       setIsTranscribing(true);
       
-      // Use the audio URI from pendingRecording
-      const audioUri = pendingRecording.audioUri;
       console.log('📁 Audio URI:', audioUri);
-      
-      if (!audioUri) {
-        throw new Error('Audio URI is missing from pending recording');
-      }
       
       // Verify file exists
       const fileInfo = await FileSystem.getInfoAsync(audioUri);
@@ -202,7 +217,7 @@ export const RecordScreen: React.FC = () => {
       console.log('📤 Sending to transcription service...');
       console.log('Dream ID:', dreamStore.recordingSession.dreamId);
       console.log('Audio size:', audioBase64.length);
-      console.log('Duration:', pendingRecording.duration);
+      console.log('Duration:', pendingRecording?.duration || dreamStore.recordingSession.duration);
       console.log('User ID:', user?.id);
 
       // Call your edge function
@@ -217,7 +232,7 @@ export const RecordScreen: React.FC = () => {
           body: JSON.stringify({
             dreamId: dreamStore.recordingSession.dreamId,
             audioBase64,
-            duration: pendingRecording.duration
+            duration: pendingRecording?.duration || dreamStore.recordingSession.duration
           })
         }
       );
