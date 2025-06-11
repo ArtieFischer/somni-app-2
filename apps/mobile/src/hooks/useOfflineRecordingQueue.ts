@@ -85,11 +85,13 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
   // Force re-renders when network or queue state changes
   const [updateTrigger, setUpdateTrigger] = useState(0);
   
+  // FIXED: Track WiFi-only mode properly
+  const [wifiOnlyMode, setWifiOnlyModeState] = useState(true); // Default to true
+  
   // Prevent infinite loops with refs
   const lastNetworkState = useRef<string>('');
   const isProcessingRef = useRef(false);
 
-  // Force re-render when network status changes
   useEffect(() => {
     setUpdateTrigger(prev => prev + 1);
   }, [
@@ -98,7 +100,7 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     networkStatus.isInternetReachable,
     networkStatus.type,
     networkStatus.connectionQuality,
-    queueStore.wifiOnlyMode,
+    wifiOnlyMode, // FIXED: Use local state instead of queueStore
     queueStore.isProcessing
   ]);
 
@@ -143,8 +145,8 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
       return { allowed: false, reason: 'No internet access' };
     }
     
-    // FIXED: Check WiFi-only mode properly
-    if (queueStore.wifiOnlyMode && !networkStatus.isWifi) {
+    // FIXED: Use local state for WiFi-only mode
+    if (wifiOnlyMode && !networkStatus.isWifi) {
       return { allowed: false, reason: 'WiFi-only mode enabled (disable in settings)' };
     }
     
@@ -153,7 +155,7 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     }
     
     return { allowed: true };
-  }, [networkStatus, queueStore.wifiOnlyMode]);
+  }, [networkStatus, wifiOnlyMode]); // FIXED: Use local state
 
   // Update network condition in upload service (only when it actually changes)
   useEffect(() => {
@@ -185,7 +187,7 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     networkStatus.isCellular
   ]);
 
-  // Auto-process queue when network conditions improve (stable version)
+  // Auto-process queue when network conditions improve OR when failed recordings become pending again
   useEffect(() => {
     if (!isServiceInitialized || isProcessingRef.current) return;
 
@@ -204,7 +206,16 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     } else if (hasPendingRecordings && !uploadCheck.allowed) {
       console.log(`🚫 Cannot process queue - ${uploadCheck.reason}. Keeping ${hasPendingRecordings} recordings in pending state.`);
     }
-  }, [networkStatus.isOnline, networkStatus.isConnected, networkStatus.isInternetReachable, networkStatus.isWifi, queueStore.wifiOnlyMode, isServiceInitialized]);
+  }, [
+    networkStatus.isOnline, 
+    networkStatus.isConnected, 
+    networkStatus.isInternetReachable, 
+    networkStatus.isWifi, 
+    wifiOnlyMode, // FIXED: Use local state
+    isServiceInitialized,
+    // ADDED: Track pending count to trigger auto-retry when failed recordings become pending
+    queueStore.getRecordingsByStatus('pending').length
+  ]);
 
   // Enhanced queue processing with upload service integration
   const processQueue = useCallback(async () => {
@@ -264,7 +275,7 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
           queueStore.setUploadProgress(recording.id, progress);
         },
         retryAttempts: recording.maxRetries - recording.retryCount,
-        wifiOnly: queueStore.wifiOnlyMode,
+        wifiOnly: wifiOnlyMode, // FIXED: Use local state
         priority: recording.priority,
         metadata: {
           sessionId: recording.sessionId,
@@ -333,12 +344,31 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
         });
         console.error(`💀 Recording ${recording.id} failed permanently after ${recording.retryCount} retries`);
       } else {
+        // FIXED: Auto-retry with delay and better error handling
+        const retryDelay = Math.min(1000 * Math.pow(2, recording.retryCount), 10000); // Exponential backoff, max 10s
+        console.warn(`⚠️ Recording ${recording.id} will retry in ${retryDelay}ms (attempt ${recording.retryCount + 1}/${recording.maxRetries})`);
+        
+        // First update the retry count
         queueStore.updateRecording(recording.id, { 
-          status: 'pending',
           error: errorMessage,
           retryCount: recording.retryCount + 1
         });
-        console.warn(`⚠️ Recording ${recording.id} will retry (attempt ${recording.retryCount + 1}/${recording.maxRetries})`);
+        
+        // Then schedule the retry
+        setTimeout(() => {
+          queueStore.updateRecording(recording.id, { 
+            status: 'pending'
+          });
+          console.log(`🔄 Auto-retry: Recording ${recording.id} moved back to pending (attempt ${recording.retryCount + 1}/${recording.maxRetries})`);
+          
+          // Force queue processing after a short delay
+          setTimeout(() => {
+            if (shouldUploadNow().allowed) {
+              console.log(`🚀 Auto-processing retry for ${recording.id}`);
+              processQueue();
+            }
+          }, 1000);
+        }, retryDelay);
       }
     } finally {
       queueStore.clearUploadProgress();
@@ -379,6 +409,7 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     const uploadCheck = shouldUploadNow();
     if (!uploadCheck.allowed) {
       console.log(`🚫 Cannot retry failed recordings - ${uploadCheck.reason}`);
+      Alert.alert('Cannot Retry', uploadCheck.reason || 'Upload conditions not met');
       return;
     }
 
@@ -389,12 +420,13 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
 
     if (retryableRecordings.length === 0) {
       console.log('ℹ️ No retryable recordings found');
+      Alert.alert('No Retries Available', 'All failed recordings have exceeded maximum retry attempts.');
       return;
     }
 
     console.log(`🔄 Retrying ${retryableRecordings.length} failed recordings`);
 
-    // Stagger retries to avoid overwhelming the service
+    // Reset failed recordings to pending status
     for (let i = 0; i < retryableRecordings.length; i++) {
       const recording = retryableRecordings[i];
       const delay = Math.min(1000 * Math.pow(2, recording.retryCount), 30000); // Max 30s delay
@@ -405,11 +437,17 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
           retryCount: recording.retryCount + 1,
           error: undefined
         });
+        console.log(`🔄 Manual retry: Recording ${recording.id} moved to pending (attempt ${recording.retryCount + 1}/${recording.maxRetries})`);
       }, delay * i); // Stagger the retries
     }
 
     // Process queue after all retries are scheduled
-    setTimeout(() => processQueue(), 1000);
+    setTimeout(() => processQueue(), 2000);
+    
+    Alert.alert(
+      'Retry Started', 
+      `${retryableRecordings.length} failed recordings will be retried with exponential backoff.`
+    );
   }, [queueStore, processQueue, shouldUploadNow]);
 
   const getRecordingPriority = (
@@ -515,7 +553,11 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     removeRecording: queueStore.removeRecording,
     
     // Settings
-    setWifiOnlyMode: queueStore.setWifiOnlyMode,
+    setWifiOnlyMode: (enabled: boolean) => {
+      setWifiOnlyModeState(enabled);
+      queueStore.setWifiOnlyMode(enabled); // Also update the store if it has this method
+      console.log(`📶 WiFi-only mode ${enabled ? 'enabled' : 'disabled'}`);
+    },
     setAutoRetryEnabled: queueStore.setAutoRetryEnabled,
     setMaxRetries: queueStore.setMaxRetries,
     
