@@ -8,6 +8,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamRecorder } from '../../../hooks/useDreamRecorder';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useTheme } from '../../../hooks/useTheme';
+import { useStyles } from './RecordScreen.styles';
 
 export const RecordScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
