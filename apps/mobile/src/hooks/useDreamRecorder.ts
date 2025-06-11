@@ -22,7 +22,7 @@ interface UseDreamRecorderReturn {
   recordingAmplitude: number;
   session: any;
   startRecording: () => Promise<void>;
-  stopRecording: () => Promise<void>;
+  stopRecording: () => Promise<any>;
   error: string | null;
   clearError: () => void;
   offlineQueueStatus: {
@@ -46,11 +46,19 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
   
   // Prevent race conditions
   const isTransitioningRef = useRef(false);
+  const clearSessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const clearTimer = useCallback(() => {
     if (durationTimerRef.current) {
       clearInterval(durationTimerRef.current);
       durationTimerRef.current = null;
+    }
+  }, []);
+
+  const clearSessionTimeout = useCallback(() => {
+    if (clearSessionTimeoutRef.current) {
+      clearTimeout(clearSessionTimeoutRef.current);
+      clearSessionTimeoutRef.current = null;
     }
   }, []);
 
@@ -60,6 +68,9 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       console.log('⚠️ Recording transition in progress, ignoring');
       return;
     }
+
+    // Cancel any pending session clear
+    clearSessionTimeout();
 
     try {
       isTransitioningRef.current = true;
@@ -102,7 +113,7 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
         isTransitioningRef.current = false;
       }, 100);
     }
-  }, [dreamStore, audioService, clearTimer]);
+  }, [dreamStore, audioService, clearTimer, clearSessionTimeout]);
 
   const stopRecording = useCallback(async () => {
     // Prevent multiple simultaneous transitions
@@ -135,46 +146,39 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       // Then update the store
       dreamStore.stopRecording();
 
-      // Always add to offline queue first
-      offlineQueue.addRecording({
-        sessionId: currentSession.id,
-        audioUri: audioResult.uri,
-        duration: audioResult.duration,
-        fileSize: audioResult.fileSize,
-        recordedAt: new Date().toISOString()
-      });
-
-      // Create placeholder dream entry
+      // Create placeholder dream entry (but don't add to queue yet)
       dreamStore.addDream({
         id: `temp_${currentSession.id}`,
         userId: 'current-user', // TODO: Get from auth
-        rawTranscript: 'Processing...',
+        rawTranscript: 'Waiting for transcription...',
         duration: audioResult.duration,
         confidence: 0,
         wasEdited: false,
         recordedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
-        status: isConnected ? 'transcribing' : 'pending'
+        status: 'pending'
       });
 
       dreamStore.updateRecordingSession({ 
         status: 'completed',
         dreamId: `temp_${currentSession.id}`,
-        audioUri: audioResult.uri
+        audioUri: audioResult.uri // Store the URI in session
       });
 
-      // REMOVED: Auto-clear session timeout - let RecordScreen handle this
+      // Return the audio result so the component can use it
+      return audioResult;
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process recording';
       setError(errorMessage);
       dreamStore.setError(errorMessage);
+      return null;
     } finally {
       setIsProcessing(false);
       setRecordingDuration(0);
       isTransitioningRef.current = false;
     }
-  }, [dreamStore, offlineQueue, isConnected, audioService, clearTimer]);
+  }, [dreamStore, audioService, clearTimer]);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -185,11 +189,12 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
   useEffect(() => {
     return () => {
       clearTimer();
+      clearSessionTimeout();
       if (audioService.getIsRecording()) {
         audioService.cleanup();
       }
     };
-  }, [clearTimer, audioService]);
+  }, [clearTimer, clearSessionTimeout, audioService]);
 
   return {
     isRecording: dreamStore.isRecording && !isTransitioningRef.current,
