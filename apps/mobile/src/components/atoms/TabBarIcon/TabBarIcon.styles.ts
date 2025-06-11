@@ -25,6 +25,10 @@ export const useStyles = (focused: boolean) => {
       borderWidth: focused ? 0 : 2,
       borderColor: theme.colors.primary,
     },
+    recordingIconWrapper: {
+      backgroundColor: '#FF0000',
+      borderWidth: 0,
+    },
     icon: {
       alignItems: 'center',
       justifyContent: 'center',
@@ -37,7 +41,7 @@ export const useStyles = (focused: boolean) => {
       width: 64,
       height: 64,
       borderRadius: 32,
-      backgroundColor: theme.colors.primary,
+      backgroundColor: '#FF0000',
       opacity: 0.2,
       ...theme.shadows.medium,
     },
