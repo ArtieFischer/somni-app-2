@@ -1,74 +1,30 @@
 {
   "record": {
-    "title": "Capture Your Dreams",
-    "subtitle": "Whisper your nocturnal journey into existence",
+    "title": "Record Your Dream",
+    "subtitle": "Press the button and whisper your dream",
     "button": {
-      "start": "Tap the orb to begin recording",
-      "stop": "Tap to complete",
+      "start": "Tap to start recording",
       "recording": "Recording... {{duration}}s"
     },
-    "whisperMode": "Speak softly... your dreams are listening",
-    "processing": "Weaving your dreams into words...",
-    "transcribing": "Converting whispers to text...",
-    "offline": "Recording offline - will sync when connected",
-    "error": {
-      "microphonePermission": "Microphone permission required to record dreams",
-      "recordingFailed": "Recording failed. Please try again.",
-      "transcriptionFailed": "Failed to transcribe audio. Please try again."
-    },
-    "success": "Dream captured successfully!"
+    "processing": "Processing...",
+    "transcribing": "Transcribing your dream...",
+    "whisperMode": "Whisper your dream...",
+    "offline": "Offline mode - will upload when connected",
+    "acceptRecording": "Accept Recording",
+    "cancelRecording": "Cancel",
+    "acceptOrCancel": "Accept or cancel your recording"
   },
-  "analysis": {
-    "title": "Dream Analysis",
-    "subtitle": "Explore your dream through different lenses",
-    "loading": "Analyzing your dream...",
-    "lenses": {
-      "freudian": "Freudian Interpretation",
-      "jungian": "Jungian Interpretation", 
-      "spiritual": "Spiritual Interpretation",
-      "neurobiological": "Neurobiological Interpretation",
-      "cognitive": "Cognitive Interpretation",
-      "personal_pattern": "Personal Pattern Analysis"
-    },
-    "confidence": "Confidence: {{percentage}}%",
-    "keyInsights": "Key Insights",
-    "suggestedActions": "Suggested Actions",
-    "share": "Share Analysis",
-    "save": "Save to Journal"
-  },
-  "journal": {
-    "title": "Dream Journal",
-    "empty": "No dreams recorded yet",
-    "emptySubtitle": "Start recording your dreams to build your personal journal",
-    "search": "Search your dreams...",
-    "filters": {
-      "all": "All Dreams",
-      "lucid": "Lucid Dreams",
-      "nightmares": "Nightmares",
-      "recent": "Recent",
-      "favorites": "Favorites"
-    },
-    "stats": {
-      "total": "Total Dreams",
-      "lucid": "Lucid Dreams",
-      "avgMood": "Avg Confidence"
+  "notifications": {
+    "dreamCaptured": {
+      "title": "Dream Captured",
+      "onlineMessage": "Your dream is being transcribed",
+      "offlineMessage": "Your dream will be transcribed when online"
     }
   },
-  "offline": {
-    "uploading": "Uploading dreams...",
-    "failed": "{{count}} upload failed",
-    "failed_plural": "{{count}} uploads failed",
-    "noConnection": "{{count}} dream waiting to upload",
-    "noConnection_plural": "{{count}} dreams waiting to upload",
-    "pending": "{{count}} dream pending",
-    "pending_plural": "{{count}} dreams pending",
-    "retry": "Retry"
+  "errors": {
+    "recordingError": "Recording Error"
   },
-  "symbols": {
-    "title": "Dream Symbols",
-    "detected": "Detected Symbols",
-    "meaning": "Meaning",
-    "frequency": "Appears in {{count}} dream",
-    "frequency_plural": "Appears in {{count}} dreams"
+  "actions": {
+    "ok": "OK"
   }
 }
