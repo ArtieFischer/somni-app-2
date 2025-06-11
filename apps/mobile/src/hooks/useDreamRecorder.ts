@@ -43,6 +43,10 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
 
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioService = getAudioService();
+  
+  // Prevent race conditions
+  const isTransitioningRef = useRef(false);
+  const clearSessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const clearTimer = useCallback(() => {
     if (durationTimerRef.current) {
@@ -51,8 +55,25 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
     }
   }, []);
 
+  const clearSessionTimeout = useCallback(() => {
+    if (clearSessionTimeoutRef.current) {
+      clearTimeout(clearSessionTimeoutRef.current);
+      clearSessionTimeoutRef.current = null;
+    }
+  }, []);
+
   const startRecording = useCallback(async () => {
+    // Prevent multiple simultaneous transitions
+    if (isTransitioningRef.current) {
+      console.log('⚠️ Recording transition in progress, ignoring');
+      return;
+    }
+
+    // Cancel any pending session clear
+    clearSessionTimeout();
+
     try {
+      isTransitioningRef.current = true;
       setError(null);
       dreamStore.clearError();
       
@@ -76,10 +97,18 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       dreamStore.setError(errorMessage);
       dreamStore.stopRecording();
       clearTimer();
+    } finally {
+      isTransitioningRef.current = false;
     }
-  }, [dreamStore, audioService, clearTimer]);
+  }, [dreamStore, audioService, clearTimer, clearSessionTimeout]);
 
   const stopRecording = useCallback(async () => {
+    // Prevent multiple simultaneous transitions
+    if (isTransitioningRef.current) {
+      console.log('⚠️ Recording transition in progress, ignoring');
+      return;
+    }
+
     // Check if we're actually recording
     if (!dreamStore.isRecording || !audioService.getIsRecording()) {
       console.log('Not recording, skipping stop');
@@ -87,20 +116,22 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
     }
 
     try {
+      isTransitioningRef.current = true;
       setIsProcessing(true);
       clearTimer();
       
-      // Stop the audio recording first
-      const audioResult = await audioService.stopRecording();
-      
-      // Then update the store
-      dreamStore.stopRecording();
-      
+      // Get the current session before stopping
       const currentSession = dreamStore.recordingSession;
       
       if (!currentSession?.id) {
         throw new Error('No session ID available');
       }
+
+      // Stop the audio recording first
+      const audioResult = await audioService.stopRecording();
+      
+      // Then update the store
+      dreamStore.stopRecording();
 
       // Always add to offline queue first
       offlineQueue.addRecording({
@@ -129,8 +160,8 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
         dreamId: `temp_${currentSession.id}`
       });
 
-      // Clear session after a delay
-      setTimeout(() => {
+      // Clear session after a delay (but can be cancelled if new recording starts)
+      clearSessionTimeoutRef.current = setTimeout(() => {
         dreamStore.clearRecordingSession();
         setRecordingDuration(0);
       }, 2000);
@@ -142,6 +173,7 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
     } finally {
       setIsProcessing(false);
       setRecordingDuration(0);
+      isTransitioningRef.current = false;
     }
   }, [dreamStore, offlineQueue, isConnected, audioService, clearTimer]);
 
@@ -154,11 +186,15 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
   useEffect(() => {
     return () => {
       clearTimer();
+      clearSessionTimeout();
+      if (audioService.getIsRecording()) {
+        audioService.cleanup();
+      }
     };
-  }, [clearTimer]);
+  }, [clearTimer, clearSessionTimeout, audioService]);
 
   return {
-    isRecording: dreamStore.isRecording,
+    isRecording: dreamStore.isRecording && !isTransitioningRef.current,
     isProcessing,
     recordingDuration,
     recordingAmplitude: 0, // TODO: Connect to real amplitude

@@ -70,5 +70,10 @@ export const useStyles = () => {
     errorText: {
       color: theme.colors.status.error,
     },
+    processingText: {
+      marginTop: theme.spacing.small,
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
   });
 };

@@ -29,6 +29,9 @@ export const RecordScreen: React.FC = () => {
   
   // Simulated amplitude for demo (replace with real audio amplitude)
   const [amplitude, setAmplitude] = useState(0);
+  
+  // Prevent double clicks
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
   useEffect(() => {
     // Animate content on mount
@@ -69,6 +72,13 @@ export const RecordScreen: React.FC = () => {
   }, [error, clearError]);
 
   const handleRecordPress = async () => {
+    // Prevent double clicks
+    if (isButtonDisabled || isProcessing) {
+      return;
+    }
+
+    setIsButtonDisabled(true);
+    
     try {
       if (isRecording) {
         await stopRecording();
@@ -77,6 +87,11 @@ export const RecordScreen: React.FC = () => {
       }
     } catch (err) {
       console.error('Record button error:', err);
+    } finally {
+      // Re-enable button after a short delay
+      setTimeout(() => {
+        setIsButtonDisabled(false);
+      }, 500);
     }
   };
 
@@ -150,6 +165,12 @@ export const RecordScreen: React.FC = () => {
                   ⚠️ {offlineQueueStatus.failedCount} {t('dreams.offline.failed')}
                 </Text>
               </View>
+            )}
+
+            {isProcessing && (
+              <Text variant="caption" color="secondary" style={styles.processingText}>
+                {t('record.processing')}
+              </Text>
             )}
           </View>
         </Animated.View>
