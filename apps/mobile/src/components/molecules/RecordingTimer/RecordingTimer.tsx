@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Animated } from 'react-native';
 import { Text } from '../../atoms';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { useStyles } from './RecordingTimer.styles';
 
 interface RecordingTimerProps {
@@ -12,6 +13,7 @@ export const RecordingTimer: React.FC<RecordingTimerProps> = ({
   isRecording,
   duration,
 }) => {
+  const { t } = useTranslation('dreams');
   const styles = useStyles();
   const [fadeAnim] = useState(new Animated.Value(0));
 
@@ -53,7 +55,7 @@ export const RecordingTimer: React.FC<RecordingTimerProps> = ({
         </Text>
       </View>
       <Text variant="caption" style={styles.label}>
-        Recording...
+        {String(t('record.button.recording', { duration }))}
       </Text>
     </Animated.View>
   );

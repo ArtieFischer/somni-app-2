@@ -14,30 +14,30 @@ export const FeedScreen: React.FC = () => {
         <View style={styles.comingSoonCard}>
           <Text style={styles.icon}>🌊</Text>
           <Text variant="h2" style={styles.title}>
-            Dream Feed
+            {String(t('feed.comingSoon.title'))}
           </Text>
           <Text variant="body" color="secondary" style={styles.description}>
-            {t('status.comingSoon')}
+            {String(t('feed.comingSoon.description'))}
           </Text>
           <Text variant="caption" color="secondary" style={styles.subtitle}>
-            Soon you'll be able to explore dreams from the community, share insights, and connect with fellow dreamers.
+            {String(t('feed.comingSoon.subtitle'))}
           </Text>
         </View>
 
         {/* Feature preview cards */}
         <View style={styles.featureSection}>
           <Text variant="h3" style={styles.sectionTitle}>
-            What's Coming
+            {String(t('feed.features.title'))}
           </Text>
 
           <View style={styles.featureCard}>
             <Text style={styles.featureIcon}>👥</Text>
             <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
-                Anonymous Dream Sharing
+                {String(t('feed.features.anonymousSharing.title'))}
               </Text>
               <Text variant="caption" color="secondary">
-                Share your dreams anonymously and get insights from the community
+                {String(t('feed.features.anonymousSharing.description'))}
               </Text>
             </View>
           </View>
@@ -46,10 +46,10 @@ export const FeedScreen: React.FC = () => {
             <Text style={styles.featureIcon}>💡</Text>
             <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
-                Dream Interpretations
+                {String(t('feed.features.interpretations.title'))}
               </Text>
               <Text variant="caption" color="secondary">
-                Get AI-powered and community interpretations of dream symbols
+                {String(t('feed.features.interpretations.description'))}
               </Text>
             </View>
           </View>
@@ -58,10 +58,10 @@ export const FeedScreen: React.FC = () => {
             <Text style={styles.featureIcon}>🔮</Text>
             <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
-                Similar Dreams
+                {String(t('feed.features.similarDreams.title'))}
               </Text>
               <Text variant="caption" color="secondary">
-                Discover people who have had similar dream experiences
+                {String(t('feed.features.similarDreams.description'))}
               </Text>
             </View>
           </View>
@@ -70,10 +70,10 @@ export const FeedScreen: React.FC = () => {
             <Text style={styles.featureIcon}>🏆</Text>
             <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
-                Lucid Dream Challenges
+                {String(t('feed.features.challenges.title'))}
               </Text>
               <Text variant="caption" color="secondary">
-                Join community challenges to improve your lucid dreaming skills
+                {String(t('feed.features.challenges.description'))}
               </Text>
             </View>
           </View>

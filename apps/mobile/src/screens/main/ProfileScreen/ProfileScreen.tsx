@@ -18,19 +18,19 @@ export const ProfileScreen: React.FC = () => {
 
   const handleSignOut = async () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      String(t('actions.signOut')),
+      String(t('errors.signOutConfirm')),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: String(t('actions.cancel')), style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: String(t('actions.signOut')),
           style: 'destructive',
           onPress: async () => {
             setIsSigningOut(true);
             try {
               await signOut();
             } catch (error) {
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
+              Alert.alert(String(t('status.error')), 'Failed to sign out. Please try again.');
               setIsSigningOut(false);
             }
           },
@@ -119,7 +119,7 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.premiumBadge}>
               <Text style={styles.premiumIcon}>⭐</Text>
               <Text variant="caption" style={styles.premiumText}>
-                Premium Member
+                {String(t('profile.premium'))}
               </Text>
             </View>
           )}
@@ -128,7 +128,7 @@ export const ProfileScreen: React.FC = () => {
         {/* Stats Section */}
         <View style={styles.statsSection}>
           <Text variant="h3" style={styles.sectionTitle}>
-            Dream Statistics
+            {String(t('profile.stats.title'))}
           </Text>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
@@ -136,7 +136,7 @@ export const ProfileScreen: React.FC = () => {
                 {dreams.length}
               </Text>
               <Text variant="caption" color="secondary">
-                Total Dreams
+                {String(t('profile.stats.totalDreams'))}
               </Text>
             </View>
             <View style={styles.statCard}>
@@ -144,7 +144,7 @@ export const ProfileScreen: React.FC = () => {
                 {formatRecordingTime(totalRecordingTime)}
               </Text>
               <Text variant="caption" color="secondary">
-                Recording Time
+                {String(t('profile.stats.recordingTime'))}
               </Text>
             </View>
             <View style={styles.statCard}>
@@ -152,7 +152,7 @@ export const ProfileScreen: React.FC = () => {
                 {getAccountAge()}
               </Text>
               <Text variant="caption" color="secondary">
-                Dream Journey
+                {String(t('profile.stats.dreamJourney'))}
               </Text>
             </View>
           </View>
@@ -161,32 +161,30 @@ export const ProfileScreen: React.FC = () => {
         {/* Settings Section */}
         <View style={styles.section}>
           <Text variant="h3" style={styles.sectionTitle}>
-            Preferences
+            {String(t('profile.preferences.title'))}
           </Text>
           
           <SettingRow
             icon="🌙"
-            label="Theme"
-            value={settings.theme === 'dark' ? 'Dark' : 'Light'}
+            label={String(t('profile.preferences.theme'))}
+            value={settings.theme === 'dark' ? String(t('profile.preferences.values.dark')) : String(t('profile.preferences.values.light'))}
             onPress={() => {
-              // In future, open theme selector
-              Alert.alert('Theme', 'Theme selection coming soon!');
+              Alert.alert(String(t('profile.preferences.theme')), String(t('errors.theme')));
             }}
           />
           
           <SettingRow
             icon="🌐"
-            label="Language"
-            value={settings.language === 'en' ? 'English' : 'Spanish'}
+            label={String(t('profile.preferences.language'))}
+            value={settings.language === 'en' ? String(t('profile.preferences.values.english')) : String(t('profile.preferences.values.spanish'))}
             onPress={() => {
-              // In future, open language selector
-              Alert.alert('Language', 'Language selection coming soon!');
+              Alert.alert(String(t('profile.preferences.language')), String(t('errors.language')));
             }}
           />
           
           <SettingRow
             icon="🔔"
-            label="Notifications"
+            label={String(t('profile.preferences.notifications'))}
             value={
               <Switch
                 value={settings.notifications.enabled}
@@ -203,7 +201,7 @@ export const ProfileScreen: React.FC = () => {
           
           <SettingRow
             icon="🎙️"
-            label="Whisper Mode"
+            label={String(t('profile.preferences.whisperMode'))}
             value={
               <Switch
                 value={settings.recording.whisperMode}
@@ -222,31 +220,31 @@ export const ProfileScreen: React.FC = () => {
         {/* Support Section */}
         <View style={styles.section}>
           <Text variant="h3" style={styles.sectionTitle}>
-            Support
+            {String(t('profile.support.title'))}
           </Text>
           
           <SettingRow
             icon="📚"
-            label="Help & FAQ"
-            onPress={() => Alert.alert('Help', 'Help documentation coming soon!')}
+            label={String(t('profile.support.help'))}
+            onPress={() => Alert.alert(String(t('profile.support.help')), String(t('errors.help')))}
           />
           
           <SettingRow
             icon="💬"
-            label="Contact Us"
-            onPress={() => Alert.alert('Contact', 'support@somni.app')}
+            label={String(t('profile.support.contact'))}
+            onPress={() => Alert.alert(String(t('profile.support.contact')), String(t('errors.contact')))}
           />
           
           <SettingRow
             icon="🔒"
-            label="Privacy Policy"
-            onPress={() => Alert.alert('Privacy', 'Privacy policy coming soon!')}
+            label={String(t('profile.support.privacy'))}
+            onPress={() => Alert.alert(String(t('profile.support.privacy')), String(t('errors.privacy')))}
           />
           
           <SettingRow
             icon="📜"
-            label="Terms of Service"
-            onPress={() => Alert.alert('Terms', 'Terms of service coming soon!')}
+            label={String(t('profile.support.terms'))}
+            onPress={() => Alert.alert(String(t('profile.support.terms')), String(t('errors.terms')))}
           />
         </View>
 
@@ -258,12 +256,12 @@ export const ProfileScreen: React.FC = () => {
             onPress={handleSignOut}
             loading={isSigningOut}
           >
-            {t('profile.signOut')}
+            {String(t('profile.signOut'))}
           </Button>
           
           <TouchableOpacity style={styles.dangerButton}>
             <Text variant="body" style={styles.dangerButtonText}>
-              {t('profile.deleteAccount')}
+              {String(t('profile.deleteAccount'))}
             </Text>
           </TouchableOpacity>
         </View>
@@ -271,10 +269,10 @@ export const ProfileScreen: React.FC = () => {
         {/* Version Info */}
         <View style={styles.versionInfo}>
           <Text variant="caption" color="secondary">
-            Somni v1.0.0
+            {String(t('version.info'))}
           </Text>
           <Text variant="caption" color="secondary">
-            Made with 💜 for dreamers
+            {String(t('version.tagline'))}
           </Text>
         </View>
       </View>

@@ -50,7 +50,12 @@
     "next": "Next",
     "previous": "Previous",
     "retry": "Retry",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "signOut": "Sign Out",
+    "deleteAccount": "Delete Account"
   },
   "status": {
     "loading": "Loading...",
@@ -60,7 +65,11 @@
     "success": "Success",
     "offline": "You're offline",
     "syncing": "Syncing...",
-    "comingSoon": "Coming soon..."
+    "comingSoon": "Coming soon...",
+    "processing": "Processing...",
+    "completed": "Completed",
+    "failed": "Failed",
+    "pending": "Pending"
   },
   "time": {
     "now": "Now",
@@ -72,6 +81,98 @@
     "lastMonth": "Last month"
   },
   "stats": {
-    "totalDreams": "Total Dreams"
+    "totalDreams": "Total Dreams",
+    "recordingTime": "Recording Time",
+    "dreamJourney": "Dream Journey",
+    "avgConfidence": "Avg Confidence",
+    "avgDuration": "Avg Duration",
+    "peakHour": "Peak Hour"
+  },
+  "feed": {
+    "title": "Dream Feed",
+    "comingSoon": {
+      "title": "Dream Feed",
+      "description": "Coming soon...",
+      "subtitle": "Soon you'll be able to explore dreams from the community, share insights, and connect with fellow dreamers."
+    },
+    "features": {
+      "title": "What's Coming",
+      "anonymousSharing": {
+        "title": "Anonymous Dream Sharing",
+        "description": "Share your dreams anonymously and get insights from the community"
+      },
+      "interpretations": {
+        "title": "Dream Interpretations", 
+        "description": "Get AI-powered and community interpretations of dream symbols"
+      },
+      "similarDreams": {
+        "title": "Similar Dreams",
+        "description": "Discover people who have had similar dream experiences"
+      },
+      "challenges": {
+        "title": "Lucid Dream Challenges",
+        "description": "Join community challenges to improve your lucid dreaming skills"
+      }
+    }
+  },
+  "analysis": {
+    "title": "Dream Analysis",
+    "currentInsights": "Current Insights",
+    "advancedAnalysis": "Advanced Analysis",
+    "comingSoon": {
+      "subtitle": "Unlock deep insights into your dream patterns, symbols, and subconscious themes."
+    },
+    "features": {
+      "title": "Coming Features",
+      "patternAnalysis": {
+        "title": "Dream Pattern Analysis",
+        "description": "Identify recurring themes, symbols, and emotions in your dreams"
+      },
+      "sleepCorrelation": {
+        "title": "Sleep Cycle Correlation",
+        "description": "See how your dreams relate to your sleep phases and quality"
+      },
+      "aiInsights": {
+        "title": "AI-Powered Insights",
+        "description": "Get personalized interpretations based on psychological frameworks"
+      },
+      "lucidProgress": {
+        "title": "Lucid Dream Progress",
+        "description": "Track your journey to mastering lucid dreaming techniques"
+      },
+      "dreamQuests": {
+        "title": "Dream Quests",
+        "description": "Complete challenges to unlock new levels of dream awareness"
+      }
+    }
+  },
+  "notifications": {
+    "uploadComplete": {
+      "title": "✅ Upload Complete",
+      "message": "Your dream has been successfully uploaded and processed."
+    },
+    "uploadFailed": {
+      "title": "❌ Upload Failed",
+      "message": "The recording will be retried automatically when connection improves."
+    },
+    "dreamCaptured": {
+      "title": "✨ Dream Captured",
+      "onlineMessage": "Your dream is being processed and will be ready shortly.",
+      "offlineMessage": "Your dream has been saved and will upload when you're back online."
+    }
+  },
+  "errors": {
+    "recordingError": "Recording Error",
+    "signOutConfirm": "Are you sure you want to sign out?",
+    "help": "Help documentation coming soon!",
+    "contact": "support@somni.app",
+    "privacy": "Privacy policy coming soon!",
+    "terms": "Terms of service coming soon!",
+    "theme": "Theme selection coming soon!",
+    "language": "Language selection coming soon!"
+  },
+  "version": {
+    "info": "Somni v1.0.0",
+    "tagline": "Made with 💜 for dreamers"
   }
 }

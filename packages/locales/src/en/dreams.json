@@ -51,7 +51,7 @@
     "stats": {
       "total": "Total Dreams",
       "lucid": "Lucid Dreams",
-      "avgMood": "Average Mood"
+      "avgMood": "Avg Confidence"
     }
   },
   "offline": {
@@ -63,26 +63,6 @@
     "pending": "{{count}} dream pending",
     "pending_plural": "{{count}} dreams pending",
     "retry": "Retry"
-  },
-  "feed": {
-    "title": "Dream Feed",
-    "subtitle": "Explore dreams from the community",
-    "filters": {
-      "recent": "Recent",
-      "trending": "Trending",
-      "similar": "Similar to Mine"
-    },
-    "reactions": {
-      "insightful": "Insightful",
-      "relatable": "Relatable",
-      "supportive": "Supportive",
-      "mysterious": "Mysterious",
-      "beautiful": "Beautiful"
-    },
-    "anonymous": "Anonymous Dreamer",
-    "timeAgo": "{{time}} ago",
-    "comments": "{{count}} comment",
-    "comments_plural": "{{count}} comments"
   },
   "symbols": {
     "title": "Dream Symbols",

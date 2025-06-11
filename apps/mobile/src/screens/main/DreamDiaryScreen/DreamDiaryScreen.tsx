@@ -69,9 +69,9 @@ export const DreamDiaryScreen: React.FC = () => {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return t('time.today');
+      return String(t('time.today'));
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return t('time.yesterday');
+      return String(t('time.yesterday'));
     } else {
       return date.toLocaleDateString();
     }
@@ -128,7 +128,7 @@ export const DreamDiaryScreen: React.FC = () => {
         numberOfLines={3}
         ellipsizeMode="tail"
       >
-        {item.rawTranscript || t('record.processing')}
+        {item.rawTranscript || String(t('record.processing'))}
       </Text>
 
       {item.tags && item.tags.length > 0 && (
@@ -145,11 +145,11 @@ export const DreamDiaryScreen: React.FC = () => {
 
       <View style={styles.dreamFooter}>
         <Text variant="caption" color="secondary">
-          {item.confidence ? `${Math.round(item.confidence * 100)}% confidence` : ''}
+          {item.confidence ? `${Math.round(item.confidence * 100)}% ${String(t('analysis.confidence', { percentage: Math.round(item.confidence * 100) }))}` : ''}
         </Text>
         <TouchableOpacity style={styles.analyzeButton}>
           <Text variant="caption" style={styles.analyzeButtonText}>
-            {t('analysis.title')} →
+            {String(t('analysis.title'))} →
           </Text>
         </TouchableOpacity>
       </View>
@@ -163,7 +163,7 @@ export const DreamDiaryScreen: React.FC = () => {
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={styles.searchInput}
-          placeholder={t('journal.search')}
+          placeholder={String(t('journal.search'))}
           placeholderTextColor={theme.colors.text.disabled}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -197,7 +197,7 @@ export const DreamDiaryScreen: React.FC = () => {
                 selectedFilter === filter && styles.filterTextActive
               ]}
             >
-              {t(`journal.filters.${filter}`)}
+              {String(t(`journal.filters.${filter}`))}
             </Text>
           </TouchableOpacity>
         ))}
@@ -210,7 +210,7 @@ export const DreamDiaryScreen: React.FC = () => {
             {dreams.length}
           </Text>
           <Text variant="caption" color="secondary">
-            {t('journal.stats.total')}
+            {String(t('journal.stats.total'))}
           </Text>
         </View>
         <View style={styles.statDivider} />
@@ -219,7 +219,7 @@ export const DreamDiaryScreen: React.FC = () => {
             {dreams.filter(d => d.tags?.includes('lucid')).length}
           </Text>
           <Text variant="caption" color="secondary">
-            {t('journal.stats.lucid')}
+            {String(t('journal.stats.lucid'))}
           </Text>
         </View>
         <View style={styles.statDivider} />
@@ -230,7 +230,7 @@ export const DreamDiaryScreen: React.FC = () => {
               : 0}%
           </Text>
           <Text variant="caption" color="secondary">
-            {t('journal.stats.avgMood')}
+            {String(t('journal.stats.avgMood'))}
           </Text>
         </View>
       </View>
@@ -241,10 +241,10 @@ export const DreamDiaryScreen: React.FC = () => {
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyIcon}>💭</Text>
       <Text variant="h3" style={styles.emptyTitle}>
-        {t('journal.empty')}
+        {String(t('journal.empty'))}
       </Text>
       <Text variant="body" color="secondary" style={styles.emptySubtitle}>
-        {t('journal.emptySubtitle')}
+        {String(t('journal.emptySubtitle'))}
       </Text>
     </View>
   );

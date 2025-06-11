@@ -1,7 +1,7 @@
-// apps/mobile/src/hooks/useUploadNotifications.ts
 import { useEffect, useRef } from 'react';
 import { useOfflineQueueStore } from '@somni/stores';
 import { Alert } from 'react-native';
+import { useTranslation } from './useTranslation';
 
 interface UseUploadNotificationsOptions {
   onUploadComplete?: (recordingId: string) => void;
@@ -10,6 +10,7 @@ interface UseUploadNotificationsOptions {
 
 export const useUploadNotifications = (options?: UseUploadNotificationsOptions) => {
   const { recordings } = useOfflineQueueStore();
+  const { t } = useTranslation('common');
   const previousRecordings = useRef<typeof recordings>([]);
 
   useEffect(() => {
@@ -23,9 +24,9 @@ export const useUploadNotifications = (options?: UseUploadNotificationsOptions) 
       if (prevRecording?.status === 'uploading' && recording.status === 'completed') {
         // Show success notification
         Alert.alert(
-          '✅ Upload Complete',
-          'Your dream has been successfully uploaded and processed.',
-          [{ text: 'OK' }],
+          String(t('notifications.uploadComplete.title')),
+          String(t('notifications.uploadComplete.message')),
+          [{ text: String(t('actions.ok')) }],
           { cancelable: true }
         );
         
@@ -37,9 +38,9 @@ export const useUploadNotifications = (options?: UseUploadNotificationsOptions) 
         const errorMessage = recording.error || 'Upload failed';
         
         Alert.alert(
-          '❌ Upload Failed',
-          `${errorMessage}\n\nThe recording will be retried automatically when connection improves.`,
-          [{ text: 'OK' }],
+          String(t('notifications.uploadFailed.title')),
+          `${errorMessage}\n\n${String(t('notifications.uploadFailed.message'))}`,
+          [{ text: String(t('actions.ok')) }],
           { cancelable: true }
         );
         
@@ -49,7 +50,7 @@ export const useUploadNotifications = (options?: UseUploadNotificationsOptions) 
 
     // Update reference for next comparison
     previousRecordings.current = [...recordings];
-  }, [recordings, options]);
+  }, [recordings, options, t]);
 
   return null;
 };

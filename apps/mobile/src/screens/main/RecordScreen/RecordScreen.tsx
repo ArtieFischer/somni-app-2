@@ -84,11 +84,11 @@ export const RecordScreen: React.FC = () => {
   // Show error alerts
   useEffect(() => {
     if (error) {
-      Alert.alert('Recording Error', error, [
-        { text: 'OK', onPress: clearError }
+      Alert.alert(String(t('errors.recordingError')), error, [
+        { text: String(t('actions.ok')), onPress: clearError }
       ]);
     }
-  }, [error, clearError]);
+  }, [error, clearError, t]);
 
   const handleRecordPress = async () => {
     // Prevent double clicks
@@ -104,11 +104,11 @@ export const RecordScreen: React.FC = () => {
         
         // Show success feedback
         Alert.alert(
-          '✨ Dream Captured',
+          String(t('notifications.dreamCaptured.title')),
           isOnline 
-            ? 'Your dream is being processed and will be ready shortly.'
-            : 'Your dream has been saved and will upload when you\'re back online.',
-          [{ text: 'OK' }],
+            ? String(t('notifications.dreamCaptured.onlineMessage'))
+            : String(t('notifications.dreamCaptured.offlineMessage')),
+          [{ text: String(t('actions.ok')) }],
           { cancelable: true }
         );
       } else {
@@ -126,12 +126,12 @@ export const RecordScreen: React.FC = () => {
 
   const getStatusText = useMemo(() => {
     if (isProcessing) {
-      return t('record.processing');
+      return String(t('record.processing'));
     }
     if (isRecording) {
-      return t('record.whisperMode');
+      return String(t('record.whisperMode'));
     }
-    return t('record.button.start');
+    return String(t('record.button.start'));
   }, [isProcessing, isRecording, t]);
 
   return (
@@ -152,10 +152,10 @@ export const RecordScreen: React.FC = () => {
           {/* Title section */}
           <View style={styles.header}>
             <Text variant="h1" style={styles.title}>
-              {t('record.title')}
+              {String(t('record.title'))}
             </Text>
             <Text variant="body" color="secondary" style={styles.subtitle}>
-              {t('record.subtitle')}
+              {String(t('record.subtitle'))}
             </Text>
           </View>
 
@@ -183,14 +183,14 @@ export const RecordScreen: React.FC = () => {
             {!isOnline && (
               <View style={styles.offlineNotice}>
                 <Text variant="caption" style={styles.offlineText}>
-                  📡 {t('record.offline')}
+                  📡 {String(t('record.offline'))}
                 </Text>
               </View>
             )}
 
             {isProcessing && (
               <Text variant="caption" color="secondary" style={styles.processingText}>
-                {t('record.processing')}
+                {String(t('record.processing'))}
               </Text>
             )}
           </View>

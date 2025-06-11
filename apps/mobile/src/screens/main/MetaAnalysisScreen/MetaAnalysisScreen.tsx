@@ -32,7 +32,7 @@ export const MetaAnalysisScreen: React.FC = () => {
         {/* Basic Stats Available Now */}
         <View style={styles.statsCard}>
           <Text variant="h3" style={styles.cardTitle}>
-            Current Insights
+            {String(t('analysis.currentInsights'))}
           </Text>
           
           <View style={styles.statRow}>
@@ -41,7 +41,7 @@ export const MetaAnalysisScreen: React.FC = () => {
                 {dreams.length}
               </Text>
               <Text variant="caption" color="secondary">
-                Total Dreams
+                {String(t('stats.totalDreams'))}
               </Text>
             </View>
             
@@ -50,7 +50,7 @@ export const MetaAnalysisScreen: React.FC = () => {
                 {averageDuration}s
               </Text>
               <Text variant="caption" color="secondary">
-                Avg Duration
+                {String(t('stats.avgDuration'))}
               </Text>
             </View>
             
@@ -59,7 +59,7 @@ export const MetaAnalysisScreen: React.FC = () => {
                 {peakHour.hour}:00
               </Text>
               <Text variant="caption" color="secondary">
-                Peak Hour
+                {String(t('stats.peakHour'))}
               </Text>
             </View>
           </View>
@@ -69,30 +69,30 @@ export const MetaAnalysisScreen: React.FC = () => {
         <View style={styles.comingSoonCard}>
           <Text style={styles.icon}>📊</Text>
           <Text variant="h2" style={styles.title}>
-            Advanced Analysis
+            {String(t('analysis.advancedAnalysis'))}
           </Text>
           <Text variant="body" color="secondary" style={styles.description}>
-            {t('status.comingSoon')}
+            {String(t('status.comingSoon'))}
           </Text>
           <Text variant="caption" color="secondary" style={styles.subtitle}>
-            Unlock deep insights into your dream patterns, symbols, and subconscious themes.
+            {String(t('analysis.comingSoon.subtitle'))}
           </Text>
         </View>
 
         {/* Feature preview */}
         <View style={styles.featureSection}>
           <Text variant="h3" style={styles.sectionTitle}>
-            Coming Features
+            {String(t('analysis.features.title'))}
           </Text>
 
           <View style={styles.featureCard}>
             <Text style={styles.featureIcon}>🎯</Text>
             <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
-                Dream Pattern Analysis
+                {String(t('analysis.features.patternAnalysis.title'))}
               </Text>
               <Text variant="caption" color="secondary">
-                Identify recurring themes, symbols, and emotions in your dreams
+                {String(t('analysis.features.patternAnalysis.description'))}
               </Text>
             </View>
           </View>
@@ -101,10 +101,10 @@ export const MetaAnalysisScreen: React.FC = () => {
             <Text style={styles.featureIcon}>🌙</Text>
             <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
-                Sleep Cycle Correlation
+                {String(t('analysis.features.sleepCorrelation.title'))}
               </Text>
               <Text variant="caption" color="secondary">
-                See how your dreams relate to your sleep phases and quality
+                {String(t('analysis.features.sleepCorrelation.description'))}
               </Text>
             </View>
           </View>
@@ -113,10 +113,10 @@ export const MetaAnalysisScreen: React.FC = () => {
             <Text style={styles.featureIcon}>🧠</Text>
             <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
-                AI-Powered Insights
+                {String(t('analysis.features.aiInsights.title'))}
               </Text>
               <Text variant="caption" color="secondary">
-                Get personalized interpretations based on psychological frameworks
+                {String(t('analysis.features.aiInsights.description'))}
               </Text>
             </View>
           </View>
@@ -125,10 +125,10 @@ export const MetaAnalysisScreen: React.FC = () => {
             <Text style={styles.featureIcon}>📈</Text>
             <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
-                Lucid Dream Progress
+                {String(t('analysis.features.lucidProgress.title'))}
               </Text>
               <Text variant="caption" color="secondary">
-                Track your journey to mastering lucid dreaming techniques
+                {String(t('analysis.features.lucidProgress.description'))}
               </Text>
             </View>
           </View>
@@ -137,10 +137,10 @@ export const MetaAnalysisScreen: React.FC = () => {
             <Text style={styles.featureIcon}>🎮</Text>
             <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
-                Dream Quests
+                {String(t('analysis.features.dreamQuests.title'))}
               </Text>
               <Text variant="caption" color="secondary">
-                Complete challenges to unlock new levels of dream awareness
+                {String(t('analysis.features.dreamQuests.description'))}
               </Text>
             </View>
           </View>
