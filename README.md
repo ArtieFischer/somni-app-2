@@ -11,12 +11,20 @@ A comprehensive dream tracking and analysis application built with React Native 
 - **Cross-Platform**: Optimized mobile and web applications
 - **Real-time Sync**: Supabase backend with real-time updates
 
+### Advanced Upload System ✨ NEW
+- **Progressive Upload Service**: Intelligent chunked uploads with network awareness
+- **Offline Queue Management**: Automatic retry logic with exponential backoff
+- **Network-Adaptive Uploads**: Adjusts chunk size and strategy based on connection quality
+- **WiFi-Only Mode**: Configurable upload restrictions for data-conscious users
+- **Smart Priority System**: Prioritizes uploads based on file size and network conditions
+- **Real-time Progress Tracking**: Live upload progress with speed and ETA calculations
+
 ### Modern Architecture
 - **Clean Architecture**: Domain-driven design with clear separation of concerns
 - **Shared Packages**: Modular codebase with reusable components and logic
 - **Type Safety**: Strict TypeScript across the entire codebase
 - **State Management**: Zustand stores organized by business domains
-- **Design System**: Comprehensive theming with light/dark mode support
+- **Design System**: Comprehensive oniric theming with dreamlike aesthetics
 - **Internationalization**: Multi-language support with automatic locale detection
 
 ### Developer Experience
@@ -24,6 +32,7 @@ A comprehensive dream tracking and analysis application built with React Native 
 - **Hot Reloading**: Fast development cycles with Expo and Vite
 - **Testing**: Comprehensive unit, integration, and E2E testing
 - **Documentation**: Living documentation with detailed guides
+- **Network Simulation**: Built-in network condition testing for upload scenarios
 
 ## Quick Start
 
@@ -68,9 +77,9 @@ somni-monorepo/
 ├── packages/            # Shared packages
 │   ├── core/           # Domain logic (Clean Architecture)
 │   ├── stores/         # Zustand state management
-│   ├── theme/          # Design system and theming
-│   └── locales/        # Internationalization
-├── types/              # Shared TypeScript types
+│   ├── theme/          # Oniric design system
+│   ├── locales/        # Internationalization
+│   └── types/          # TypeScript definitions
 ├── utils/              # Shared utility functions
 ├── docs/               # Comprehensive documentation
 └── supabase/           # Database migrations
@@ -85,15 +94,17 @@ somni-monorepo/
 
 ### Shared Packages
 - **@somni/core**: Framework-agnostic business logic
-- **@somni/stores**: Centralized Zustand state management
-- **@somni/theme**: Comprehensive design system with semantic tokens
+- **@somni/stores**: Centralized Zustand state management with offline queue and upload services
+- **@somni/theme**: Comprehensive oniric design system with dreamlike aesthetics
 - **@somni/locales**: Type-safe internationalization resources
+- **@somni/types**: Comprehensive TypeScript definitions for all features
 
 ### Technology Stack
 - **Frontend**: React Native (Expo SDK 53+), React (Vite), TypeScript
 - **Backend**: Supabase (PostgreSQL, Auth, Storage, Edge Functions)
-- **State Management**: Zustand with domain-specific stores
-- **Styling**: Custom design system with theme support
+- **State Management**: Zustand with domain-specific stores and persistence
+- **Upload System**: Progressive chunked uploads with network awareness
+- **Styling**: Custom oniric design system with dark-first approach
 - **Testing**: Jest, React Native Testing Library, Maestro
 - **Database**: PostgreSQL with pgvector for semantic search
 
@@ -119,9 +130,90 @@ npm run typecheck --workspaces
 - **Hot Reloading**: Instant feedback during development
 - **Type Safety**: Strict TypeScript with shared type definitions
 - **Module Resolution**: Babel plugin for clean import paths
-- **Theme System**: Dynamic light/dark mode with design tokens
+- **Oniric Theme System**: Dark-first design with dreamlike aesthetics
 - **Internationalization**: Automatic device locale detection
-- **Offline Support**: Local state persistence with background sync
+- **Offline Support**: Local state persistence with intelligent background sync
+- **Network Simulation**: Built-in tools for testing various network conditions
+
+## New Features Deep Dive
+
+### Progressive Upload System
+
+The upload system provides enterprise-grade reliability with intelligent adaptation to network conditions:
+
+#### Key Features:
+- **Chunked Uploads**: Large files are split into manageable chunks for reliable transmission
+- **Network Awareness**: Automatically adjusts upload strategy based on connection quality
+- **Offline Queue**: Recordings are queued when offline and uploaded when connectivity returns
+- **Smart Retry Logic**: Exponential backoff with configurable retry limits
+- **Progress Tracking**: Real-time upload progress with speed and time estimates
+
+#### Network Adaptation:
+- **Excellent WiFi**: Large chunks (5MB), 3 concurrent uploads
+- **Good Connection**: Standard chunks (1MB), 2 concurrent uploads  
+- **Fair Connection**: Small chunks (512KB), single upload
+- **Poor Connection**: Minimal chunks (256KB), extended timeouts
+
+#### Usage Example:
+```typescript
+const queueHook = useOfflineRecordingQueue();
+
+// Add recording to queue
+queueHook.addRecording({
+  sessionId: 'session_123',
+  audioUri: 'file://recording.wav',
+  duration: 120,
+  fileSize: 2048000,
+  recordedAt: new Date().toISOString()
+});
+
+// Monitor upload progress
+const { currentUpload, networkStatus } = queueHook;
+if (currentUpload) {
+  console.log(`Upload progress: ${currentUpload.progress.percentage}%`);
+}
+```
+
+### Oniric Design System
+
+A dreamlike design system optimized for nighttime use:
+
+#### Design Principles:
+- **Dark-First**: Optimized for low-light environments
+- **Ethereal Colors**: Aurora purples, midnight blues, ethereal teals
+- **Accessibility**: WCAG 2.1 AA compliance with 48dp minimum touch targets
+- **Micro-interactions**: Subtle animations and hover states
+
+#### Color Palette:
+- **Primary**: Aurora Purple (#8B5CF6)
+- **Secondary**: Ethereal Teal (#10B981)
+- **Background**: Deep Midnight (#0B1426)
+- **Text**: Starlight White (#F8FAFC)
+- **Accent**: Mystic Lavender (#A78BFA)
+
+### Testing Infrastructure
+
+Comprehensive testing tools for all system components:
+
+#### Test Components:
+- **Audio Service Test**: Record and playback testing with expo-audio
+- **Network Status Test**: Connection quality and type detection
+- **Dream Store Test**: Zustand state management with persistence
+- **Offline Queue Test**: Queue management with network simulation
+- **Upload Service Test**: Progressive upload strategies and chunked uploads
+- **Integrated Queue Test**: End-to-end system integration testing
+
+#### Network Simulation:
+```typescript
+// Simulate different network conditions
+networkStatus.simulateNetworkCondition({
+  type: 'cellular',
+  quality: 'poor',
+  isWifi: false,
+  isConnected: true,
+  isInternetReachable: true
+});
+```
 
 ## Documentation
 
@@ -161,6 +253,7 @@ Comprehensive documentation is available in the `docs/` directory:
 - Bundle optimization and code splitting
 - Efficient state management with selective subscriptions
 - Optimistic updates for responsive UI
+- Intelligent upload queuing and network adaptation
 
 ## Contributing
 
@@ -172,7 +265,7 @@ Comprehensive documentation is available in the `docs/` directory:
 ### Development Workflow
 1. Create feature branch from `main`
 2. Implement changes following clean architecture principles
-3. Add comprehensive tests
+3. Add comprehensive tests using the built-in test components
 4. Update relevant documentation
 5. Submit pull request with detailed description
 
@@ -186,10 +279,39 @@ Comprehensive documentation is available in the `docs/` directory:
 - **Development**: Vite dev server
 - **Production**: Static build deployment
 
+## Recent Updates
+
+### Version 2.1 - Advanced Upload System
+- ✅ Progressive upload service with chunked uploads
+- ✅ Offline queue management with intelligent retry
+- ✅ Network-aware upload strategies
+- ✅ Real-time progress tracking and monitoring
+- ✅ Comprehensive testing infrastructure
+- ✅ WiFi-only mode and data usage controls
+
+### Version 2.0 - Oniric Design System
+- ✅ Complete dark-first design transformation
+- ✅ Dreamlike color palette and micro-interactions
+- ✅ Accessibility compliance (WCAG 2.1 AA)
+- ✅ Consistent component heights and spacing
+- ✅ Translation system with dreamlike copy
+
+### Version 1.2 - Authentication & Profiles
+- ✅ Supabase authentication integration
+- ✅ User profile management
+- ✅ Onboarding flow with data collection
+- ✅ Conditional navigation based on user state
+
+### Version 1.1 - Development Environment
+- ✅ Monorepo structure with npm workspaces
+- ✅ TypeScript configuration and path mapping
+- ✅ ESLint, Prettier, and Husky setup
+- ✅ Development build configuration
+
 ## License
 
 MIT License - see LICENSE file for details
 
 ---
 
-**Somni** - Transform your dreams into insights with AI-powered analysis and a supportive community of dreamers.
+**Somni** - Transform your dreams into insights with AI-powered analysis, intelligent upload management, and a supportive community of dreamers.
