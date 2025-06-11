@@ -57,6 +57,7 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
       
       // Statistics
       uploadHistory: [],
+      uploadProgress: {},
 
       // Queue management actions
       addRecording: (recording) => {
@@ -139,7 +140,12 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
           
           return {
             recordings: remainingRecordings,
-            totalPendingSize: Math.max(0, state.totalPendingSize - removedSize)
+            totalPendingSize: Math.max(0, state.totalPendingSize - removedSize),
+            uploadProgress: Object.fromEntries(
+              Object.entries(state.uploadProgress).filter(
+                ([id]) => !completedRecordings.some(r => r.id === id)
+              )
+            ),
           };
         });
 
@@ -150,7 +156,8 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
         set({
           recordings: [],
           totalPendingSize: 0,
-          currentUpload: null
+          currentUpload: null,
+          uploadProgress: {}
         });
 
         console.log('🗑️ Cleared all recordings from queue');
@@ -477,7 +484,11 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
 
       // Progress tracking
       setUploadProgress: (recordingId, progress) => {
-        set({ 
+        set(state => ({ 
+          uploadProgress: {
+            ...state.uploadProgress,
+            [recordingId]: progress
+          },
           currentUpload: { 
             recordingId, 
             progress: {
@@ -486,7 +497,7 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
               remainingTime: progress.remainingTime || 0
             }
           } 
-        });
+        }));
       },
 
       clearUploadProgress: () => {
@@ -503,7 +514,7 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
         wifiOnlyMode: state.wifiOnlyMode,
         autoRetryEnabled: state.autoRetryEnabled,
         uploadHistory: state.uploadHistory
-        // Don't persist: isProcessing, currentUpload, totalPendingSize
+        // Don't persist: isProcessing, currentUpload, totalPendingSize, uploadProgress
       })
     }
   )

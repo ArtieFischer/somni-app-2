@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, TouchableOpacity, Animated } from 'react-native';
 import { Text } from '../../atoms/Text';
 import { Button } from '../../atoms/Button';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useOfflineRecordingQueue } from '../../../hooks/useOfflineRecordingQueue';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
+import { UploadProgress } from '../UploadProgress';
 import { useStyles } from './OfflineQueueStatus.styles';
 
 export const OfflineQueueStatus: React.FC = () => {
@@ -13,6 +14,7 @@ export const OfflineQueueStatus: React.FC = () => {
   const {
     pendingCount,
     failedCount,
+    uploadingCount,
     totalSize,
     isProcessing,
     retryFailedRecordings,
@@ -20,9 +22,12 @@ export const OfflineQueueStatus: React.FC = () => {
     currentUpload,
   } = useOfflineRecordingQueue();
 
+  const [isExpanded, setIsExpanded] = useState(false);
   const styles = useStyles();
 
-  if (pendingCount === 0 && failedCount === 0 && !currentUpload) {
+  const totalCount = pendingCount + failedCount + uploadingCount;
+
+  if (totalCount === 0 && !currentUpload) {
     return null;
   }
 
@@ -38,7 +43,7 @@ export const OfflineQueueStatus: React.FC = () => {
       return `Uploading... ${currentUpload.progress.percentage.toFixed(0)}%`;
     }
     
-    if (isProcessing) {
+    if (uploadingCount > 0) {
       return t('offline.uploading');
     }
     
@@ -60,42 +65,101 @@ export const OfflineQueueStatus: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.statusContainer}>
-        <View style={[styles.statusIndicator, getStatusColor()]} />
-        <Text variant="caption" style={styles.statusText}>
-          {getStatusText()}
-        </Text>
-        
-        {totalSize > 0 && (
-          <Text variant="caption" style={styles.sizeText}>
-            ({formatFileSize(totalSize)})
-          </Text>
-        )}
-      </View>
+    <View style={styles.wrapper}>
+      <TouchableOpacity 
+        style={styles.container}
+        onPress={() => setIsExpanded(!isExpanded)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusIndicator, getStatusColor()]} />
+          <View style={styles.textContainer}>
+            <Text variant="caption" style={styles.statusText}>
+              {getStatusText()}
+            </Text>
+            
+            {totalSize > 0 && (
+              <Text variant="caption" style={styles.sizeText}>
+                {formatFileSize(totalSize)}
+              </Text>
+            )}
+          </View>
+        </View>
 
-      <View style={styles.actions}>
-        {failedCount > 0 && isConnected && (
-          <Button
-            variant="secondary"
-            size="small"
-            onPress={retryFailedRecordings}
-            disabled={isProcessing}
-          >
-            {t('offline.retry')}
-          </Button>
-        )}
-        
-        {pendingCount > 0 && isConnected && !isProcessing && (
-          <Button
-            variant="secondary"
-            size="small"
-            onPress={processQueue}
-          >
-            Upload Now
-          </Button>
-        )}
-      </View>
+        <View style={styles.actions}>
+          {failedCount > 0 && isConnected && (
+            <Button
+              variant="secondary"
+              size="small"
+              onPress={(e) => {
+                e.stopPropagation();
+                retryFailedRecordings();
+              }}
+              disabled={isProcessing}
+            >
+              {t('offline.retry')}
+            </Button>
+          )}
+          
+          {pendingCount > 0 && isConnected && !isProcessing && (
+            <Button
+              variant="secondary"
+              size="small"
+              onPress={(e) => {
+                e.stopPropagation();
+                processQueue();
+              }}
+            >
+              Upload Now
+            </Button>
+          )}
+
+          <View style={[styles.expandIcon, isExpanded && styles.expandIconRotated]}>
+            <Text>▼</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {/* Upload Progress */}
+      {uploadingCount > 0 && <UploadProgress />}
+
+      {/* Expanded Stats */}
+      {isExpanded && (
+        <Animated.View style={styles.expandedContainer}>
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <Text variant="h3" style={styles.statValue}>
+                {totalCount}
+              </Text>
+              <Text variant="caption" style={styles.statLabel}>
+                Total Queue
+              </Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text variant="h3" style={styles.statValue}>
+                {pendingCount}
+              </Text>
+              <Text variant="caption" style={styles.statLabel}>
+                Pending
+              </Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text variant="h3" style={styles.statValue}>
+                {failedCount}
+              </Text>
+              <Text variant="caption" style={styles.statLabel}>
+                Failed
+              </Text>
+            </View>
+          </View>
+
+          <Text variant="caption" style={styles.lastProcessed}>
+            Tap to collapse • Auto-retry enabled
+          </Text>
+        </Animated.View>
+      )}
     </View>
   );
 };
