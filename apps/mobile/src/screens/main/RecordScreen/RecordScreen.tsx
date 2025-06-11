@@ -78,6 +78,46 @@ export const RecordScreen: React.FC = () => {
     };
   }, []);
 
+  // Monitor real-time updates for transcription completion
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('dream-transcriptions')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'dreams',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Dream update received:', payload);
+          
+          if (payload.new.transcription_status === 'completed') {
+            // Update local dream store
+            dreamStore.updateDream(payload.new.id, {
+              rawTranscript: payload.new.raw_transcript,
+              status: 'completed',
+            });
+            
+            // Show notification
+            Alert.alert(
+              'Transcription Complete!',
+              'Your dream has been transcribed.',
+              [{ text: 'OK' }]
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, dreamStore]);
+
   useEffect(() => {
     // Animate content on mount
     Animated.parallel([
@@ -185,7 +225,7 @@ export const RecordScreen: React.FC = () => {
     }
 
     // Check if we have a valid session
-    if (!session?.access_token) {
+    if (!session?.access_token || !user?.id) {
       Alert.alert(
         'Authentication Required',
         'Please log in to transcribe your dreams',
@@ -206,6 +246,33 @@ export const RecordScreen: React.FC = () => {
       if (!fileInfo.exists) {
         throw new Error('Audio file does not exist at path: ' + audioUri);
       }
+
+      // First, create the dream in Supabase
+      console.log('📝 Creating dream in database...');
+      const { data: createdDream, error: createError } = await supabase
+        .from('dreams')
+        .insert({
+          user_id: user.id,
+          raw_transcript: '',
+          duration: pendingRecording?.duration || dreamStore.recordingSession.duration,
+          transcription_status: 'pending',
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (createError || !createdDream) {
+        console.error('Failed to create dream:', createError);
+        throw new Error('Failed to create dream record');
+      }
+
+      console.log('✅ Dream created in database:', createdDream.id);
+
+      // Update local dream with the real ID
+      dreamStore.updateDream(dreamStore.recordingSession.dreamId, {
+        id: createdDream.id,
+        status: 'transcribing'
+      });
       
       // Read the audio file as base64
       console.log('📖 Reading audio file from:', audioUri);
@@ -215,12 +282,12 @@ export const RecordScreen: React.FC = () => {
       );
 
       console.log('📤 Sending to transcription service...');
-      console.log('Dream ID:', dreamStore.recordingSession.dreamId);
+      console.log('Dream ID:', createdDream.id);
       console.log('Audio size:', audioBase64.length);
       console.log('Duration:', pendingRecording?.duration || dreamStore.recordingSession.duration);
-      console.log('User ID:', user?.id);
+      console.log('User ID:', user.id);
 
-      // Call your edge function
+      // Call your edge function with the real dream ID
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/dreams-transcribe-init`,
         {
@@ -230,7 +297,7 @@ export const RecordScreen: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            dreamId: dreamStore.recordingSession.dreamId,
+            dreamId: createdDream.id, // Use the real dream ID from Supabase
             audioBase64,
             duration: pendingRecording?.duration || dreamStore.recordingSession.duration
           })
@@ -244,11 +311,6 @@ export const RecordScreen: React.FC = () => {
       }
 
       console.log('✅ Transcription initiated:', responseData);
-
-      // Update dream status
-      dreamStore.updateDream(dreamStore.recordingSession.dreamId, {
-        status: 'transcribing'
-      });
 
       // Delete the local audio file since we've sent it
       try {
