@@ -3,6 +3,7 @@ import { useDreamStore } from '@somni/stores';
 import { AudioService } from '../infrastructure/services/AudioService';
 import { useOfflineRecordingQueue } from './useOfflineRecordingQueue';
 import { useNetworkStatus } from './useNetworkStatus';
+import { useAuth } from './useAuth'; // Import useAuth
 
 // Create a singleton instance
 let audioServiceInstance: AudioService | null = null;
@@ -34,6 +35,7 @@ interface UseDreamRecorderReturn {
 
 export const useDreamRecorder = (): UseDreamRecorderReturn => {
   const dreamStore = useDreamStore();
+  const { user } = useAuth(); // Get user from auth
   const offlineQueue = useOfflineRecordingQueue();
   const { isConnected } = useNetworkStatus();
   
@@ -146,10 +148,10 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       // Then update the store
       dreamStore.stopRecording();
 
-      // Create placeholder dream entry (but don't add to queue yet)
+      // Create placeholder dream entry with actual user ID
       dreamStore.addDream({
         id: `temp_${currentSession.id}`,
-        userId: 'current-user', // TODO: Get from auth
+        userId: user?.id || 'anonymous',
         rawTranscript: 'Waiting for transcription...',
         duration: audioResult.duration,
         confidence: 0,
@@ -178,7 +180,7 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       setRecordingDuration(0);
       isTransitioningRef.current = false;
     }
-  }, [dreamStore, audioService, clearTimer]);
+  }, [dreamStore, user, audioService, clearTimer]);
 
   const clearError = useCallback(() => {
     setError(null);
