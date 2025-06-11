@@ -18,6 +18,14 @@ A comprehensive dream tracking and analysis application built with React Native 
 - **WiFi-Only Mode**: Configurable upload restrictions for data-conscious users
 - **Smart Priority System**: Prioritizes uploads based on file size and network conditions
 - **Real-time Progress Tracking**: Live upload progress with speed and ETA calculations
+- **Upload Completion Feedback**: Visual confirmation with animated success toasts
+
+### Enhanced Recording Experience ⚡ LATEST
+- **Instant Recording Start**: Immediate UI feedback with background audio setup
+- **Real-time Duration Tracking**: Timer starts instantly for responsive feel
+- **Graceful Error Handling**: Clean UI recovery if audio setup fails
+- **Visual Upload Progress**: Live progress bars with completion notifications
+- **Smart Queue Status**: Real-time visibility into upload queue state
 
 ### Modern Architecture
 - **Clean Architecture**: Domain-driven design with clear separation of concerns
@@ -147,6 +155,7 @@ The upload system provides enterprise-grade reliability with intelligent adaptat
 - **Offline Queue**: Recordings are queued when offline and uploaded when connectivity returns
 - **Smart Retry Logic**: Exponential backoff with configurable retry limits
 - **Progress Tracking**: Real-time upload progress with speed and time estimates
+- **Completion Feedback**: Visual success notifications with animated toasts
 
 #### Network Adaptation:
 - **Excellent WiFi**: Large chunks (5MB), 3 concurrent uploads
@@ -172,6 +181,34 @@ const { currentUpload, networkStatus } = queueHook;
 if (currentUpload) {
   console.log(`Upload progress: ${currentUpload.progress.percentage}%`);
 }
+```
+
+### Enhanced Recording Experience
+
+A completely redesigned recording flow optimized for immediate responsiveness:
+
+#### Key Improvements:
+- **Instant UI Feedback**: Recording button and timer respond immediately to user interaction
+- **Background Audio Setup**: Audio permissions and initialization happen asynchronously
+- **Graceful Error Recovery**: Clean UI state management if audio setup fails
+- **Real-time Progress**: Duration timer starts instantly for better user perception
+- **Visual Upload Feedback**: Live progress bars with completion notifications
+
+#### Technical Implementation:
+```typescript
+const startRecording = useCallback(async () => {
+  // Update UI state immediately for instant feedback
+  dreamStore.startRecording();
+  setRecordingDuration(0);
+
+  // Start duration timer immediately
+  durationTimerRef.current = setInterval(() => {
+    setRecordingDuration(prev => prev + 1);
+  }, 1000);
+
+  // Audio setup happens in background
+  audioService.startRecording().catch(handleError);
+}, []);
 ```
 
 ### Oniric Design System
@@ -281,6 +318,14 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ## Recent Updates
 
+### Version 2.2 - Enhanced Recording UX (Latest)
+- ✅ **Instant Recording Start**: Immediate UI feedback with background audio setup
+- ✅ **Upload Completion Toasts**: Visual success notifications with animated checkmarks
+- ✅ **Real-time Progress Tracking**: Live upload progress with speed calculations
+- ✅ **Graceful Error Recovery**: Clean UI state management for failed operations
+- ✅ **Responsive Timer**: Duration tracking starts immediately for better UX
+- ✅ **Smart Queue Visibility**: Real-time status of upload queue operations
+
 ### Version 2.1 - Advanced Upload System
 - ✅ Progressive upload service with chunked uploads
 - ✅ Offline queue management with intelligent retry
@@ -314,4 +359,4 @@ MIT License - see LICENSE file for details
 
 ---
 
-**Somni** - Transform your dreams into insights with AI-powered analysis, intelligent upload management, and a supportive community of dreamers.
+**Somni** - Transform your dreams into insights with AI-powered analysis, intelligent upload management, instant recording feedback, and a supportive community of dreamers.
