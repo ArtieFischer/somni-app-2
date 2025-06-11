@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Animated, SafeAreaView, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import { createClient } from '@supabase/supabase-js';
@@ -206,11 +206,13 @@ export const RecordScreen: React.FC = () => {
         status: 'transcribing'
       });
 
-      // Now add to offline queue for cleanup (it won't process since we're mocking)
-      offlineQueue.addRecording({
-        ...pendingRecording,
-        recordedAt: new Date().toISOString()
-      });
+      // Delete the local audio file since we've sent it
+      try {
+        await FileSystem.deleteAsync(pendingRecording.audioUri);
+        console.log('🗑️ Deleted local audio file');
+      } catch (error) {
+        console.warn('Failed to delete audio file:', error);
+      }
 
       // Clear pending recording
       setPendingRecording(null);
@@ -249,7 +251,8 @@ export const RecordScreen: React.FC = () => {
     }
   };
 
-  const getStatusText = useMemo(() => {
+  // Use a function instead of useMemo to avoid the React warning
+  const getStatusText = useCallback(() => {
     if (isProcessing) {
       return String(t('record.processing'));
     }
@@ -331,7 +334,7 @@ export const RecordScreen: React.FC = () => {
           {/* Instructions or status */}
           <View style={styles.instructionSection}>
             <Text variant="body" color="secondary" style={styles.instruction}>
-              {getStatusText}
+              {getStatusText()}
             </Text>
             
             {!isOnline && (
