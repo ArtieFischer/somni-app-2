@@ -5,3 +5,4 @@ export * from './useDreamRecorder';
 export * from './useOfflineRecordingQueue';
 export * from './useNetworkStatus';
 export * from './useAudioRecorder';
+export * from './useUploadNotifications';
