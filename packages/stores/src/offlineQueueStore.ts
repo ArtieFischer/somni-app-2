@@ -536,68 +536,81 @@ function getRecordingPriority(
   return 'normal';
 }
 
-// Simulate chunked upload with progress (replace with actual upload service)
 async function simulateChunkedUploadWithProgress(
   recording: OfflineRecording,
   onProgress: (progress: UploadProgress) => void
 ): Promise<UploadResult> {
-  const startTime = Date.now();
-  const chunkSize = 1024 * 1024; // 1MB chunks
-  const totalChunks = Math.ceil(recording.fileSize / chunkSize);
+  // For Phase 1: Skip processing to prevent file deletion
+  console.log('📤 Skipping upload simulation for Phase 1');
   
-  console.log(`📤 Starting chunked upload: ${totalChunks} chunks for ${recording.id}`);
-  
-  return new Promise((resolve) => {
-    let currentChunk = 0;
-    
-    const uploadChunk = () => {
-      currentChunk++;
-      const percentage = Math.min(100, (currentChunk / totalChunks) * 100);
-      const loaded = Math.floor((recording.fileSize * percentage) / 100);
-      
-      onProgress({
-        loaded,
-        total: recording.fileSize,
-        percentage,
-        speed: loaded / ((Date.now() - startTime) / 1000),
-        remainingTime: ((100 - percentage) / percentage) * ((Date.now() - startTime) / 1000)
-      });
-      
-      if (currentChunk >= totalChunks) {
-        // Determine success based on retry count and random factors
-        const isRetry = recording.retryCount > 0;
-        let successChance;
-        
-        if (isRetry) {
-          // Higher success rate on retries
-          successChance = 0.85; // 85% success on retry
-        } else {
-          // First attempt success rate based on file size
-          if (recording.fileSize > 5 * 1024 * 1024) {
-            successChance = 0.5; // 50% for large files
-          } else {
-            successChance = 0.7; // 70% for normal files
-          }
-        }
-        
-        const success = Math.random() < successChance;
-        
-        resolve({
-          success,
-          dreamId: success ? `dream_${recording.sessionId}_${Date.now()}` : undefined,
-          error: success ? undefined : `Simulated chunked upload failure (attempt ${recording.retryCount + 1})`,
-          uploadDuration: Date.now() - startTime,
-          finalFileSize: recording.fileSize,
-          transcript: success ? `Transcribed dream from session ${recording.sessionId}` : undefined
-        });
-      } else {
-        // Continue with next chunk after delay
-        const delay = Math.random() * 200 + 100; // 100-300ms per chunk
-        setTimeout(uploadChunk, delay);
-      }
-    };
-    
-    // Start uploading
-    uploadChunk();
-  });
+  return {
+    success: false,
+    error: 'Upload disabled for Phase 1 testing'
+  };
 }
+
+// Simulate chunked upload with progress (replace with actual upload service)
+// async function simulateChunkedUploadWithProgress(
+//   recording: OfflineRecording,
+//   onProgress: (progress: UploadProgress) => void
+// ): Promise<UploadResult> {
+//   const startTime = Date.now();
+//   const chunkSize = 1024 * 1024; // 1MB chunks
+//   const totalChunks = Math.ceil(recording.fileSize / chunkSize);
+  
+//   console.log(`📤 Starting chunked upload: ${totalChunks} chunks for ${recording.id}`);
+  
+//   return new Promise((resolve) => {
+//     let currentChunk = 0;
+    
+//     const uploadChunk = () => {
+//       currentChunk++;
+//       const percentage = Math.min(100, (currentChunk / totalChunks) * 100);
+//       const loaded = Math.floor((recording.fileSize * percentage) / 100);
+      
+//       onProgress({
+//         loaded,
+//         total: recording.fileSize,
+//         percentage,
+//         speed: loaded / ((Date.now() - startTime) / 1000),
+//         remainingTime: ((100 - percentage) / percentage) * ((Date.now() - startTime) / 1000)
+//       });
+      
+//       if (currentChunk >= totalChunks) {
+//         // Determine success based on retry count and random factors
+//         const isRetry = recording.retryCount > 0;
+//         let successChance;
+        
+//         if (isRetry) {
+//           // Higher success rate on retries
+//           successChance = 0.85; // 85% success on retry
+//         } else {
+//           // First attempt success rate based on file size
+//           if (recording.fileSize > 5 * 1024 * 1024) {
+//             successChance = 0.5; // 50% for large files
+//           } else {
+//             successChance = 0.7; // 70% for normal files
+//           }
+//         }
+        
+//         const success = Math.random() < successChance;
+        
+//         resolve({
+//           success,
+//           dreamId: success ? `dream_${recording.sessionId}_${Date.now()}` : undefined,
+//           error: success ? undefined : `Simulated chunked upload failure (attempt ${recording.retryCount + 1})`,
+//           uploadDuration: Date.now() - startTime,
+//           finalFileSize: recording.fileSize,
+//           transcript: success ? `Transcribed dream from session ${recording.sessionId}` : undefined
+//         });
+//       } else {
+//         // Continue with next chunk after delay
+//         const delay = Math.random() * 200 + 100; // 100-300ms per chunk
+//         setTimeout(uploadChunk, delay);
+//       }
+//     };
+    
+//     // Start uploading
+//     uploadChunk();
+//   });
+// }
