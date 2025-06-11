@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Animated, SafeAreaView, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../infrastructure/supabase/client'; // Use consistent import
 import { Text } from '../../../components/atoms';
 import { Button } from '../../../components/atoms/Button';
 import { MorphingRecordButton } from '../../../components/atoms/MorphingRecordButton';
@@ -13,18 +13,14 @@ import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useUploadNotifications } from '../../../hooks/useUploadNotifications';
 import { useOfflineRecordingQueue } from '../../../hooks/useOfflineRecordingQueue';
 import { useDreamStore } from '@somni/stores';
+import { useAuth } from '../../../hooks/useAuth'; // Use your auth hook
 import { useStyles } from './RecordScreen.styles';
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL!,
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export const RecordScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
   const styles = useStyles();
   const dreamStore = useDreamStore();
+  const { session, user } = useAuth(); // Get auth info
   const offlineQueue = useOfflineRecordingQueue();
   
   const { 
@@ -134,6 +130,7 @@ export const RecordScreen: React.FC = () => {
             duration: result.duration,
             fileSize: result.fileSize
           });
+          console.log('📼 Pending recording saved:', result);
         }
       } else {
         setPendingRecording(null); // Clear any pending recording
@@ -155,19 +152,29 @@ export const RecordScreen: React.FC = () => {
       return;
     }
 
+    // Check if we have a valid session
+    if (!session?.access_token) {
+      Alert.alert(
+        'Authentication Required',
+        'Please log in to transcribe your dreams',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     try {
       setIsTranscribing(true);
       
-      // Get the current auth session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No auth session found');
+      // Make sure we have the audio URI
+      const audioUri = pendingRecording.audioUri;
+      if (!audioUri) {
+        throw new Error('No audio file found');
       }
       
       // Read the audio file as base64
-      console.log('📖 Reading audio file...');
+      console.log('📖 Reading audio file from:', audioUri);
       const audioBase64 = await FileSystem.readAsStringAsync(
-        pendingRecording.audioUri,
+        audioUri,
         { encoding: FileSystem.EncodingType.Base64 }
       );
 
@@ -175,6 +182,7 @@ export const RecordScreen: React.FC = () => {
       console.log('Dream ID:', dreamStore.recordingSession.dreamId);
       console.log('Audio size:', audioBase64.length);
       console.log('Duration:', pendingRecording.duration);
+      console.log('User ID:', user?.id);
 
       // Call your edge function
       const response = await fetch(
@@ -207,11 +215,16 @@ export const RecordScreen: React.FC = () => {
       });
 
       // Delete the local audio file since we've sent it
-      try {
-        await FileSystem.deleteAsync(pendingRecording.audioUri);
-        console.log('🗑️ Deleted local audio file');
-      } catch (error) {
-        console.warn('Failed to delete audio file:', error);
+      if (audioUri) {
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(audioUri);
+          if (fileInfo.exists) {
+            await FileSystem.deleteAsync(audioUri);
+            console.log('🗑️ Deleted local audio file');
+          }
+        } catch (deleteError) {
+          console.warn('Failed to delete audio file:', deleteError);
+        }
       }
 
       // Clear pending recording
@@ -237,11 +250,14 @@ export const RecordScreen: React.FC = () => {
   };
 
   const handleCancelRecording = async () => {
-    if (pendingRecording) {
+    if (pendingRecording && pendingRecording.audioUri) {
       // Delete the audio file
       try {
-        await FileSystem.deleteAsync(pendingRecording.audioUri);
-        console.log('🗑️ Deleted audio file');
+        const fileInfo = await FileSystem.getInfoAsync(pendingRecording.audioUri);
+        if (fileInfo.exists) {
+          await FileSystem.deleteAsync(pendingRecording.audioUri);
+          console.log('🗑️ Deleted audio file');
+        }
       } catch (error) {
         console.error('Failed to delete audio file:', error);
       }
@@ -251,8 +267,8 @@ export const RecordScreen: React.FC = () => {
     }
   };
 
-  // Use a function instead of useMemo to avoid the React warning
-  const getStatusText = useCallback(() => {
+  // Regular function to get status text
+  const getStatusText = () => {
     if (isProcessing) {
       return String(t('record.processing'));
     }
@@ -263,7 +279,7 @@ export const RecordScreen: React.FC = () => {
       return String(t('record.acceptOrCancel'));
     }
     return String(t('record.button.start'));
-  }, [isProcessing, isRecording, pendingRecording, t]);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
