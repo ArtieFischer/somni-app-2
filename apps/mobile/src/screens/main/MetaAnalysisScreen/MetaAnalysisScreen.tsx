@@ -5,21 +5,21 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { useStyles } from './MetaAnalysisScreen.styles';
 
 export const MetaAnalysisScreen: React.FC = () => {
-  const { t } = useTranslation('navigation');
+  const { t } = useTranslation('common');
   const styles = useStyles();
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         <Text variant="h1" style={styles.title}>
-          {String(t('screens.metaAnalysis.title'))}
+          {t('navigation.screens.metaAnalysis.title')}
         </Text>
         <Text variant="body" color="secondary">
-          {String(t('screens.metaAnalysis.description'))}
+          {t('navigation.screens.metaAnalysis.description')}
         </Text>
         <View style={styles.placeholder}>
           <Text variant="caption" color="secondary">
-            Coming soon...
+            {t('status.comingSoon')}
           </Text>
         </View>
       </View>

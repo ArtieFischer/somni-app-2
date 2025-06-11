@@ -12,7 +12,7 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
   descriptors,
   navigation,
 }) => {
-  const { t } = useTranslation('navigation');
+  const { t } = useTranslation('common');
   const styles = useStyles();
 
   const getIconName = (routeName: string): TabIconName => {
@@ -28,11 +28,11 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
 
   const getTabLabel = (routeName: string): string => {
     const labelMap: Record<string, string> = {
-      Feed: String(t('tabs.feed')),
-      DreamDiary: String(t('tabs.dreamDiary')),
-      Record: String(t('tabs.record')),
-      MetaAnalysis: String(t('tabs.metaAnalysis')),
-      Profile: String(t('tabs.profile')),
+      Feed: t('navigation.tabs.feed'),
+      DreamDiary: t('navigation.tabs.dreamDiary'),
+      Record: t('navigation.tabs.record'),
+      MetaAnalysis: t('navigation.tabs.metaAnalysis'),
+      Profile: t('navigation.tabs.profile'),
     };
     return labelMap[routeName] || routeName;
   };

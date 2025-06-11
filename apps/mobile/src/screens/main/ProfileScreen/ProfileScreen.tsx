@@ -6,28 +6,31 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useStyles } from './ProfileScreen.styles';
 
 export const ProfileScreen: React.FC = () => {
-  const { t } = useTranslation('navigation');
-  const { user, signOut } = useAuth();
+  const { t } = useTranslation('common');
+  const { user, profile, signOut } = useAuth();
   const styles = useStyles();
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text variant="h1" style={styles.title}>
-          {String(t('screens.profile.title'))}
-        </Text>
-        <Text variant="body" color="secondary">
-          {String(t('screens.profile.description'))}
-        </Text>
-        
-        {user && (
-          <View style={styles.userInfo}>
-            <Text variant="body">Welcome, {user.email}</Text>
+        <View style={styles.profileSection}>
+          <View style={styles.avatar}>
+            <Text variant="h1">👤</Text>
           </View>
-        )}
+          <Text variant="h2" style={styles.username}>
+            {profile?.username || user?.email?.split('@')[0] || 'Dreamer'}
+          </Text>
+          <Text variant="body" color="secondary">
+            {user?.email}
+          </Text>
+        </View>
 
-        <View style={styles.actions}>
-          <Button variant="secondary" onPress={signOut}>
+        <View style={styles.section}>
+          <Button
+            variant="secondary"
+            size="large"
+            onPress={signOut}
+          >
             Sign Out
           </Button>
         </View>

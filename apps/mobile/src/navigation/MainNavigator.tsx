@@ -2,6 +2,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '@somni/types';
 import { CustomTabBar } from '../components/molecules/CustomTabBar';
+import { useTranslation } from '../hooks/useTranslation';
+import { useTheme } from '../hooks/useTheme';
 
 // Import screens
 import { FeedScreen } from '../screens/main/FeedScreen';
@@ -13,19 +15,61 @@ import { ProfileScreen } from '../screens/main/ProfileScreen';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainNavigator() {
+  const { t } = useTranslation('common');
+  const theme = useTheme();
+
   return (
     <Tab.Navigator
       initialRouteName="Record"
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        headerShown: false, // We'll add custom headers later
+        headerStyle: {
+          backgroundColor: theme.colors.background.primary,
+          shadowColor: 'transparent',
+          elevation: 0,
+        },
+        headerTintColor: theme.colors.text.primary,
+        headerTitleStyle: {
+          fontSize: 18,
+          fontWeight: '600',
+        },
       }}
     >
-      <Tab.Screen name="Feed" component={FeedScreen} />
-      <Tab.Screen name="DreamDiary" component={DreamDiaryScreen} />
-      <Tab.Screen name="Record" component={RecordScreen} />
-      <Tab.Screen name="MetaAnalysis" component={MetaAnalysisScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen 
+        name="Feed" 
+        component={FeedScreen}
+        options={{
+          headerTitle: t('navigation.screens.feed.title'),
+        }}
+      />
+      <Tab.Screen 
+        name="DreamDiary" 
+        component={DreamDiaryScreen}
+        options={{
+          headerTitle: t('navigation.screens.dreamDiary.title'),
+        }}
+      />
+      <Tab.Screen 
+        name="Record" 
+        component={RecordScreen}
+        options={{
+          headerShown: false, // Hide header for record screen
+        }}
+      />
+      <Tab.Screen 
+        name="MetaAnalysis" 
+        component={MetaAnalysisScreen}
+        options={{
+          headerTitle: t('navigation.screens.metaAnalysis.title'),
+        }}
+      />
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{
+          headerTitle: t('navigation.screens.profile.title'),
+        }}
+      />
     </Tab.Navigator>
   );
 }

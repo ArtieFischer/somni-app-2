@@ -9,7 +9,36 @@
     "dreams": "Dreams",
     "community": "Community",
     "profile": "Profile",
-    "settings": "Settings"
+    "settings": "Settings",
+    "tabs": {
+      "feed": "Feed",
+      "dreamDiary": "Dreams",
+      "record": "Record",
+      "metaAnalysis": "Analysis",
+      "profile": "Profile"
+    },
+    "screens": {
+      "feed": {
+        "title": "Dream Feed",
+        "description": "Explore dreams from the community"
+      },
+      "dreamDiary": {
+        "title": "Dream Diary",
+        "description": "Your personal dream journal"
+      },
+      "record": {
+        "title": "Record Dream",
+        "description": "Capture your dreams"
+      },
+      "metaAnalysis": {
+        "title": "Dream Analysis",
+        "description": "Insights and patterns"
+      },
+      "profile": {
+        "title": "Profile",
+        "description": "Your settings and preferences"
+      }
+    }
   },
   "actions": {
     "save": "Save",
@@ -30,7 +59,8 @@
     "error": "Something went wrong",
     "success": "Success",
     "offline": "You're offline",
-    "syncing": "Syncing..."
+    "syncing": "Syncing...",
+    "comingSoon": "Coming soon..."
   },
   "time": {
     "now": "Now",
@@ -40,5 +70,8 @@
     "lastWeek": "Last week",
     "thisMonth": "This month",
     "lastMonth": "Last month"
+  },
+  "stats": {
+    "totalDreams": "Total Dreams"
   }
 }

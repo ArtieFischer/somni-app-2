@@ -12,17 +12,24 @@ export const useStyles = () => {
     content: {
       padding: theme.spacing.large,
     },
-    title: {
-      marginBottom: theme.spacing.small,
+    profileSection: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.xl,
     },
-    userInfo: {
-      marginTop: theme.spacing.xl,
-      padding: theme.spacing.large,
+    avatar: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
       backgroundColor: theme.colors.background.elevated,
-      borderRadius: theme.borderRadius.medium,
-      ...theme.shadows.small,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: theme.spacing.medium,
+      ...theme.shadows.medium,
     },
-    actions: {
+    username: {
+      marginBottom: theme.spacing.xs,
+    },
+    section: {
       marginTop: theme.spacing.xl,
     },
   });
