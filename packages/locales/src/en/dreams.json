@@ -1,21 +1,22 @@
 {
   "record": {
-    "title": "Record Your Dream",
-    "subtitle": "Capture your dreams while they're fresh",
+    "title": "Capture Your Dreams",
+    "subtitle": "Whisper your nocturnal journey into existence",
     "button": {
-      "start": "Tap to start recording",
-      "stop": "Tap to stop",
+      "start": "Tap the orb to begin recording",
+      "stop": "Tap to complete",
       "recording": "Recording... {{duration}}s"
     },
-    "whisperMode": "Whisper Mode Active",
-    "processing": "Processing your dream...",
-    "transcribing": "Converting speech to text...",
+    "whisperMode": "Speak softly... your dreams are listening",
+    "processing": "Weaving your dreams into words...",
+    "transcribing": "Converting whispers to text...",
+    "offline": "Recording offline - will sync when connected",
     "error": {
-      "microphonePermission": "Microphone permission required",
+      "microphonePermission": "Microphone permission required to record dreams",
       "recordingFailed": "Recording failed. Please try again.",
       "transcriptionFailed": "Failed to transcribe audio. Please try again."
     },
-    "success": "Dream recorded successfully!"
+    "success": "Dream captured successfully!"
   },
   "analysis": {
     "title": "Dream Analysis",
@@ -52,6 +53,16 @@
       "lucid": "Lucid Dreams",
       "avgMood": "Average Mood"
     }
+  },
+  "offline": {
+    "uploading": "Uploading dreams...",
+    "failed": "{{count}} upload failed",
+    "failed_plural": "{{count}} uploads failed",
+    "noConnection": "{{count}} dream waiting to upload",
+    "noConnection_plural": "{{count}} dreams waiting to upload",
+    "pending": "{{count}} dream pending",
+    "pending_plural": "{{count}} dreams pending",
+    "retry": "Retry"
   },
   "feed": {
     "title": "Dream Feed",

@@ -1,5 +1,7 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import { useTheme } from '../../../hooks/useTheme';
+
+const { height: screenHeight } = Dimensions.get('window');
 
 export const useStyles = () => {
   const theme = useTheme();
@@ -9,33 +11,53 @@ export const useStyles = () => {
       flex: 1,
       backgroundColor: theme.colors.background.primary,
     },
+    scrollContent: {
+      minHeight: screenHeight - 100, // Account for tab bar
+    },
     content: {
       flex: 1,
+      paddingVertical: theme.spacing.xl,
+    },
+    header: {
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: theme.spacing.large,
+      paddingHorizontal: theme.spacing.large,
+      marginBottom: theme.spacing.xl,
     },
-    recordButton: {
-      width: 200,
-      height: 200,
-      borderRadius: 100,
-      backgroundColor: theme.colors.background.elevated,
-      borderWidth: 4,
-      borderColor: theme.colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      ...theme.shadows.large,
-    },
-    recordingButton: {
-      backgroundColor: theme.colors.primary,
-      borderColor: theme.colors.accent,
-    },
-    recordButtonText: {
-      fontSize: 48,
+    title: {
+      textAlign: 'center',
       marginBottom: theme.spacing.small,
     },
-    recordButtonLabel: {
-      color: theme.colors.text.primary,
+    subtitle: {
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    buttonSection: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginVertical: theme.spacing.xl,
+    },
+    instructionSection: {
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.large,
+      marginTop: theme.spacing.xl,
+    },
+    instruction: {
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    offlineNotice: {
+      marginTop: theme.spacing.medium,
+      paddingHorizontal: theme.spacing.medium,
+      paddingVertical: theme.spacing.small,
+      backgroundColor: theme.colors.background.secondary,
+      borderRadius: theme.borderRadius.medium,
+    },
+    offlineText: {
+      color: theme.colors.text.secondary,
+    },
+    actions: {
+      alignItems: 'center',
+      marginTop: theme.spacing.xl,
     },
   });
 };
