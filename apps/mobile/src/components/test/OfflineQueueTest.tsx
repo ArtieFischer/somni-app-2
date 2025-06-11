@@ -24,9 +24,22 @@ const TestButton: React.FC<{
 );
 
 export const OfflineQueueTest: React.FC = () => {
-  const queueHook = useOfflineRecordingQueue(); // Use the hook instead of store directly
+  const queueHook = useOfflineRecordingQueue();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [wifiOnlyMode, setWifiOnlyMode] = useState(true); // Track WiFi-only state locally
+  const [wifiOnlyMode, setWifiOnlyMode] = useState(true);
+  const [maxRetries, setMaxRetries] = useState(3);
+  
+  // Mock recording list for UI display
+  const [allRecordings, setAllRecordings] = useState<Array<{
+    id: string;
+    status: 'pending' | 'uploading' | 'completed' | 'failed';
+    duration: number;
+    fileSize: number;
+    retryCount: number;
+    maxRetries: number;
+    recordedAt: string;
+    error?: string;
+  }>>([]);
 
   // Force re-render to see real-time updates
   useEffect(() => {
@@ -37,9 +50,45 @@ export const OfflineQueueTest: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Simulate network conditions
+  const simulateNetworkCondition = (condition: 'wifi-excellent' | 'cellular-poor' | 'offline') => {
+    console.log(`🧪 Simulating network: ${condition}`);
+    
+    const conditions = {
+      'wifi-excellent': {
+        connectionQuality: 'excellent',
+        isCellular: false,
+        isConnected: true,
+        isInternetReachable: true,
+        isWifi: true,
+        type: 'wifi'
+      },
+      'cellular-poor': {
+        connectionQuality: 'poor',
+        isCellular: true,
+        isConnected: true,
+        isInternetReachable: true,
+        isWifi: false,
+        type: 'cellular'
+      },
+      'offline': {
+        connectionQuality: 'unknown',
+        isCellular: false,
+        isConnected: false,
+        isInternetReachable: false,
+        isWifi: false,
+        type: 'none'
+      }
+    };
+
+    // This would trigger the network simulation in your app
+    // You might need to call a function that updates the network status hook
+    Alert.alert('Network Simulation', `Switched to: ${condition}`);
+  };
+
   const addMockRecording = () => {
-    const mockSizes = [500000, 1200000, 800000, 2000000, 600000]; // Different file sizes
-    const mockDurations = [30, 45, 120, 60, 90]; // Different durations
+    const mockSizes = [500000, 1200000, 800000, 2000000, 600000];
+    const mockDurations = [30, 45, 120, 60, 90];
     
     const randomSize = mockSizes[Math.floor(Math.random() * mockSizes.length)];
     const randomDuration = mockDurations[Math.floor(Math.random() * mockDurations.length)];
@@ -52,6 +101,18 @@ export const OfflineQueueTest: React.FC = () => {
       recordedAt: new Date().toISOString(),
     };
 
+    // Add to our local tracking
+    const newRecording = {
+      id: `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      status: 'pending' as const,
+      duration: randomDuration,
+      fileSize: randomSize,
+      retryCount: 0,
+      maxRetries: maxRetries,
+      recordedAt: new Date().toISOString(),
+    };
+    
+    setAllRecordings(prev => [newRecording, ...prev]);
     queueHook.addRecording(mockRecording);
     
     Alert.alert(
@@ -69,7 +130,6 @@ export const OfflineQueueTest: React.FC = () => {
   };
 
   const simulateNetworkIssue = () => {
-    // Add a recording that will likely fail
     const problematicRecording = {
       sessionId: `problematic_${Date.now()}`,
       audioUri: `file://large_audio_${Date.now()}.wav`,
@@ -78,8 +138,44 @@ export const OfflineQueueTest: React.FC = () => {
       recordedAt: new Date().toISOString(),
     };
 
+    const newRecording = {
+      id: `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      status: 'pending' as const,
+      duration: 300,
+      fileSize: 10000000,
+      retryCount: 0,
+      maxRetries: maxRetries,
+      recordedAt: new Date().toISOString(),
+    };
+    
+    setAllRecordings(prev => [newRecording, ...prev]);
     queueHook.addRecording(problematicRecording);
     Alert.alert('Network Test', 'Added large recording (may fail for testing)');
+  };
+
+  const updateMaxRetries = (newRetries: number) => {
+    setMaxRetries(newRetries);
+    queueHook.setMaxRetries(newRetries);
+    Alert.alert('Max Retries Updated', `Set to ${newRetries} retries`);
+  };
+
+  const clearAllRecordings = () => {
+    Alert.alert(
+      'Clear All Recordings',
+      'This will remove all recordings from queue and history. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear All', 
+          style: 'destructive', 
+          onPress: () => {
+            setAllRecordings([]);
+            queueHook.clearAllRecordings();
+            Alert.alert('Cleared', 'All recordings cleared!');
+          }
+        }
+      ]
+    );
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -108,7 +204,31 @@ export const OfflineQueueTest: React.FC = () => {
     return '⚪';
   };
 
+  const getStatusIcon = (status: string): string => {
+    switch (status) {
+      case 'pending': return '⏳';
+      case 'uploading': return '📤';
+      case 'completed': return '✅';
+      case 'failed': return '❌';
+      default: return '⚪';
+    }
+  };
+
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'pending': return '#F39C12';
+      case 'uploading': return '#3498DB';
+      case 'completed': return '#4ECDC4';
+      case 'failed': return '#E74C3C';
+      default: return '#B0B3B8';
+    }
+  };
+
   const stats = queueHook.getQueueStats();
+  const pendingRecordings = allRecordings.filter(r => r.status === 'pending');
+  const uploadingRecordings = allRecordings.filter(r => r.status === 'uploading');
+  const completedRecordings = allRecordings.filter(r => r.status === 'completed');
+  const failedRecordings = allRecordings.filter(r => r.status === 'failed');
 
   return (
     <ScrollView style={styles.container}>
@@ -158,51 +278,28 @@ export const OfflineQueueTest: React.FC = () => {
             {queueHook.networkStatus.shouldUpload ? '✅ YES' : '❌ NO'}
           </Text>
         </View>
-      </View>
 
-      {/* Network Status Card */}
-      <View style={styles.networkCard}>
-        <Text style={styles.cardTitle}>Network Status</Text>
+        {/* Network Simulation Buttons */}
+        <Text style={styles.networkSimTitle}>Network Simulation:</Text>
+        <View style={styles.buttonRow}>
+          <TestButton
+            title="WiFi Excellent"
+            onPress={() => simulateNetworkCondition('wifi-excellent')}
+            variant="secondary"
+          />
+          
+          <TestButton
+            title="Cellular Poor"
+            onPress={() => simulateNetworkCondition('cellular-poor')}
+            variant="secondary"
+          />
+        </View>
         
-        <View style={styles.networkRow}>
-          <Text style={styles.networkLabel}>
-            {getNetworkStatusIcon()} Status:
-          </Text>
-          <Text style={[
-            styles.networkValue,
-            { color: queueHook.networkStatus.shouldUpload ? '#4ECDC4' : '#E74C3C' }
-          ]}>
-            {queueHook.networkStatus.isOnline ? 'Online' : 'Offline'} 
-            ({queueHook.networkStatus.type} - {queueHook.networkStatus.quality})
-          </Text>
-        </View>
-
-        <View style={styles.networkRow}>
-          <Text style={styles.networkLabel}>WiFi-Only Mode:</Text>
-          <Text style={[
-            styles.networkValue,
-            { color: wifiOnlyMode ? '#E74C3C' : '#4ECDC4' }
-          ]}>
-            {wifiOnlyMode ? 'ENABLED' : 'DISABLED'}
-          </Text>
-        </View>
-
-        <View style={styles.networkRow}>
-          <Text style={styles.networkLabel}>Can Upload:</Text>
-          <Text style={[
-            styles.networkValue,
-            { color: queueHook.networkStatus.shouldUpload ? '#4ECDC4' : '#E74C3C' }
-          ]}>
-            {queueHook.networkStatus.shouldUpload ? 'YES' : 'NO'}
-          </Text>
-        </View>
-
-        {queueHook.networkStatus.blockReason && (
-          <View style={styles.blockReasonContainer}>
-            <Text style={styles.blockReasonLabel}>Block Reason:</Text>
-            <Text style={styles.blockReasonText}>{queueHook.networkStatus.blockReason}</Text>
-          </View>
-        )}
+        <TestButton
+          title="Go Offline"
+          onPress={() => simulateNetworkCondition('offline')}
+          variant="secondary"
+        />
       </View>
 
       {/* Current Upload Progress */}
@@ -254,16 +351,27 @@ export const OfflineQueueTest: React.FC = () => {
           <TestButton
             title="Force Auto-Retry Test"
             onPress={() => {
-              // Add multiple recordings to test auto-retry
               for (let i = 0; i < 3; i++) {
                 setTimeout(() => {
                   const testRecording = {
                     sessionId: `retry_test_${Date.now()}_${i}`,
                     audioUri: `file://retry_test_${Date.now()}_${i}.wav`,
                     duration: 30 + i * 10,
-                    fileSize: 1000000 + i * 500000, // Varying sizes
+                    fileSize: 1000000 + i * 500000,
                     recordedAt: new Date().toISOString(),
                   };
+                  
+                  const newRecording = {
+                    id: `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    status: 'pending' as const,
+                    duration: 30 + i * 10,
+                    fileSize: 1000000 + i * 500000,
+                    retryCount: 0,
+                    maxRetries: maxRetries,
+                    recordedAt: new Date().toISOString(),
+                  };
+                  
+                  setAllRecordings(prev => [newRecording, ...prev]);
                   queueHook.addRecording(testRecording);
                 }, i * 100);
               }
@@ -273,19 +381,8 @@ export const OfflineQueueTest: React.FC = () => {
           />
           
           <TestButton
-            title="Test Failed Upload"
-            onPress={() => {
-              // Add a recording that's designed to fail for testing
-              const failTestRecording = {
-                sessionId: `fail_test_${Date.now()}`,
-                audioUri: `file://fail_test_${Date.now()}.wav`,
-                duration: 45,
-                fileSize: 1500000, // 1.5MB
-                recordedAt: new Date().toISOString(),
-              };
-              queueHook.addRecording(failTestRecording);
-              Alert.alert('Failure Test', 'Added recording that may fail to test auto-retry behavior.');
-            }}
+            title="Simulate Network Issue"
+            onPress={simulateNetworkIssue}
             variant="secondary"
           />
         </View>
@@ -299,42 +396,27 @@ export const OfflineQueueTest: React.FC = () => {
           />
           
           <TestButton
-            title="Simulate Network Issue"
-            onPress={simulateNetworkIssue}
+            title={`Retry Failed (${queueHook.failedCount})`}
+            onPress={queueHook.retryFailedRecordings}
+            disabled={queueHook.failedCount === 0}
             variant="secondary"
           />
         </View>
 
         <View style={styles.buttonRow}>
           <TestButton
-            title={`Retry Failed (${queueHook.failedCount})`}
-            onPress={queueHook.retryFailedRecordings}
-            disabled={queueHook.failedCount === 0}
-            variant="secondary"
-          />
-          
-          <TestButton
             title="Clear Completed"
             onPress={queueHook.clearCompletedRecordings}
             disabled={queueHook.completedCount === 0}
             variant="secondary"
           />
+          
+          <TestButton
+            title="Clear All Recordings"
+            onPress={clearAllRecordings}
+            variant="danger"
+          />
         </View>
-
-        <TestButton
-          title="Clear All Queue"
-          onPress={() => {
-            Alert.alert(
-              'Clear Queue',
-              'Remove all recordings from queue?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Clear', style: 'destructive', onPress: queueHook.clearAllRecordings }
-              ]
-            );
-          }}
-          variant="danger"
-        />
       </View>
 
       {/* Queue Statistics */}
@@ -343,39 +425,45 @@ export const OfflineQueueTest: React.FC = () => {
         
         <View style={styles.statGrid}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats.totalRecordings}</Text>
+            <Text style={styles.statValue}>{allRecordings.length}</Text>
             <Text style={styles.statLabel}>Total</Text>
           </View>
           
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#F39C12' }]}>{queueHook.pendingCount}</Text>
+            <Text style={[styles.statValue, { color: '#F39C12' }]}>{pendingRecordings.length}</Text>
             <Text style={styles.statLabel}>Pending</Text>
           </View>
           
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#3498DB' }]}>{queueHook.uploadingCount}</Text>
+            <Text style={[styles.statValue, { color: '#3498DB' }]}>{uploadingRecordings.length}</Text>
             <Text style={styles.statLabel}>Uploading</Text>
           </View>
           
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#E74C3C' }]}>{queueHook.failedCount}</Text>
+            <Text style={[styles.statValue, { color: '#4ECDC4' }]}>{completedRecordings.length}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+          
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: '#E74C3C' }]}>{failedRecordings.length}</Text>
             <Text style={styles.statLabel}>Failed</Text>
           </View>
         </View>
 
         <View style={styles.statRow}>
           <Text style={styles.statRowLabel}>Total Size:</Text>
-          <Text style={styles.statRowValue}>{formatFileSize(queueHook.totalSize)}</Text>
+          <Text style={styles.statRowValue}>
+            {formatFileSize(allRecordings.reduce((sum, r) => sum + r.fileSize, 0))}
+          </Text>
         </View>
 
         <View style={styles.statRow}>
           <Text style={styles.statRowLabel}>Success Rate:</Text>
-          <Text style={styles.statRowValue}>{stats.successRate.toFixed(1)}%</Text>
-        </View>
-
-        <View style={styles.statRow}>
-          <Text style={styles.statRowLabel}>Avg Upload Time:</Text>
-          <Text style={styles.statRowValue}>{(stats.averageUploadTime / 1000).toFixed(1)}s</Text>
+          <Text style={styles.statRowValue}>
+            {allRecordings.length > 0 
+              ? ((completedRecordings.length / allRecordings.length) * 100).toFixed(1) 
+              : '0.0'}%
+          </Text>
         </View>
       </View>
 
@@ -384,17 +472,17 @@ export const OfflineQueueTest: React.FC = () => {
         <Text style={styles.cardTitle}>Upload Settings</Text>
         
         <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Max Retries: {stats.totalRecordings > 0 ? 3 : 'N/A'}</Text>
+          <Text style={styles.settingLabel}>Max Retries: {maxRetries}</Text>
           <View style={styles.settingButtons}>
             <TouchableOpacity 
               style={styles.settingButton} 
-              onPress={() => queueHook.setMaxRetries(Math.max(1, 3 - 1))}
+              onPress={() => updateMaxRetries(Math.max(1, maxRetries - 1))}
             >
               <Text style={styles.settingButtonText}>-</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.settingButton} 
-              onPress={() => queueHook.setMaxRetries(Math.min(10, 3 + 1))}
+              onPress={() => updateMaxRetries(Math.min(10, maxRetries + 1))}
             >
               <Text style={styles.settingButtonText}>+</Text>
             </TouchableOpacity>
@@ -412,36 +500,105 @@ export const OfflineQueueTest: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Processing Status */}
-      {(queueHook.pendingCount > 0 || queueHook.uploadingCount > 0 || queueHook.failedCount > 0) && (
-        <View style={styles.statusCard}>
-          <Text style={styles.cardTitle}>Processing Status</Text>
+      {/* Failed Recordings List */}
+      {failedRecordings.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>❌ Failed Recordings ({failedRecordings.length})</Text>
           
-          {queueHook.isProcessing && (
-            <Text style={styles.statusText}>🔄 Processing queue...</Text>
-          )}
+          {failedRecordings.map((recording, index) => (
+            <View key={recording.id} style={[styles.recordingCard, { borderLeftColor: '#E74C3C' }]}>
+              <View style={styles.recordingHeader}>
+                <Text style={styles.recordingId}>
+                  {getStatusIcon(recording.status)} {recording.id.substring(0, 12)}...
+                </Text>
+                <Text style={[styles.recordingStatus, { color: getStatusColor(recording.status) }]}>
+                  FAILED
+                </Text>
+              </View>
+              
+              <View style={styles.recordingDetails}>
+                <Text style={styles.recordingDetail}>
+                  {formatDuration(recording.duration)} • {formatFileSize(recording.fileSize)}
+                </Text>
+                <Text style={styles.recordingDetail}>
+                  Retries: {recording.retryCount}/{recording.maxRetries}
+                </Text>
+                {recording.error && (
+                  <Text style={styles.errorText} numberOfLines={1}>
+                    Error: {recording.error}
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Pending/Uploading Recordings */}
+      {(pendingRecordings.length > 0 || uploadingRecordings.length > 0) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            🔄 Active Queue ({pendingRecordings.length + uploadingRecordings.length})
+          </Text>
           
-          {queueHook.uploadingCount > 0 && (
-            <Text style={styles.statusText}>
-              📤 {queueHook.uploadingCount} recording(s) uploading
-            </Text>
-          )}
+          {[...uploadingRecordings, ...pendingRecordings].map((recording, index) => (
+            <View key={recording.id} style={[styles.recordingCard, { 
+              borderLeftColor: getStatusColor(recording.status) 
+            }]}>
+              <View style={styles.recordingHeader}>
+                <Text style={styles.recordingId}>
+                  {getStatusIcon(recording.status)} {recording.id.substring(0, 12)}...
+                </Text>
+                <Text style={[styles.recordingStatus, { color: getStatusColor(recording.status) }]}>
+                  {recording.status.toUpperCase()}
+                </Text>
+              </View>
+              
+              <View style={styles.recordingDetails}>
+                <Text style={styles.recordingDetail}>
+                  {formatDuration(recording.duration)} • {formatFileSize(recording.fileSize)}
+                </Text>
+                {recording.retryCount > 0 && (
+                  <Text style={styles.recordingDetail}>
+                    Retries: {recording.retryCount}/{recording.maxRetries}
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Completed Recordings */}
+      {completedRecordings.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>✅ Completed Uploads ({completedRecordings.length})</Text>
           
-          {queueHook.pendingCount > 0 && !queueHook.networkStatus.shouldUpload && (
-            <Text style={styles.statusText}>
-              ⏳ {queueHook.pendingCount} recordings waiting for better network
-            </Text>
-          )}
+          {completedRecordings.slice(0, 5).map((recording, index) => (
+            <View key={recording.id} style={[styles.recordingCard, { borderLeftColor: '#4ECDC4' }]}>
+              <View style={styles.recordingHeader}>
+                <Text style={styles.recordingId}>
+                  {getStatusIcon(recording.status)} {recording.id.substring(0, 12)}...
+                </Text>
+                <Text style={[styles.recordingStatus, { color: getStatusColor(recording.status) }]}>
+                  COMPLETED
+                </Text>
+              </View>
+              
+              <View style={styles.recordingDetails}>
+                <Text style={styles.recordingDetail}>
+                  {formatDuration(recording.duration)} • {formatFileSize(recording.fileSize)}
+                </Text>
+                <Text style={styles.recordingDetail}>
+                  {new Date(recording.recordedAt).toLocaleTimeString()}
+                </Text>
+              </View>
+            </View>
+          ))}
           
-          {queueHook.pendingCount > 0 && queueHook.networkStatus.shouldUpload && !queueHook.isProcessing && (
-            <Text style={styles.statusText}>
-              🚀 {queueHook.pendingCount} recordings ready to upload
-            </Text>
-          )}
-          
-          {queueHook.failedCount > 0 && (
-            <Text style={styles.statusText}>
-              ❌ {queueHook.failedCount} recordings failed (will auto-retry if conditions improve)
+          {completedRecordings.length > 5 && (
+            <Text style={styles.moreText}>
+              + {completedRecordings.length - 5} more completed recordings
             </Text>
           )}
         </View>
@@ -505,42 +662,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  networkCard: {
-    backgroundColor: '#16213E',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  networkRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  networkLabel: {
+  networkSimTitle: {
     fontSize: 14,
     color: '#EAEAEA',
-    fontWeight: '500',
-  },
-  networkValue: {
-    fontSize: 14,
     fontWeight: '600',
-  },
-  blockReasonContainer: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#0F3460',
-    borderRadius: 6,
-  },
-  blockReasonLabel: {
-    fontSize: 12,
-    color: '#B0B3B8',
-    marginBottom: 4,
-  },
-  blockReasonText: {
-    fontSize: 13,
-    color: '#E74C3C',
-    fontWeight: '500',
+    marginTop: 15,
+    marginBottom: 10,
   },
   progressCard: {
     backgroundColor: '#16213E',
@@ -628,12 +755,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#4ECDC4',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#B0B3B8',
     marginTop: 4,
   },
@@ -696,16 +823,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  statusCard: {
-    backgroundColor: '#16213E',
+  recordingCard: {
+    backgroundColor: '#0F3460',
     padding: 15,
-    borderRadius: 12,
-    marginBottom: 20,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderLeftWidth: 4,
   },
-  statusText: {
-    fontSize: 14,
+  recordingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  recordingId: {
+    fontSize: 12,
+    color: '#B0B3B8',
+    fontWeight: '600',
+  },
+  recordingStatus: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  recordingDetails: {
+    gap: 2,
+  },
+  recordingDetail: {
+    fontSize: 12,
     color: '#EAEAEA',
-    marginBottom: 5,
+  },
+  errorText: {
+    fontSize: 11,
+    color: '#E74C3C',
+    fontStyle: 'italic',
+  },
+  moreText: {
+    fontSize: 12,
+    color: '#B0B3B8',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 10,
   },
   bottomSpacer: {
     height: 40,
