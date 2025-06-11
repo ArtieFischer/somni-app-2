@@ -10,13 +10,13 @@ export const createPulseAnimation = (
       Animated.timing(animatedValue, {
         toValue,
         duration,
-        easing: Easing.inOut(Easing.sine),
+        easing: Easing.inOut(Easing.sin),
         useNativeDriver: true,
       }),
       Animated.timing(animatedValue, {
         toValue: 1,
         duration,
-        easing: Easing.inOut(Easing.sine),
+        easing: Easing.inOut(Easing.sin),
         useNativeDriver: true,
       }),
     ])
@@ -48,13 +48,13 @@ export const createWaveAnimation = (
       Animated.timing(animatedValue, {
         toValue: 1,
         duration,
-        easing: Easing.inOut(Easing.sine),
+        easing: Easing.inOut(Easing.sin),
         useNativeDriver: true,
       }),
       Animated.timing(animatedValue, {
         toValue: 0,
         duration,
-        easing: Easing.inOut(Easing.sine),
+        easing: Easing.inOut(Easing.sin),
         useNativeDriver: true,
       }),
     ])

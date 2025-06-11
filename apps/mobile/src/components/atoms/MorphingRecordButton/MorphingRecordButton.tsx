@@ -45,17 +45,29 @@ export const MorphingRecordButton: React.FC<MorphingRecordButtonProps> = ({
   const morphAnim = useRef(new Animated.Value(0)).current;
   const amplitudeAnim = useRef(new Animated.Value(0)).current;
 
+  // Animation refs to stop them
+  const animationRefs = useRef<Animated.CompositeAnimation[]>([]);
+
   useEffect(() => {
+    // Stop all previous animations
+    animationRefs.current.forEach(anim => anim.stop());
+    animationRefs.current = [];
+
     if (isRecording) {
       // Start all animations
-      createPulseAnimation(pulseAnim, 1.1, 2000).start();
-      createRotationAnimation(rotateAnim, 30000).start();
-      
-      // Staggered wave animations
-      createWaveAnimation(wave1Anim, 0, 3000).start();
-      createWaveAnimation(wave2Anim, 300, 3200).start();
-      createWaveAnimation(wave3Anim, 600, 3400).start();
-      createWaveAnimation(wave4Anim, 900, 3600).start();
+      const animations = [
+        createPulseAnimation(pulseAnim, 1.1, 2000),
+        createRotationAnimation(rotateAnim, 30000),
+        createWaveAnimation(wave1Anim, 0, 3000),
+        createWaveAnimation(wave2Anim, 300, 3200),
+        createWaveAnimation(wave3Anim, 600, 3400),
+        createWaveAnimation(wave4Anim, 900, 3600),
+      ];
+
+      animations.forEach(anim => {
+        animationRefs.current.push(anim);
+        anim.start();
+      });
 
       // Morph to recording state
       Animated.spring(morphAnim, {
@@ -80,13 +92,19 @@ export const MorphingRecordButton: React.FC<MorphingRecordButtonProps> = ({
         }),
       ]).start();
 
-      pulseAnim.stopAnimation();
-      rotateAnim.stopAnimation();
-      wave1Anim.stopAnimation();
-      wave2Anim.stopAnimation();
-      wave3Anim.stopAnimation();
-      wave4Anim.stopAnimation();
+      // Reset animation values
+      pulseAnim.setValue(1);
+      rotateAnim.setValue(0);
+      wave1Anim.setValue(0);
+      wave2Anim.setValue(0);
+      wave3Anim.setValue(0);
+      wave4Anim.setValue(0);
     }
+
+    return () => {
+      // Cleanup animations on unmount
+      animationRefs.current.forEach(anim => anim.stop());
+    };
   }, [isRecording]);
 
   // Update amplitude animation
@@ -96,7 +114,7 @@ export const MorphingRecordButton: React.FC<MorphingRecordButtonProps> = ({
       duration: 100,
       useNativeDriver: true,
     }).start();
-  }, [amplitude]);
+  }, [amplitude, amplitudeAnim]);
 
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 1],
