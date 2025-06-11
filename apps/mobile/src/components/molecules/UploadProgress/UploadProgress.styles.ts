@@ -55,5 +55,27 @@ export const useStyles = () => {
       color: theme.colors.text.secondary,
       fontSize: 12,
     },
+    completedItem: {
+      backgroundColor: theme.colors.status.success + '20', // 20% opacity
+      borderColor: theme.colors.status.success,
+      borderWidth: 1,
+    },
+    completedHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.small,
+    },
+    checkmark: {
+      color: theme.colors.status.success,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    completedTitle: {
+      color: theme.colors.status.success,
+      fontWeight: '600',
+    },
+    completedSize: {
+      color: theme.colors.text.secondary,
+    },
   });
 };

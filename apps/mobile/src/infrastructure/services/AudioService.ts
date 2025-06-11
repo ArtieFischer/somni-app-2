@@ -107,6 +107,7 @@ export class AudioService {
     if (!this.isRecording || !this.recordingStartTime) {
       return 0;
     }
+    // Return exact duration in seconds
     return Math.floor((Date.now() - this.recordingStartTime) / 1000);
   }
 

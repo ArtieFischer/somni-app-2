@@ -77,19 +77,29 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       setError(null);
       dreamStore.clearError();
       
-      // Start recording in the store first
+      // Update UI state immediately for instant feedback
       dreamStore.startRecording();
-
-      // Then start actual audio recording
-      await audioService.startRecording();
-
-      // Start duration timer
       setRecordingDuration(0);
+
+      // Start duration timer immediately
       durationTimerRef.current = setInterval(() => {
-        const currentDuration = audioService.getCurrentDuration();
-        setRecordingDuration(currentDuration);
-        dreamStore.updateRecordingSession({ duration: currentDuration });
+        setRecordingDuration(prev => {
+          const newDuration = prev + 1;
+          dreamStore.updateRecordingSession({ duration: newDuration });
+          return newDuration;
+        });
       }, 1000);
+
+      // Then start actual audio recording (async but don't await)
+      audioService.startRecording().catch(err => {
+        // If recording fails, revert the UI state
+        const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
+        setError(errorMessage);
+        dreamStore.setError(errorMessage);
+        dreamStore.stopRecording();
+        clearTimer();
+        setRecordingDuration(0);
+      });
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
@@ -98,7 +108,10 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       dreamStore.stopRecording();
       clearTimer();
     } finally {
-      isTransitioningRef.current = false;
+      // Quick transition
+      setTimeout(() => {
+        isTransitioningRef.current = false;
+      }, 100);
     }
   }, [dreamStore, audioService, clearTimer, clearSessionTimeout]);
 
