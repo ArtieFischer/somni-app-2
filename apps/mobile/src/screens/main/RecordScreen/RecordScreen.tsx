@@ -34,6 +34,9 @@ export const RecordScreen: React.FC = () => {
   // Prevent double clicks
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
+  // Create styles with theme
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
+
   useEffect(() => {
     // Animate content on mount
     Animated.parallel([
@@ -49,7 +52,7 @@ export const RecordScreen: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   // Simulate amplitude changes when recording
   useEffect(() => {
@@ -105,79 +108,6 @@ export const RecordScreen: React.FC = () => {
     }
     return t('record.button.start');
   };
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background.primary,
-    },
-    innerContainer: {
-      flex: 1,
-      justifyContent: 'center',
-    },
-    content: {
-      flex: 1,
-      justifyContent: 'center',
-      paddingVertical: theme.spacing.large,
-      paddingHorizontal: theme.spacing.medium,
-    },
-    header: {
-      alignItems: 'center',
-      paddingHorizontal: theme.spacing.large,
-      marginBottom: theme.spacing.large,
-    },
-    title: {
-      textAlign: 'center',
-      marginBottom: theme.spacing.small,
-    },
-    subtitle: {
-      textAlign: 'center',
-      lineHeight: 22,
-    },
-    buttonSection: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginVertical: theme.spacing.medium,
-    },
-    instructionSection: {
-      alignItems: 'center',
-      paddingHorizontal: theme.spacing.large,
-      marginTop: theme.spacing.large,
-    },
-    instruction: {
-      textAlign: 'center',
-      lineHeight: 22,
-    },
-    offlineNotice: {
-      marginTop: theme.spacing.medium,
-      paddingHorizontal: theme.spacing.medium,
-      paddingVertical: theme.spacing.small,
-      backgroundColor: theme.colors.background.secondary,
-      borderRadius: theme.borderRadius.medium,
-      borderLeftWidth: 3,
-      borderLeftColor: theme.colors.status.warning,
-    },
-    offlineText: {
-      color: theme.colors.text.secondary,
-    },
-    errorNotice: {
-      marginTop: theme.spacing.small,
-      paddingHorizontal: theme.spacing.medium,
-      paddingVertical: theme.spacing.small,
-      backgroundColor: theme.colors.background.secondary,
-      borderRadius: theme.borderRadius.medium,
-      borderLeftWidth: 3,
-      borderLeftColor: theme.colors.status.error,
-    },
-    errorText: {
-      color: theme.colors.status.error,
-    },
-    processingText: {
-      marginTop: theme.spacing.small,
-      textAlign: 'center',
-      fontStyle: 'italic',
-    },
-  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -244,3 +174,76 @@ export const RecordScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
+
+const createStyles = (theme: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background.primary,
+  },
+  innerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.large,
+    paddingHorizontal: theme.spacing.medium,
+  },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.large,
+    marginBottom: theme.spacing.large,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: theme.spacing.small,
+  },
+  subtitle: {
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  buttonSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: theme.spacing.medium,
+  },
+  instructionSection: {
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.large,
+    marginTop: theme.spacing.large,
+  },
+  instruction: {
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  offlineNotice: {
+    marginTop: theme.spacing.medium,
+    paddingHorizontal: theme.spacing.medium,
+    paddingVertical: theme.spacing.small,
+    backgroundColor: theme.colors.background.secondary,
+    borderRadius: theme.borderRadius.medium,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.status.warning,
+  },
+  offlineText: {
+    color: theme.colors.text.secondary,
+  },
+  errorNotice: {
+    marginTop: theme.spacing.small,
+    paddingHorizontal: theme.spacing.medium,
+    paddingVertical: theme.spacing.small,
+    backgroundColor: theme.colors.background.secondary,
+    borderRadius: theme.borderRadius.medium,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.status.error,
+  },
+  errorText: {
+    color: theme.colors.status.error,
+  },
+  processingText: {
+    marginTop: theme.spacing.small,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+});
