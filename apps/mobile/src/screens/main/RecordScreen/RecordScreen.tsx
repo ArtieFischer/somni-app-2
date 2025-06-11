@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Animated, SafeAreaView, Alert } from 'react-native';
-import { Text } from '../../../components/atoms';
+import * as FileSystem from 'expo-file-system';
+import { Text, Button } from '../../../components/atoms';
 import { MorphingRecordButton } from '../../../components/atoms/MorphingRecordButton';
 import { RecordingTimer } from '../../../components/molecules/RecordingTimer';
 import { OfflineQueueStatus } from '../../../components/molecules/OfflineQueueStatus';
@@ -8,11 +9,14 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamRecorder } from '../../../hooks/useDreamRecorder';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useUploadNotifications } from '../../../hooks/useUploadNotifications';
+import { useAuthStore } from '@somni/stores';
+import { supabase } from '../../../lib/supabase';
 import { useStyles } from './RecordScreen.styles';
 
 export const RecordScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
   const styles = useStyles();
+  const { session } = useAuthStore();
   
   const { 
     isRecording, 
@@ -22,10 +26,15 @@ export const RecordScreen: React.FC = () => {
     isProcessing,
     error,
     clearError,
-    offlineQueueStatus
+    offlineQueueStatus,
+    session: recordingSession
   } = useDreamRecorder();
   
   const { isOnline } = useNetworkStatus();
+  
+  // NEW: State for accept button
+  const [showAcceptButton, setShowAcceptButton] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   
   // Use upload notifications hook
   useUploadNotifications({
@@ -101,17 +110,9 @@ export const RecordScreen: React.FC = () => {
     try {
       if (isRecording) {
         await stopRecording();
-        
-        // Show success feedback
-        Alert.alert(
-          String(t('notifications.dreamCaptured.title')),
-          isOnline 
-            ? String(t('notifications.dreamCaptured.onlineMessage'))
-            : String(t('notifications.dreamCaptured.offlineMessage')),
-          [{ text: String(t('actions.ok')) }],
-          { cancelable: true }
-        );
+        setShowAcceptButton(true); // NEW: Show accept button after recording
       } else {
+        setShowAcceptButton(false);
         await startRecording();
       }
     } catch (err) {
@@ -124,15 +125,107 @@ export const RecordScreen: React.FC = () => {
     }
   };
 
+  // NEW: Accept recording handler
+  const handleAcceptRecording = async () => {
+    if (!recordingSession?.dreamId || !recordingSession.audioUri) {
+      Alert.alert('Error', 'No recording session found');
+      return;
+    }
+
+    if (!session?.access_token) {
+      Alert.alert('Error', 'Not authenticated');
+      return;
+    }
+
+    try {
+      setIsTranscribing(true);
+
+      // Read audio file as base64
+      const audioBase64 = await FileSystem.readAsStringAsync(
+        recordingSession.audioUri, 
+        { encoding: FileSystem.EncodingType.Base64 }
+      );
+
+      // Call edge function
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/dreams-transcribe-init`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dreamId: recordingSession.dreamId,
+            audioBase64,
+            duration: recordingDuration
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Transcription failed');
+      }
+
+      const result = await response.json();
+      console.log('Transcription started:', result);
+
+      // Hide accept button and show success
+      setShowAcceptButton(false);
+      
+      Alert.alert(
+        String(t('notifications.dreamCaptured.title')),
+        'Your dream is being transcribed! Check back in a few moments.',
+        [{ text: String(t('actions.ok')) }]
+      );
+
+    } catch (error) {
+      console.error('Transcription error:', error);
+      Alert.alert(
+        'Transcription Error', 
+        error instanceof Error ? error.message : 'Failed to start transcription'
+      );
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  // NEW: Discard recording handler
+  const handleDiscardRecording = () => {
+    Alert.alert(
+      'Discard Recording',
+      'Are you sure you want to discard this recording?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Discard', 
+          style: 'destructive',
+          onPress: () => {
+            setShowAcceptButton(false);
+            // Clear the recording session if needed
+            // dreamStore.clearRecordingSession();
+          }
+        }
+      ]
+    );
+  };
+
   const getStatusText = useMemo(() => {
+    if (isTranscribing) {
+      return 'Starting transcription...';
+    }
     if (isProcessing) {
       return String(t('record.processing'));
     }
     if (isRecording) {
       return String(t('record.whisperMode'));
     }
+    if (showAcceptButton) {
+      return 'Recording complete! Accept or discard?';
+    }
     return String(t('record.button.start'));
-  }, [isProcessing, isRecording, t]);
+  }, [isProcessing, isRecording, showAcceptButton, isTranscribing, t]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -173,6 +266,31 @@ export const RecordScreen: React.FC = () => {
             isRecording={isRecording}
             duration={recordingDuration}
           />
+
+          {/* NEW: Accept/Discard buttons */}
+          {showAcceptButton && (
+            <View style={styles.acceptButtonsContainer}>
+              <Button
+                variant="primary"
+                size="large"
+                onPress={handleAcceptRecording}
+                loading={isTranscribing}
+                style={styles.acceptButton}
+              >
+                {isTranscribing ? 'Starting Transcription...' : 'Accept Recording'}
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="medium"
+                onPress={handleDiscardRecording}
+                disabled={isTranscribing}
+                style={styles.discardButton}
+              >
+                Discard
+              </Button>
+            </View>
+          )}
 
           {/* Instructions or status */}
           <View style={styles.instructionSection}>

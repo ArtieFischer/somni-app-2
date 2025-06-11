@@ -17,6 +17,22 @@ export interface Dream {
   updatedAt?: string;
   version?: number;
   metadata?: Record<string, any>;
+  
+  // NEW: Transcription fields
+  transcriptionStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  transcriptionMetadata?: {
+    language?: string;
+    confidence?: number;
+    words?: Array<{
+      text: string;
+      start: number;
+      end: number;
+      speaker_id?: string;
+    }>;
+    processedAt?: string;
+    model?: string;
+  };
+  transcriptionJobId?: string;
 }
 
 export interface DreamDTO {
@@ -36,6 +52,22 @@ export interface DreamDTO {
   updatedAt?: string;
   version?: number;
   metadata?: Record<string, any>;
+  
+  // NEW: Transcription fields
+  transcriptionStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  transcriptionMetadata?: {
+    language?: string;
+    confidence?: number;
+    words?: Array<{
+      text: string;
+      start: number;
+      end: number;
+      speaker_id?: string;
+    }>;
+    processedAt?: string;
+    model?: string;
+  };
+  transcriptionJobId?: string;
 }
 
 export interface RecordingSession {
