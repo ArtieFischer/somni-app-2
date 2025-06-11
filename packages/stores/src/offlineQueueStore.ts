@@ -17,9 +17,26 @@ const generateId = () => `offline_${Date.now()}_${Math.random().toString(36).sub
 
 // Helper function to determine if error is retryable
 const isRetryableError = (error: any): boolean => {
-  const retryableCodes = ['NETWORK_ERROR', 'UPLOAD_FAILED', 'QUOTA_EXCEEDED'];
-  return retryableCodes.includes(error.code) || 
-         (error.message && error.message.includes('network'));
+  if (!error) return false;
+  
+  const message = error.message || '';
+  const status = error.status || error.code;
+  
+  // Network errors are retryable
+  if (message.includes('network') || message.includes('Network')) return true;
+  if (message.includes('timeout') || message.includes('Timeout')) return true;
+  if (message.includes('fetch')) return true;
+  
+  // Server errors (5xx) are retryable
+  if (status >= 500 && status < 600) return true;
+  
+  // Rate limiting (429) is retryable
+  if (status === 429) return true;
+  
+  // Connection errors are retryable
+  if (message.includes('connection') || message.includes('Connection')) return true;
+  
+  return false;
 };
 
 // Create the offline queue store
@@ -48,7 +65,7 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
           id: generateId(),
           retryCount: 0,
           status: 'pending',
-          priority: 'normal',
+          priority: getRecordingPriority(recording),
           maxRetries: get().maxRetries,
           deviceInfo: {
             platform: 'mobile',
@@ -66,9 +83,9 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
           };
         });
 
-        console.log('📥 Added recording to offline queue:', newRecording.id);
+        console.log('📥 Added recording to queue:', newRecording.id, 'Priority:', newRecording.priority);
         
-        // Auto-start processing if enabled
+        // Auto-start processing if enabled and conditions are good
         if (get().autoRetryEnabled && !get().isProcessing) {
           setTimeout(() => get().processQueue(), 1000);
         }
@@ -111,6 +128,15 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
           const remainingRecordings = state.recordings.filter(r => r.status !== 'completed');
           const removedSize = completedRecordings.reduce((sum, r) => sum + r.fileSize, 0);
           
+          // Clean up local files for completed recordings
+          completedRecordings.forEach(async (recording) => {
+            try {
+              await FileSystem.deleteAsync(recording.audioUri, { idempotent: true });
+            } catch (error) {
+              console.warn('Failed to delete audio file:', error);
+            }
+          });
+          
           return {
             recordings: remainingRecordings,
             totalPendingSize: Math.max(0, state.totalPendingSize - removedSize)
@@ -148,21 +174,18 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
         console.log(`🚀 Starting queue processing: ${pendingRecordings.length} recordings`);
 
         try {
-          // Process recordings in batches
-          const batchSize = state.batchSize;
-          for (let i = 0; i < pendingRecordings.length; i += batchSize) {
-            const batch = pendingRecordings.slice(i, i + batchSize);
-            
-            // Process batch concurrently
-            const batchPromises = batch.map(recording => 
-              get().processRecording(recording.id)
-            );
-            
-            await Promise.allSettled(batchPromises);
-            
-            // Brief pause between batches to prevent overwhelming
-            if (i + batchSize < pendingRecordings.length) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
+          // Sort by priority (high -> normal -> low)
+          const sortedRecordings = pendingRecordings.sort((a, b) => {
+            const priorityOrder = { high: 3, normal: 2, low: 1 };
+            return priorityOrder[b.priority] - priorityOrder[a.priority];
+          });
+
+          // Process recordings one by one to avoid overwhelming
+          for (const recording of sortedRecordings) {
+            try {
+              await get().processRecording(recording.id);
+            } catch (error) {
+              console.error(`❌ Failed to process recording ${recording.id}:`, error);
             }
           }
 
@@ -182,12 +205,13 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
           return { success: false, error: 'Recording not found' };
         }
 
+        const startTime = Date.now();
+
         try {
-          // Check if file still exists
+          // Check if file still exists (skip for mock files)
           const isMockFile = recording.audioUri.includes('mock_audio');
           
           if (!isMockFile) {
-            // Check if file still exists (only for real files)
             const fileInfo = await FileSystem.getInfoAsync(recording.audioUri);
             if (!fileInfo.exists) {
               get().updateRecording(recordingId, { 
@@ -200,13 +224,16 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
 
           get().updateRecording(recordingId, { status: 'uploading' });
           
-          // Simulate upload with progress (replace with actual upload service)
-          const uploadResult = await simulateUploadWithProgress(recording, (progress) => {
+          // Simulate chunked upload with progress
+          const uploadResult = await simulateChunkedUploadWithProgress(recording, (progress) => {
             get().setUploadProgress(recordingId, progress);
           });
 
           if (uploadResult.success) {
-            get().updateRecording(recordingId, { status: 'completed' });
+            get().updateRecording(recordingId, { 
+              status: 'completed',
+              uploadDuration: Date.now() - startTime
+            });
             
             // Add to upload history
             set(state => ({
@@ -222,13 +249,28 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
               ]
             }));
 
-            // Clean up local file after successful upload
+            // Clean up local file after successful upload (skip for mock files)
             try {
               if (!isMockFile) {
-                await FileSystem.deleteAsync(recording.audioUri);
+                await FileSystem.deleteAsync(recording.audioUri, { idempotent: true });
               }
             } catch (deleteError) {
               console.warn('Failed to delete local file:', deleteError);
+            }
+
+            // Update the dream with the server ID if provided
+            if (uploadResult.dreamId) {
+              try {
+                const { useDreamStore } = await import('./dreamStore');
+                const dreamStore = useDreamStore.getState();
+                dreamStore.updateDream(`temp_${recording.sessionId}`, {
+                  id: uploadResult.dreamId,
+                  status: 'completed',
+                  rawTranscript: uploadResult.transcript || 'Dream uploaded successfully'
+                });
+              } catch (error) {
+                console.warn('Failed to update dream store:', error);
+              }
             }
 
             console.log('✅ Upload completed:', recordingId);
@@ -249,12 +291,27 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
             });
             console.error('❌ Upload failed permanently:', recordingId, errorMessage);
           } else if (isRetryable) {
+            // Schedule automatic retry with exponential backoff
+            const retryDelay = Math.min(5000 * Math.pow(2, recording.retryCount), 60000); // Max 60s
+            console.warn(`⚠️ Upload failed, scheduling retry in ${retryDelay}ms:`, recordingId, errorMessage);
+            
             get().updateRecording(recordingId, { 
-              status: 'pending',
               error: errorMessage,
               retryCount: recording.retryCount + 1
             });
-            console.warn('⚠️ Upload failed, will retry:', recordingId, errorMessage);
+            
+            // Schedule the retry
+            setTimeout(() => {
+              get().updateRecording(recordingId, { 
+                status: 'pending'
+              });
+              console.log(`🔄 Auto-retry: Recording ${recordingId} moved back to pending (attempt ${recording.retryCount + 1}/${recording.maxRetries})`);
+              
+              // Force queue processing after a short delay
+              setTimeout(() => {
+                get().processQueue();
+              }, 1000);
+            }, retryDelay);
           } else {
             get().updateRecording(recordingId, { 
               status: 'failed', 
@@ -452,20 +509,39 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()(
   )
 );
 
-// Simulate upload with progress (replace with actual upload service)
-async function simulateUploadWithProgress(
+// Helper function to determine recording priority
+function getRecordingPriority(
+  recording: { duration: number; fileSize: number }
+): 'low' | 'normal' | 'high' {
+  // Short recordings get high priority
+  if (recording.duration < 30) return 'high';
+  
+  // Small files get high priority
+  if (recording.fileSize < 1024 * 1024) return 'high';
+  
+  // Large files get low priority
+  if (recording.fileSize > 5 * 1024 * 1024) return 'low';
+  
+  return 'normal';
+}
+
+// Simulate chunked upload with progress (replace with actual upload service)
+async function simulateChunkedUploadWithProgress(
   recording: OfflineRecording,
   onProgress: (progress: UploadProgress) => void
 ): Promise<UploadResult> {
   const startTime = Date.now();
-  const duration = Math.random() * 3000 + 2000; // 2-5 seconds
-  const steps = 20;
+  const chunkSize = 1024 * 1024; // 1MB chunks
+  const totalChunks = Math.ceil(recording.fileSize / chunkSize);
+  
+  console.log(`📤 Starting chunked upload: ${totalChunks} chunks for ${recording.id}`);
   
   return new Promise((resolve) => {
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      const percentage = Math.min(100, (step / steps) * 100);
+    let currentChunk = 0;
+    
+    const uploadChunk = () => {
+      currentChunk++;
+      const percentage = Math.min(100, (currentChunk / totalChunks) * 100);
       const loaded = Math.floor((recording.fileSize * percentage) / 100);
       
       onProgress({
@@ -476,31 +552,41 @@ async function simulateUploadWithProgress(
         remainingTime: ((100 - percentage) / percentage) * ((Date.now() - startTime) / 1000)
       });
       
-      if (step >= steps) {
-        clearInterval(interval);
-        
-        // FIXED: Better success rates for testing
+      if (currentChunk >= totalChunks) {
+        // Determine success based on retry count and random factors
         const isRetry = recording.retryCount > 0;
         let successChance;
         
         if (isRetry) {
           // Higher success rate on retries
-          successChance = 0.8; // 80% success on retry
+          successChance = 0.85; // 85% success on retry
         } else {
-          // First attempt success rate
-          successChance = 0.6; // 60% success on first try
+          // First attempt success rate based on file size
+          if (recording.fileSize > 5 * 1024 * 1024) {
+            successChance = 0.5; // 50% for large files
+          } else {
+            successChance = 0.7; // 70% for normal files
+          }
         }
         
         const success = Math.random() < successChance;
         
         resolve({
           success,
-          dreamId: success ? `dream_${recording.sessionId}` : undefined,
-          error: success ? undefined : `Simulated ${isRetry ? 'retry' : 'upload'} failure`,
+          dreamId: success ? `dream_${recording.sessionId}_${Date.now()}` : undefined,
+          error: success ? undefined : `Simulated chunked upload failure (attempt ${recording.retryCount + 1})`,
           uploadDuration: Date.now() - startTime,
-          finalFileSize: recording.fileSize
+          finalFileSize: recording.fileSize,
+          transcript: success ? `Transcribed dream from session ${recording.sessionId}` : undefined
         });
+      } else {
+        // Continue with next chunk after delay
+        const delay = Math.random() * 200 + 100; // 100-300ms per chunk
+        setTimeout(uploadChunk, delay);
       }
-    }, duration / steps);
+    };
+    
+    // Start uploading
+    uploadChunk();
   });
 }

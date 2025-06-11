@@ -3,6 +3,7 @@ import { View, Animated, SafeAreaView, Alert } from 'react-native';
 import { Text } from '../../../components/atoms';
 import { MorphingRecordButton } from '../../../components/atoms/MorphingRecordButton';
 import { RecordingTimer } from '../../../components/molecules/RecordingTimer';
+import { OfflineQueueStatus } from '../../../components/molecules/OfflineQueueStatus';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamRecorder } from '../../../hooks/useDreamRecorder';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
@@ -102,15 +103,15 @@ export const RecordScreen: React.FC = () => {
     if (isRecording) {
       return t('record.whisperMode');
     }
-    if (offlineQueueStatus.pendingCount > 0) {
-      return `${offlineQueueStatus.pendingCount} ${t('dreams.offline.pending')}`;
-    }
     return t('record.button.start');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.innerContainer}>
+        {/* Offline queue status at the top */}
+        <OfflineQueueStatus />
+
         <Animated.View
           style={[
             styles.content,
@@ -155,14 +156,6 @@ export const RecordScreen: React.FC = () => {
               <View style={styles.offlineNotice}>
                 <Text variant="caption" style={styles.offlineText}>
                   📡 {t('record.offline')}
-                </Text>
-              </View>
-            )}
-
-            {offlineQueueStatus.failedCount > 0 && (
-              <View style={styles.errorNotice}>
-                <Text variant="caption" style={styles.errorText}>
-                  ⚠️ {offlineQueueStatus.failedCount} {t('dreams.offline.failed')}
                 </Text>
               </View>
             )}

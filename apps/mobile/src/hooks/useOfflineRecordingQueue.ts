@@ -9,6 +9,15 @@ interface UseOfflineRecordingQueueReturn {
   uploadingCount: number;
   totalSize: number;
   isProcessing: boolean;
+  currentUpload: {
+    recordingId: string;
+    progress: {
+      loaded: number;
+      total: number;
+      percentage: number;
+      speed?: number;
+    };
+  } | null;
   addRecording: (recording: any) => void;
   processQueue: () => Promise<void>;
   retryFailedRecordings: () => Promise<void>;
@@ -24,11 +33,11 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
   useEffect(() => {
     if (isOnline && isConnected && isInternetReachable) {
       const pendingCount = queueStore.getRecordingsByStatus('pending').length;
-      if (pendingCount > 0) {
+      if (pendingCount > 0 && !queueStore.isProcessing) {
         console.log('🌐 Connection restored, processing offline queue...', pendingCount, 'recordings');
         setTimeout(() => {
           queueStore.processQueue();
-        }, 1000);
+        }, 2000); // Wait 2 seconds for connection to stabilize
       }
     }
   }, [isOnline, isConnected, isInternetReachable, queueStore]);
@@ -52,7 +61,7 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     fileSize: number;
     recordedAt: string;
   }) => {
-    console.log('📥 Adding recording to queue:', recording.sessionId);
+    console.log('📥 Adding recording to queue:', recording.sessionId, 'Size:', Math.round(recording.fileSize / 1024), 'KB');
     
     queueStore.addRecording({
       ...recording,
@@ -60,13 +69,13 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     });
 
     // Try to process immediately if online
-    if (isOnline && isConnected && isInternetReachable) {
+    if (isOnline && isConnected && isInternetReachable && !queueStore.isProcessing) {
       console.log('🚀 Online - attempting immediate processing');
       setTimeout(() => {
         queueStore.processQueue();
-      }, 500);
+      }, 1000);
     } else {
-      console.log('📱 Offline - recording queued for later upload');
+      console.log('📱 Offline or processing - recording queued for later upload');
     }
   }, [queueStore, isOnline, isConnected, isInternetReachable]);
 
@@ -77,6 +86,7 @@ export const useOfflineRecordingQueue = (): UseOfflineRecordingQueueReturn => {
     uploadingCount: queueStore.getRecordingsByStatus('uploading').length,
     totalSize: queueStore.getQueueStats().totalSize,
     isProcessing: queueStore.isProcessing,
+    currentUpload: queueStore.currentUpload,
     addRecording,
     processQueue: queueStore.processQueue,
     retryFailedRecordings: queueStore.retryFailedRecordings,
