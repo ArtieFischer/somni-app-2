@@ -21,7 +21,7 @@ export const useNetworkStatus = () => {
   });
 
   const [lastConnectionCheck, setLastConnectionCheck] = useState<Date | null>(null);
-  const lastStatusRef = useRef<string>('');
+  const lastStatusRef = useRef<NetworkStatus | null>(null);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
@@ -34,20 +34,23 @@ export const useNetworkStatus = () => {
         connectionQuality: determineConnectionQuality(state)
       };
 
-      // Only update if there's a real change
-      const statusString = JSON.stringify(newStatus);
-      if (statusString !== lastStatusRef.current) {
-        lastStatusRef.current = statusString;
+      // Only update if there's a real change in key properties
+      if (!lastStatusRef.current || 
+          lastStatusRef.current.isConnected !== newStatus.isConnected ||
+          lastStatusRef.current.isInternetReachable !== newStatus.isInternetReachable ||
+          lastStatusRef.current.type !== newStatus.type) {
+        
+        lastStatusRef.current = newStatus;
         setNetworkStatus(newStatus);
         setLastConnectionCheck(new Date());
         
         // Only log significant changes in development
-        if (__DEV__) {
+        if (__DEV__ && (lastStatusRef.current.isConnected !== newStatus.isConnected || 
+                       lastStatusRef.current.isInternetReachable !== newStatus.isInternetReachable)) {
           console.log('📶 Network state changed:', {
             isConnected: newStatus.isConnected,
             isInternetReachable: newStatus.isInternetReachable,
-            type: newStatus.type,
-            quality: newStatus.connectionQuality
+            type: newStatus.type
           });
         }
       }
@@ -65,7 +68,7 @@ export const useNetworkStatus = () => {
       };
       setNetworkStatus(initialStatus);
       setLastConnectionCheck(new Date());
-      lastStatusRef.current = JSON.stringify(initialStatus);
+      lastStatusRef.current = initialStatus;
     });
 
     return () => unsubscribe();

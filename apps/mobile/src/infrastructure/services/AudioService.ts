@@ -1,4 +1,4 @@
-import { useAudioRecorder, RecordingPresets, AudioModule } from 'expo-audio';
+import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 
 export interface AudioRecordingResult {
@@ -9,22 +9,17 @@ export interface AudioRecordingResult {
 }
 
 export class AudioService {
-  private audioRecorder: ReturnType<typeof useAudioRecorder> | null = null;
+  private recording: Audio.Recording | null = null;
   private isRecording = false;
   private recordingStartTime: number = 0;
 
   initialize(): void {
-    this.audioRecorder = useAudioRecorder(
-      RecordingPresets.HIGH_QUALITY,
-      {
-        onRecordingStatusUpdate: this.handleStatusUpdate.bind(this)
-      }
-    );
+    console.log('🎙️ AudioService initialized');
   }
 
   async requestPermissions(): Promise<boolean> {
     try {
-      const { status } = await AudioModule.requestRecordingPermissionsAsync();
+      const { status } = await Audio.requestPermissionsAsync();
       return status === 'granted';
     } catch (error) {
       console.error('Permission request failed:', error);
@@ -33,8 +28,8 @@ export class AudioService {
   }
 
   async startRecording(): Promise<void> {
-    if (this.isRecording || !this.audioRecorder) {
-      throw new Error('Recording already in progress or not initialized');
+    if (this.isRecording) {
+      throw new Error('Recording already in progress');
     }
 
     const hasPermission = await this.requestPermissions();
@@ -43,23 +38,39 @@ export class AudioService {
     }
 
     try {
-      await this.audioRecorder.prepareToRecordAsync();
-      this.audioRecorder.record();
+      // Configure audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+      });
+
+      // Create and start recording
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      this.recording = recording;
       this.isRecording = true;
       this.recordingStartTime = Date.now();
+      
+      console.log('🎙️ Recording started successfully');
     } catch (error) {
+      this.isRecording = false;
+      this.recording = null;
       throw new Error(`Failed to start recording: ${error}`);
     }
   }
 
   async stopRecording(): Promise<AudioRecordingResult> {
-    if (!this.isRecording || !this.audioRecorder) {
+    if (!this.isRecording || !this.recording) {
+      console.log('⚠️ No recording in progress');
       throw new Error('No recording in progress');
     }
 
     try {
-      await this.audioRecorder.stop();
-      const uri = this.audioRecorder.uri;
+      await this.recording.stopAndUnloadAsync();
+      const uri = this.recording.getURI();
       
       if (!uri) {
         throw new Error('Recording URI not available');
@@ -68,7 +79,12 @@ export class AudioService {
       const fileInfo = await FileSystem.getInfoAsync(uri);
       const duration = Math.floor((Date.now() - this.recordingStartTime) / 1000);
       
+      // Reset state
       this.isRecording = false;
+      this.recording = null;
+      this.recordingStartTime = 0;
+
+      console.log('🎙️ Recording stopped successfully', { uri, duration });
 
       return {
         uri,
@@ -78,6 +94,7 @@ export class AudioService {
       };
     } catch (error) {
       this.isRecording = false;
+      this.recording = null;
       throw new Error(`Failed to stop recording: ${error}`);
     }
   }
@@ -93,16 +110,12 @@ export class AudioService {
     return Math.floor((Date.now() - this.recordingStartTime) / 1000);
   }
 
-  private handleStatusUpdate(status: any): void {
-    // Handle real-time status updates
-    console.log('Recording status:', status);
-  }
-
   cleanup(): void {
-    if (this.audioRecorder && this.isRecording) {
-      this.audioRecorder.stop();
+    if (this.recording && this.isRecording) {
+      this.recording.stopAndUnloadAsync().catch(console.error);
     }
     this.isRecording = false;
-    this.audioRecorder = null;
+    this.recording = null;
+    this.recordingStartTime = 0;
   }
 }

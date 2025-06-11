@@ -1,8 +1,19 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useDreamStore } from '@somni/stores';
-import { useAudioRecorderService } from './useAudioRecorder';
+import { AudioService } from '../infrastructure/services/AudioService';
 import { useOfflineRecordingQueue } from './useOfflineRecordingQueue';
 import { useNetworkStatus } from './useNetworkStatus';
+
+// Create a singleton instance
+let audioServiceInstance: AudioService | null = null;
+
+const getAudioService = () => {
+  if (!audioServiceInstance) {
+    audioServiceInstance = new AudioService();
+    audioServiceInstance.initialize();
+  }
+  return audioServiceInstance;
+};
 
 interface UseDreamRecorderReturn {
   isRecording: boolean;
@@ -23,14 +34,15 @@ interface UseDreamRecorderReturn {
 
 export const useDreamRecorder = (): UseDreamRecorderReturn => {
   const dreamStore = useDreamStore();
-  const audioService = useAudioRecorderService();
   const offlineQueue = useOfflineRecordingQueue();
-  const { isOnline } = useNetworkStatus();
+  const { isConnected } = useNetworkStatus();
   
   const [isProcessing, setIsProcessing] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioService = getAudioService();
 
   const clearTimer = useCallback(() => {
     if (durationTimerRef.current) {
@@ -39,38 +51,38 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
     }
   }, []);
 
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      clearTimer();
-      audioService.cleanup();
-    };
-  }, [clearTimer, audioService]);
-
   const startRecording = useCallback(async () => {
     try {
       setError(null);
       dreamStore.clearError();
       
-      // Start recording session in store
+      // Start recording in the store first
       dreamStore.startRecording();
 
-      // Start audio recording
+      // Then start actual audio recording
       await audioService.startRecording();
 
-      console.log('🎙️ Recording started successfully');
+      // Start duration timer
+      setRecordingDuration(0);
+      durationTimerRef.current = setInterval(() => {
+        const currentDuration = audioService.getCurrentDuration();
+        setRecordingDuration(currentDuration);
+        dreamStore.updateRecordingSession({ duration: currentDuration });
+      }, 1000);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
-      console.error('❌ Recording start error:', errorMessage);
       setError(errorMessage);
-      dreamStore.setRecordingError(errorMessage);
+      dreamStore.setError(errorMessage);
+      dreamStore.stopRecording();
+      clearTimer();
     }
-  }, [dreamStore, audioService]);
+  }, [dreamStore, audioService, clearTimer]);
 
   const stopRecording = useCallback(async () => {
-    if (!audioService.isRecording) {
-      console.log('⚠️ No recording in progress');
+    // Check if we're actually recording
+    if (!dreamStore.isRecording || !audioService.getIsRecording()) {
+      console.log('Not recording, skipping stop');
       return;
     }
 
@@ -78,22 +90,17 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       setIsProcessing(true);
       clearTimer();
       
-      // Stop recording session in store
-      dreamStore.stopRecording();
-
-      // Stop audio recording and get result
+      // Stop the audio recording first
       const audioResult = await audioService.stopRecording();
+      
+      // Then update the store
+      dreamStore.stopRecording();
+      
       const currentSession = dreamStore.recordingSession;
       
       if (!currentSession?.id) {
         throw new Error('No session ID available');
       }
-
-      console.log('✅ Recording stopped, adding to queue:', {
-        sessionId: currentSession.id,
-        duration: audioResult.duration,
-        fileSize: audioResult.fileSize
-      });
 
       // Always add to offline queue first
       offlineQueue.addRecording({
@@ -106,6 +113,7 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
 
       // Create placeholder dream entry
       dreamStore.addDream({
+        id: `temp_${currentSession.id}`,
         userId: 'current-user', // TODO: Get from auth
         rawTranscript: 'Processing...',
         duration: audioResult.duration,
@@ -113,39 +121,46 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
         wasEdited: false,
         recordedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
-        status: isOnline ? 'transcribing' : 'pending'
+        status: isConnected ? 'transcribing' : 'pending'
       });
 
       dreamStore.updateRecordingSession({ 
         status: 'completed',
-        audioUri: audioResult.uri,
-        duration: audioResult.duration
+        dreamId: `temp_${currentSession.id}`
       });
 
       // Clear session after a delay
       setTimeout(() => {
         dreamStore.clearRecordingSession();
+        setRecordingDuration(0);
       }, 2000);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process recording';
-      console.error('❌ Recording stop error:', errorMessage);
       setError(errorMessage);
-      dreamStore.setRecordingError(errorMessage);
+      dreamStore.setError(errorMessage);
     } finally {
       setIsProcessing(false);
+      setRecordingDuration(0);
     }
-  }, [dreamStore, audioService, offlineQueue, isOnline, clearTimer]);
+  }, [dreamStore, offlineQueue, isConnected, audioService, clearTimer]);
 
   const clearError = useCallback(() => {
     setError(null);
     dreamStore.clearError();
   }, [dreamStore]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearTimer();
+    };
+  }, [clearTimer]);
+
   return {
     isRecording: dreamStore.isRecording,
     isProcessing,
-    recordingDuration: dreamStore.recordingSession?.duration || 0,
+    recordingDuration,
     recordingAmplitude: 0, // TODO: Connect to real amplitude
     session: dreamStore.recordingSession,
     startRecording,
