@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Animated, SafeAreaView, Alert, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { View, Animated, SafeAreaView, Alert } from 'react-native';
 import { Text } from '../../../components/atoms';
 import { MorphingRecordButton } from '../../../components/atoms/MorphingRecordButton';
 import { RecordingTimer } from '../../../components/molecules/RecordingTimer';
@@ -7,12 +7,13 @@ import { OfflineQueueStatus } from '../../../components/molecules/OfflineQueueSt
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamRecorder } from '../../../hooks/useDreamRecorder';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
-import { useTheme } from '../../../hooks/useTheme';
+import { useUploadNotifications } from '../../../hooks/useUploadNotifications';
 import { useStyles } from './RecordScreen.styles';
 
 export const RecordScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
-  const theme = useTheme();
+  const styles = useStyles();
+  
   const { 
     isRecording, 
     startRecording, 
@@ -23,7 +24,18 @@ export const RecordScreen: React.FC = () => {
     clearError,
     offlineQueueStatus
   } = useDreamRecorder();
+  
   const { isOnline } = useNetworkStatus();
+  
+  // Use upload notifications hook
+  useUploadNotifications({
+    onUploadComplete: (recordingId) => {
+      console.log('Upload completed for:', recordingId);
+    },
+    onUploadFailed: (recordingId, error) => {
+      console.log('Upload failed for:', recordingId, error);
+    }
+  });
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -34,9 +46,6 @@ export const RecordScreen: React.FC = () => {
   
   // Prevent double clicks
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
-
-  // Create styles with theme
-  const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     // Animate content on mount
@@ -57,14 +66,19 @@ export const RecordScreen: React.FC = () => {
 
   // Simulate amplitude changes when recording
   useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
     if (isRecording) {
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         setAmplitude(Math.random() * 0.8 + 0.2);
       }, 200);
-      return () => clearInterval(interval);
     } else {
       setAmplitude(0);
     }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isRecording]);
 
   // Show error alerts
@@ -87,6 +101,16 @@ export const RecordScreen: React.FC = () => {
     try {
       if (isRecording) {
         await stopRecording();
+        
+        // Show success feedback
+        Alert.alert(
+          '✨ Dream Captured',
+          isOnline 
+            ? 'Your dream is being processed and will be ready shortly.'
+            : 'Your dream has been saved and will upload when you\'re back online.',
+          [{ text: 'OK' }],
+          { cancelable: true }
+        );
       } else {
         await startRecording();
       }
@@ -100,7 +124,7 @@ export const RecordScreen: React.FC = () => {
     }
   };
 
-  const getStatusText = () => {
+  const getStatusText = useMemo(() => {
     if (isProcessing) {
       return t('record.processing');
     }
@@ -108,7 +132,7 @@ export const RecordScreen: React.FC = () => {
       return t('record.whisperMode');
     }
     return t('record.button.start');
-  };
+  }, [isProcessing, isRecording, t]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -153,7 +177,7 @@ export const RecordScreen: React.FC = () => {
           {/* Instructions or status */}
           <View style={styles.instructionSection}>
             <Text variant="body" color="secondary" style={styles.instruction}>
-              {getStatusText()}
+              {getStatusText}
             </Text>
             
             {!isOnline && (
