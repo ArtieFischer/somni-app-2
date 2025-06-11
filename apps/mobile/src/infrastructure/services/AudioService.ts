@@ -69,14 +69,28 @@ export class AudioService {
     }
 
     try {
-      await this.recording.stopAndUnloadAsync();
-      const uri = this.recording.getURI();
+      // Stop the recording first, but don't unload yet
+      await this.recording.stopAsync();
+      const originalUri = this.recording.getURI();
       
-      if (!uri) {
-        throw new Error('Recording URI not available');
+      if (!originalUri) {
+        throw new Error('Recording URI not available after stopping');
       }
 
-      const fileInfo = await FileSystem.getInfoAsync(uri);
+      // Generate a new unique path in the cache directory for persistence
+      const newFileName = `somni_recording_${Date.now()}.m4a`; // Using m4a as it's common for HIGH_QUALITY preset
+      const newUri = FileSystem.cacheDirectory + newFileName;
+
+      // Copy the file to the new persistent location
+      await FileSystem.copyAsync({
+        from: originalUri,
+        to: newUri,
+      });
+
+      // Now unload the original recording to free up resources
+      await this.recording.unloadAsync();
+
+      const fileInfo = await FileSystem.getInfoAsync(newUri);
       const duration = Math.floor((Date.now() - this.recordingStartTime) / 1000);
       
       // Reset state
@@ -84,13 +98,13 @@ export class AudioService {
       this.recording = null;
       this.recordingStartTime = 0;
 
-      console.log('🎙️ Recording stopped successfully', { uri, duration });
+      console.log('🎙️ Recording stopped successfully and saved to:', { uri: newUri, duration });
 
       return {
-        uri,
+        uri: newUri,
         duration,
         fileSize: fileInfo.size || 0,
-        format: 'wav'
+        format: 'm4a' // Assuming m4a for HIGH_QUALITY preset
       };
     } catch (error) {
       this.isRecording = false;
