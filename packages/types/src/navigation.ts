@@ -18,7 +18,16 @@ export type MainTabScreenProps<T extends keyof MainTabParamList> =
     NativeStackScreenProps<any>
   >;
 
-// Tab names for easier reference
+export type MainTabParamList = {
+  Feed: undefined;
+  DreamDiary: undefined;
+  Record: undefined;
+  MetaAnalysis: undefined;
+  Profile: undefined;
+};
+
+export type TabIconName = 'feed' | 'diary' | 'record' | 'analysis' | 'profile';
+
 export const TAB_NAMES = {
   FEED: 'Feed',
   DREAM_DIARY: 'DreamDiary',
@@ -27,5 +36,11 @@ export const TAB_NAMES = {
   PROFILE: 'Profile',
 } as const;
 
-// Tab icon names
-export type TabIconName = 'feed' | 'diary' | 'record' | 'analysis' | 'profile';
+export type MainTabScreenProps<T extends keyof MainTabParamList> = {
+  navigation: any; // You can type this more specifically with React Navigation types
+  route: {
+    key: string;
+    name: T;
+    params?: MainTabParamList[T];
+  };
+};
