@@ -104,47 +104,102 @@ serve(async (req) => {
 
     console.log('Dream found and updated:', dream.id);
 
-    // For Phase 1: Mock the transcription process
-    console.log('Starting mock transcription...');
-    
-    // Simulate async processing - in real implementation this will call ElevenLabs
-    setTimeout(async () => {
-      const mockTranscript = "This is a mock transcription of your dream. In the real implementation, this will be replaced with actual speech-to-text results from ElevenLabs. The audio was successfully received and processed."
+    // REAL BACKEND INTEGRATION:
+    try {
+      console.log('Calling Somni Backend for transcription...', { dreamId, duration });
       
-      console.log('Updating dream with mock transcript...');
+      const backendResponse = await fetch(`${Deno.env.get('SOMNI_BACKEND_URL')}/api/v1/transcription/transcribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Secret': Deno.env.get('SOMNI_BACKEND_API_SECRET')!,
+          'X-Supabase-Token': authHeader.replace('Bearer ', ''),
+        },
+        body: JSON.stringify({
+          dreamId,
+          audioBase64,
+          duration,
+          options: {
+            languageCode: null,
+            tagAudioEvents: true,
+            diarize: false,
+          },
+        }),
+      });
+
+      if (!backendResponse.ok) {
+        const errorText = await backendResponse.text();
+        console.error('Backend transcription failed:', {
+          status: backendResponse.status,
+          error: errorText,
+          dreamId,
+        });
+        
+        // Update dream with error status
+        await supabase
+          .from('dreams')
+          .update({
+            transcription_status: 'failed',
+            transcription_metadata: {
+              error: `Backend error: ${backendResponse.status}`,
+              failed_at: new Date().toISOString(),
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', dreamId)
+          .eq('user_id', user.id);
+
+        return new Response(
+          JSON.stringify({ error: 'Transcription service unavailable' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const transcriptionResult = await backendResponse.json();
       
-      const { error: updateError } = await supabase
+      if (!transcriptionResult.success) {
+        console.error('Backend returned error:', transcriptionResult.error);
+        return new Response(
+          JSON.stringify({ error: transcriptionResult.error }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('Transcription completed successfully:', {
+        dreamId,
+        textLength: transcriptionResult.transcription?.text?.length,
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          dreamId,
+          transcription: transcriptionResult.transcription 
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+
+    } catch (error) {
+      console.error('Unexpected transcription error:', error);
+      
+      await supabase
         .from('dreams')
-        .update({ 
-          raw_transcript: mockTranscript,
-          transcription_status: 'completed',
+        .update({
+          transcription_status: 'failed',
           transcription_metadata: {
-            mock: true,
-            processed_at: new Date().toISOString(),
-            duration: duration
-          }
+            error: 'Unexpected error during transcription',
+            failed_at: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
         })
         .eq('id', dreamId)
-      
-      if (updateError) {
-        console.error('Failed to update dream with transcript:', updateError);
-      } else {
-        console.log('Dream updated successfully with mock transcript');
-      }
-    }, 3000) // 3 second delay to simulate processing
+        .eq('user_id', user.id);
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        dreamId: dreamId,
-        status: 'processing',
-        message: 'Transcription started (mock mode)'
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    )
+      return new Response(
+        JSON.stringify({ error: 'Internal server error during transcription' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
   } catch (error) {
     console.error('Function error:', error);
