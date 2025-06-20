@@ -123,7 +123,7 @@ const useStyles = (
       borderColor: hasError
         ? theme.colors.status.error
         : isFocused
-          ? theme.colors.accent.primary
+          ? theme.colors.accent
           : theme.colors.border.primary,
       borderRadius: theme.borderRadius.large,
       paddingHorizontal: theme.spacing.medium,

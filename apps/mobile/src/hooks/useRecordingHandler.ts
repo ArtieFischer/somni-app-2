@@ -2,9 +2,10 @@ import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../lib/supabase';
-import { useDreamStore, useSettingsStore } from '@somni/stores';
+import { useDreamStore } from '@somni/stores';
 import { useAuth } from './useAuth';
 import { useTranslation } from './useTranslation';
+import { getElevenLabsLanguageCode } from '../utils/languageMapping';
 
 interface PendingRecording {
   sessionId: string;
@@ -16,8 +17,7 @@ interface PendingRecording {
 export const useRecordingHandler = () => {
   const { t } = useTranslation('dreams');
   const dreamStore = useDreamStore();
-  const { settings } = useSettingsStore();
-  const { session, user } = useAuth();
+  const { session, user, profile } = useAuth();
   const [pendingRecording, setPendingRecording] = useState<PendingRecording | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
 
@@ -111,8 +111,8 @@ export const useRecordingHandler = () => {
         dreamId: createdDream.id,
         audioBase64,
         duration: pendingRecording?.duration || dreamStore.recordingSession.duration,
-        // Use the language from user settings
-        language: settings.language
+        // Use the language from user profile, convert to 3-letter code for ElevenLabs
+        language: getElevenLabsLanguageCode(profile?.language || 'en')
       };
 
       console.log('📤 Sending transcription request:', {

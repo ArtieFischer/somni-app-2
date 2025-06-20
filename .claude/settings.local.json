@@ -20,7 +20,10 @@
       "Bash(touch:*)",
       "Bash(mv:*)",
       "Bash(node:*)",
-      "Bash(npm run tsx:*)"
+      "Bash(npm run tsx:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }

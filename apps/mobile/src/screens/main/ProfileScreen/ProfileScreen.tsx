@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Switch, Alert, Modal } from 'react-native';
 import { Text, Button } from '../../../components/atoms';
+import { LanguageSelector } from '../../../components/molecules/LanguageSelector';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useAuth } from '../../../hooks/useAuth';
-import { useDreamStore } from '@somni/stores';
-import { useSettingsStore } from '@somni/stores';
+import { useDreamStore, useSettingsStore, useAuthStore } from '@somni/stores';
 import { useStyles } from './ProfileScreen.styles';
+import { supabase } from '../../../lib/supabase';
 
 export const ProfileScreen: React.FC = () => {
   const { t } = useTranslation('auth');
@@ -15,6 +16,55 @@ export const ProfileScreen: React.FC = () => {
   const styles = useStyles();
 
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [isUpdatingLanguage, setIsUpdatingLanguage] = useState(false);
+
+  const handleLanguageChange = async (newLanguage: string) => {
+    if (!user?.id || newLanguage === profile?.language) {
+      setShowLanguageModal(false);
+      return;
+    }
+
+    setIsUpdatingLanguage(true);
+    try {
+      // Update in database
+      const { error } = await supabase
+        .from('users_profile')
+        .update({ language: newLanguage })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update local profile - we need to refetch the profile
+      const { data: updatedProfile, error: fetchError } = await supabase
+        .from('users_profile')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update the auth store with new profile
+      const authStore = useAuthStore.getState();
+      authStore.setProfile(updatedProfile);
+
+      Alert.alert(
+        'Success',
+        'Language preference updated successfully',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Language update error:', error);
+      Alert.alert(
+        'Error',
+        'Failed to update language preference. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsUpdatingLanguage(false);
+      setShowLanguageModal(false);
+    }
+  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -176,10 +226,8 @@ export const ProfileScreen: React.FC = () => {
           <SettingRow
             icon="🌐"
             label={String(t('profile.preferences.language'))}
-            value={settings.language === 'en' ? String(t('profile.preferences.values.english')) : String(t('profile.preferences.values.spanish'))}
-            onPress={() => {
-              Alert.alert(String(t('profile.preferences.language')), String(t('errors.language')));
-            }}
+            value={profile?.language === 'pl' ? 'Polski' : 'English'}
+            onPress={() => setShowLanguageModal(true)}
           />
           
           <SettingRow
@@ -276,6 +324,42 @@ export const ProfileScreen: React.FC = () => {
           </Text>
         </View>
       </View>
+
+      {/* Language Selector Modal */}
+      <Modal
+        visible={showLanguageModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLanguageModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowLanguageModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text variant="h3">Select Language</Text>
+              <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
+                <Text variant="h2">×</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <LanguageSelector
+              currentLanguage={profile?.language || 'en'}
+              onLanguageChange={handleLanguageChange}
+              label=""
+              limitedLanguages={['en', 'pl']}
+            />
+            
+            {isUpdatingLanguage && (
+              <View style={styles.modalLoading}>
+                <Text variant="body" color="secondary">Updating...</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 };

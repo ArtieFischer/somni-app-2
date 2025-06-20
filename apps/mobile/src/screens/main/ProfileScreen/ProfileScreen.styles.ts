@@ -145,5 +145,31 @@ export const useStyles = () => {
       paddingVertical: theme.spacing.xl,
       paddingHorizontal: theme.spacing.large,
     },
+    
+    // Modal styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: theme.colors.background.elevated,
+      borderRadius: theme.borderRadius.large,
+      padding: theme.spacing.large,
+      width: '80%',
+      maxWidth: 400,
+      ...theme.shadows.large,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.spacing.medium,
+    },
+    modalLoading: {
+      alignItems: 'center',
+      paddingVertical: theme.spacing.medium,
+    },
   });
 };

@@ -1,7 +1,7 @@
 import { colors } from '../colors';
 import { spacing } from '../spacing';
 import { typography } from '../typography';
-import { Theme } from '../index';
+import { Theme } from '../types';
 
 export const darkTheme: Theme = {
   colors: {

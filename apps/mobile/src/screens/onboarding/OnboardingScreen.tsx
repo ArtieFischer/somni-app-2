@@ -34,7 +34,7 @@ export interface OnboardingData {
   display_name: string;
   sex: 'male' | 'female' | 'other' | 'prefer_not_to_say';
   date_of_birth: string;
-  language: 'en';
+  language: string;
   avatar_url?: string;
   avatarFile?: any; // For local file before upload
   // Step 3: Dream Interpreter

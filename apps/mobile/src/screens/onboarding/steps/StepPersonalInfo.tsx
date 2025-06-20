@@ -6,6 +6,7 @@ import { z } from 'zod';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { Text, Button, Input, RadioButton } from '../../../components/atoms';
+import { LanguageSelector } from '../../../components/molecules/LanguageSelector';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { OnboardingData } from '../OnboardingScreen';
@@ -14,7 +15,7 @@ const PersonalInfoSchema = z.object({
   display_name: z.string().min(1, 'Display name is required').max(50, 'Display name is too long'),
   sex: z.enum(['male', 'female', 'other', 'prefer_not_to_say']),
   date_of_birth: z.string(),
-  language: z.literal('en'),
+  language: z.string(),
 });
 
 type PersonalInfoData = z.infer<typeof PersonalInfoSchema>;
@@ -328,17 +329,17 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
           )}
         </View>
 
-        <View>
-          <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
-            {String(t('personalInfo.language'))}
-          </Text>
-          <View style={styles.dateButton}>
-            <Text variant="body">English</Text>
-          </View>
-          <Text variant="caption" color="secondary" style={{ marginTop: theme.spacing.xs }}>
-            {String(t('personalInfo.languageNote'))}
-          </Text>
-        </View>
+        <Controller
+          control={control}
+          name="language"
+          render={({ field: { onChange, value } }) => (
+            <LanguageSelector
+              currentLanguage={value || 'en'}
+              onLanguageChange={onChange}
+              label={String(t('personalInfo.language'))}
+            />
+          )}
+        />
       </View>
 
       <View style={styles.buttonContainer}>

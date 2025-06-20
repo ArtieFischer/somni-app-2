@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@somni/theme';
+import { useStyles } from './LanguageSelector.styles';
 
 interface Language {
   code: string;
@@ -36,16 +36,24 @@ interface LanguageSelectorProps {
   currentLanguage: string;
   onLanguageChange: (language: string) => void;
   label?: string;
+  limitedLanguages?: string[]; // Optional prop to limit available languages
 }
 
 export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   currentLanguage,
   onLanguageChange,
   label = 'Transcription Language',
+  limitedLanguages,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const styles = useStyles();
   
-  const selectedLanguage = SUPPORTED_LANGUAGES.find(lang => lang.code === currentLanguage) || SUPPORTED_LANGUAGES[0];
+  // Filter languages if limitedLanguages prop is provided
+  const availableLanguages = limitedLanguages 
+    ? SUPPORTED_LANGUAGES.filter(lang => limitedLanguages.includes(lang.code))
+    : SUPPORTED_LANGUAGES;
+  
+  const selectedLanguage = availableLanguages.find(lang => lang.code === currentLanguage) || availableLanguages[0];
 
   const handleLanguageSelect = (language: Language) => {
     onLanguageChange(language.code);
@@ -64,7 +72,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
             <Text style={styles.selectedText}>
               {selectedLanguage.name} ({selectedLanguage.nativeName})
             </Text>
-            <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
+            <Ionicons name="chevron-down" size={20} color={styles.chevronColor.color} />
           </View>
         </TouchableOpacity>
       </View>
@@ -84,12 +92,12 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Language</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
+                <Ionicons name="close" size={24} color={styles.closeIconColor.color} />
               </TouchableOpacity>
             </View>
             
             <FlatList
-              data={SUPPORTED_LANGUAGES}
+              data={availableLanguages}
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -114,7 +122,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                     </Text>
                   </View>
                   {item.code === currentLanguage && (
-                    <Ionicons name="checkmark" size={24} color={colors.primary} />
+                    <Ionicons name="checkmark" size={24} color={styles.checkmarkColor.color} />
                   )}
                 </TouchableOpacity>
               )}
@@ -126,84 +134,3 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    marginVertical: 16,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: 8,
-  },
-  selector: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  selectorContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  selectedText: {
-    fontSize: 16,
-    color: colors.text.primary,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.background.primary,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  languageList: {
-    paddingHorizontal: 20,
-  },
-  languageItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  selectedLanguageItem: {
-    backgroundColor: colors.background.secondary,
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
-  },
-  languageName: {
-    fontSize: 16,
-    color: colors.text.primary,
-    marginBottom: 4,
-  },
-  languageNativeName: {
-    fontSize: 14,
-    color: colors.text.secondary,
-  },
-  selectedLanguageText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-});
