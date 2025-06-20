@@ -28,6 +28,7 @@ import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../hooks/useAuth';
 import { useRealtimeSubscription } from '../../../hooks/useRealtimeSubscription';
+import { mapDatabaseDreamToFrontend } from '../../../utils/dreamMappers';
 import { testRealtimeConnection } from '../../../utils/testRealtimeConnection';
 import { testDatabaseRealtime } from '../../../utils/testDatabaseRealtime';
 import { useIsFocused } from '@react-navigation/native';
@@ -101,6 +102,12 @@ export const DreamDiaryScreen: React.FC = () => {
       // Handle dream updates
       if (payload.eventType === 'UPDATE' && payload.new) {
         const dreamData = payload.new;
+        console.log('🔔 Realtime UPDATE:', {
+          id: dreamData.id,
+          hasTitle: 'title' in dreamData,
+          title: dreamData.title,
+          columns: Object.keys(dreamData)
+        });
         
         // Find existing dream in store
         const existingDream = dreams.find(d => 
@@ -110,21 +117,20 @@ export const DreamDiaryScreen: React.FC = () => {
         );
 
         if (existingDream) {
-          const newStatus = dreamData.transcription_status === 'completed' ? 'completed' : 
-                           dreamData.transcription_status === 'processing' ? 'transcribing' : 
-                           dreamData.transcription_status === 'failed' ? 'failed' : 'pending';
+          const mappedDream = mapDatabaseDreamToFrontend(dreamData);
           
           console.log('📝 Updating existing dream:', {
             dreamId: existingDream.id,
             oldStatus: existingDream.status,
-            newStatus,
-            hasTranscript: !!dreamData.raw_transcript,
+            newStatus: mappedDream.status,
+            hasTranscript: !!mappedDream.rawTranscript,
+            hasTitle: !!mappedDream.title,
+            title: mappedDream.title,
           });
           
           updateDream(existingDream.id, {
-            id: dreamData.id,
-            rawTranscript: dreamData.raw_transcript || existingDream.rawTranscript,
-            status: newStatus,
+            ...mappedDream,
+            id: dreamData.id, // Ensure we keep the correct ID
           });
           
         }
@@ -140,21 +146,13 @@ export const DreamDiaryScreen: React.FC = () => {
 
         if (!exists) {
           console.log('➕ Adding new dream from realtime:', dreamData.id);
+          const mappedDream = mapDatabaseDreamToFrontend(dreamData);
+          
           addDream({
-            id: dreamData.id,
-            userId: dreamData.user_id || user.id, // Add the missing userId
-            title: `Dream ${new Date(dreamData.created_at).toLocaleDateString()}`,
-            description: dreamData.raw_transcript?.substring(0, 100) + '...' || '',
-            rawTranscript: dreamData.raw_transcript || '',
-            recordedAt: new Date(dreamData.created_at),
-            duration: dreamData.duration || 0,
-            status: dreamData.transcription_status === 'completed' ? 'completed' : 
-                    dreamData.transcription_status === 'processing' ? 'transcribing' : 
-                    dreamData.transcription_status === 'failed' ? 'failed' : 'pending',
-            confidence: 0.8,
-            createdAt: new Date(dreamData.created_at),
-            updatedAt: new Date(dreamData.updated_at || dreamData.created_at),
-          });
+            ...mappedDream,
+            userId: dreamData.user_id || user.id, // Ensure userId is set
+            description: mappedDream.rawTranscript?.substring(0, 100) + '...' || '',
+          } as any);
         }
       }
   }, [dreams, updateDream, addDream, user?.id, isFocused]);
@@ -192,10 +190,18 @@ export const DreamDiaryScreen: React.FC = () => {
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(50);
         
         if (!error && dbDreams) {
           console.log('🔄 Fetched dreams from database:', dbDreams.length);
+          if (dbDreams.length > 0) {
+            console.log('📊 First dream data:', {
+              id: dbDreams[0].id,
+              hasTitle: 'title' in dbDreams[0],
+              title: dbDreams[0].title,
+              columns: Object.keys(dbDreams[0])
+            });
+          }
           
           // Update local store with database dreams
           dbDreams.forEach(dbDream => {
@@ -207,29 +213,21 @@ export const DreamDiaryScreen: React.FC = () => {
             
             if (existingDream) {
               // Update existing dream
+              const mappedDream = mapDatabaseDreamToFrontend(dbDream);
               updateDream(existingDream.id, {
-                id: dbDream.id,
-                rawTranscript: dbDream.raw_transcript || existingDream.rawTranscript,
-                status: dbDream.transcription_status === 'completed' ? 'completed' : 
-                        dbDream.transcription_status === 'processing' ? 'transcribing' : 
-                        dbDream.transcription_status === 'failed' ? 'failed' : 'pending',
+                ...mappedDream,
+                id: dbDream.id, // Ensure we keep the correct ID
               });
             } else if (dbDream.raw_transcript) {
               // Add new dream if it has a transcript
               console.log('➕ Adding dream from database:', dbDream.id);
+              const mappedDream = mapDatabaseDreamToFrontend(dbDream);
+              
               addDream({
-                id: dbDream.id,
-                userId: dbDream.user_id || user.id, // Add the missing userId
-                title: `Dream ${new Date(dbDream.created_at).toLocaleDateString()}`,
-                description: dbDream.raw_transcript.substring(0, 100) + '...',
-                rawTranscript: dbDream.raw_transcript,
-                recordedAt: new Date(dbDream.created_at),
-                duration: dbDream.duration || 0,
-                status: 'completed',
-                confidence: 0.8,
-                createdAt: new Date(dbDream.created_at),
-                updatedAt: new Date(dbDream.updated_at || dbDream.created_at),
-              });
+                ...mappedDream,
+                userId: dbDream.user_id || user.id, // Ensure userId is set
+                description: mappedDream.rawTranscript?.substring(0, 100) + '...' || '',
+              } as any);
             }
           });
         }

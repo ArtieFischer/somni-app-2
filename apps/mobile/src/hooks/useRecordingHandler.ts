@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../lib/supabase';
-import { useDreamStore } from '@somni/stores';
+import { useDreamStore, useSettingsStore } from '@somni/stores';
 import { useAuth } from './useAuth';
 import { useTranslation } from './useTranslation';
 
@@ -16,6 +16,7 @@ interface PendingRecording {
 export const useRecordingHandler = () => {
   const { t } = useTranslation('dreams');
   const dreamStore = useDreamStore();
+  const { settings } = useSettingsStore();
   const { session, user } = useAuth();
   const [pendingRecording, setPendingRecording] = useState<PendingRecording | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -109,7 +110,9 @@ export const useRecordingHandler = () => {
       const requestPayload = {
         dreamId: createdDream.id,
         audioBase64,
-        duration: pendingRecording?.duration || dreamStore.recordingSession.duration
+        duration: pendingRecording?.duration || dreamStore.recordingSession.duration,
+        // Use the language from user settings
+        language: settings.language
       };
 
       console.log('📤 Sending transcription request:', {
@@ -117,6 +120,7 @@ export const useRecordingHandler = () => {
         dreamId: requestPayload.dreamId,
         audioSize: requestPayload.audioBase64.length,
         duration: requestPayload.duration,
+        language: requestPayload.language,
         hasAuth: !!session.access_token
       });
 

@@ -60,6 +60,25 @@ export const DreamCard: React.FC<DreamCardProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getDreamTitle = () => {
+    console.log('🎯 DreamCard - Getting title for dream:', {
+      dreamId: dream.id,
+      hasTitle: !!dream.title,
+      title: dream.title,
+      dreamKeys: Object.keys(dream)
+    });
+    
+    if (dream.title) {
+      return dream.title;
+    }
+    // Fallback: Dream YY/MM/DD
+    const date = new Date(dream.recordedAt);
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `Dream ${year}/${month}/${day}`;
+  };
+
   // Removed unused getStatusColor function
 
   return (
@@ -77,19 +96,22 @@ export const DreamCard: React.FC<DreamCardProps> = ({
     >
       <VStack space="md">
         {/* Header */}
-        <HStack justifyContent="space-between" alignItems="flex-start">
-          <VStack space="xs">
+        <HStack justifyContent="space-between" alignItems="center">
+          <HStack space="sm" alignItems="center">
             <Text
-              size="md"
-              fontWeight="$semibold"
-              color={darkTheme.colors.text.primary}
+              size="sm"
+              fontWeight="$medium"
+              color={darkTheme.colors.text.secondary}
             >
               {String(formatDate(dream.recordedAt))}
             </Text>
-            <Text size="sm" color={darkTheme.colors.text.primary} opacity={0.7}>
+            <Text size="sm" color={darkTheme.colors.text.secondary}>
+              •
+            </Text>
+            <Text size="sm" color={darkTheme.colors.text.secondary}>
               {formatTime(dream.recordedAt)}
             </Text>
-          </VStack>
+          </HStack>
           <HStack space="md" alignItems="center">
             <HStack space="xs" alignItems="center">
               <Ionicons
@@ -131,19 +153,30 @@ export const DreamCard: React.FC<DreamCardProps> = ({
           </HStack>
         </HStack>
 
+        {/* Title */}
+        <Text
+          size="lg"
+          fontWeight="$semibold"
+          color={darkTheme.colors.text.primary}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
+          {getDreamTitle()}
+        </Text>
 
         {/* Content */}
         <Text
-          size="md"
-          numberOfLines={3}
+          size="sm"
+          numberOfLines={2}
           ellipsizeMode="tail"
-          lineHeight="$md"
+          lineHeight="$sm"
           color={
             dream.rawTranscript &&
             dream.rawTranscript !== 'Waiting for transcription...'
-              ? darkTheme.colors.text.primary
+              ? darkTheme.colors.text.secondary
               : darkTheme.colors.text.secondary
           }
+          opacity={0.8}
         >
           {dream.rawTranscript &&
           dream.rawTranscript !== 'Waiting for transcription...'

@@ -49,8 +49,20 @@ export default function MainStackNavigator() {
           }
 
           // Convert Dream to DreamDetailData format
+          const getDreamTitle = () => {
+            if (dream.title) {
+              return dream.title;
+            }
+            // Fallback: Dream YY/MM/DD (same as in DreamCard)
+            const date = new Date(dream.recordedAt);
+            const year = date.getFullYear().toString().slice(-2);
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `Dream ${year}/${month}/${day}`;
+          };
+          
           const dreamData = {
-            title: dream.rawTranscript.slice(0, 50) + '...',
+            title: getDreamTitle(),
             date: new Date(dream.recordedAt).toLocaleString(),
             dreamTopic: dream.rawTranscript,
             symbols: dream.tags || [],

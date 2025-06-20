@@ -10,6 +10,7 @@ interface TranscribeRequest {
   dreamId: string;
   audioBase64: string;
   duration: number;
+  language?: string;
 }
 
 serve(async (req) => {
@@ -60,12 +61,13 @@ serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { dreamId, audioBase64, duration }: TranscribeRequest = body;
+    const { dreamId, audioBase64, duration, language }: TranscribeRequest = body;
     
     console.log('Request data:', { 
       dreamId, 
       audioSize: audioBase64?.length || 0,
-      duration 
+      duration,
+      language 
     });
 
     // Validate required fields
@@ -112,7 +114,7 @@ serve(async (req) => {
         audioBase64,
         duration,
         options: {
-          languageCode: null,
+          languageCode: language || null,
           tagAudioEvents: true,
           diarize: false,
         },
@@ -122,9 +124,17 @@ serve(async (req) => {
         url: backendUrl,
         dreamId,
         duration,
+        language: language || 'auto-detect',
         audioSize: audioBase64.length,
         hasApiSecret: !!Deno.env.get('SOMNI_BACKEND_API_SECRET'),
         hasBackendUrl: !!Deno.env.get('SOMNI_BACKEND_URL')
+      });
+      
+      console.log('📦 Backend request payload:', {
+        dreamId: backendPayload.dreamId,
+        audioSize: backendPayload.audioBase64.length,
+        duration: backendPayload.duration,
+        options: backendPayload.options
       });
       
       const backendResponse = await fetch(backendUrl, {
@@ -195,7 +205,7 @@ serve(async (req) => {
         dreamId,
         textLength: transcriptionResult.transcription?.text?.length,
         wordCount: transcriptionResult.transcription?.wordCount,
-        language: transcriptionResult.transcription?.language,
+        language: transcriptionResult.transcription?.languageCode,
       });
 
       // Save transcription to database
@@ -213,7 +223,7 @@ serve(async (req) => {
           transcription_metadata: {
             characterCount: transcriptionResult.transcription.characterCount,
             wordCount: transcriptionResult.transcription.wordCount,
-            language: transcriptionResult.transcription.language || null,
+            language: transcriptionResult.transcription.languageCode || null,
             completed_at: new Date().toISOString(),
             backend_response: transcriptionResult.transcription,
           },

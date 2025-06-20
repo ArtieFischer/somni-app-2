@@ -2,6 +2,7 @@ export interface Dream {
   id: string;
   userId: string;
   rawTranscript: string;
+  title?: string;
   duration: number;
   confidence: number;
   wasEdited: boolean;
@@ -39,6 +40,7 @@ export interface DreamDTO {
   id?: string;
   userId: string;
   rawTranscript: string;
+  title?: string;
   duration: number;
   confidence: number;
   wasEdited: boolean;
