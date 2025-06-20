@@ -182,11 +182,14 @@ export const useRecordingHandler = () => {
         url: `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/dreams-transcribe-init`
       });
       
-      // Save dream as pending in local store
-      if (dreamStore.recordingSession?.dreamId) {
+      // Save dream as pending in local store with audio URI
+      if (dreamStore.recordingSession?.dreamId && audioUri) {
         dreamStore.updateDream(dreamStore.recordingSession.dreamId, {
           status: 'pending',
-          rawTranscript: 'Waiting for transcription...'
+          rawTranscript: 'Waiting for transcription...',
+          audioUri: audioUri,
+          fileSize: pendingRecording?.fileSize,
+          duration: pendingRecording?.duration || dreamStore.recordingSession.duration
         });
       }
       
@@ -208,19 +211,22 @@ export const useRecordingHandler = () => {
     }
 
     try {
-      // Create dream in local store with pending status
+      // Update dream in local store with pending status and audio URI
       dreamStore.updateDream(dreamStore.recordingSession.dreamId, {
         status: 'pending',
-        rawTranscript: 'Waiting for transcription...'
+        rawTranscript: 'Waiting for transcription...',
+        audioUri: pendingRecording.audioUri,
+        fileSize: pendingRecording.fileSize,
+        duration: pendingRecording.duration
       });
 
-      // Clear pending recording
+      // Clear pending recording and session
       setPendingRecording(null);
       dreamStore.clearRecordingSession();
       
       Alert.alert(
         'Recording Saved',
-        'Your dream has been saved and will be transcribed later',
+        'Your dream has been saved and will be transcribed later. You can find it in your Dream Diary.',
         [{ text: 'OK' }]
       );
     } catch (error) {

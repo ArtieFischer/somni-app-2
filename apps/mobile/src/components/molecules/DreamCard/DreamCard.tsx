@@ -148,7 +148,11 @@ export const DreamCard: React.FC<DreamCardProps> = ({
           {dream.rawTranscript &&
           dream.rawTranscript !== 'Waiting for transcription...'
             ? dream.rawTranscript
-            : dream.status === 'transcribing' ? String(t('record.transcribing')) : String(t('journal.waitingForTranscription'))}
+            : dream.status === 'transcribing' 
+              ? String(t('record.transcribing')) 
+              : dream.status === 'pending' 
+                ? String(t('journal.transcriptionPostponed'))
+                : String(t('journal.waitingForTranscription'))}
         </Text>
 
         {/* Tags */}
@@ -187,8 +191,25 @@ export const DreamCard: React.FC<DreamCardProps> = ({
                 {String(t('analysis.title'))} →
               </Text>
             </Pressable>
-          ) : dream.status === 'transcribing' || dream.status === 'pending' ? (
+          ) : dream.status === 'transcribing' ? (
             <Spinner size="small" color={darkTheme.colors.primary} />
+          ) : dream.status === 'pending' ? (
+            <Pressable onPress={() => onRetryPress?.(dream)} p="$2">
+              <Box 
+                bg={darkTheme.colors.primary + '20'}
+                borderRadius="$full"
+                w={32}
+                h={32}
+                justifyContent="center"
+                alignItems="center"
+              >
+                <MaterialCommunityIcons
+                  name="reload"
+                  size={20}
+                  color={darkTheme.colors.primary}
+                />
+              </Box>
+            </Pressable>
           ) : (
             <Pressable onPress={() => onRetryPress?.(dream)}>
               <HStack space="xs" alignItems="center">

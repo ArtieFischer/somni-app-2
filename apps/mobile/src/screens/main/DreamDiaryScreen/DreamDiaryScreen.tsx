@@ -24,6 +24,7 @@ import { useNavigation } from '@react-navigation/native';
 import { MainTabScreenProps } from '@somni/types';
 import { darkTheme } from '@somni/theme';
 import { Alert } from 'react-native';
+import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../hooks/useAuth';
 import { useRealtimeSubscription } from '../../../hooks/useRealtimeSubscription';
@@ -256,6 +257,13 @@ export const DreamDiaryScreen: React.FC = () => {
   };
 
   const handleRetryPress = async (dream: Dream) => {
+    console.log('🔄 Retry pressed for dream:', {
+      id: dream.id,
+      status: dream.status,
+      hasAudioUri: !!dream.audioUri,
+      audioUri: dream.audioUri
+    });
+
     if (!session?.access_token || !user?.id) {
       Alert.alert(
         'Authentication Required',
@@ -269,43 +277,137 @@ export const DreamDiaryScreen: React.FC = () => {
     setRetryingDreams(prev => new Set(prev).add(dream.id));
     
     try {
-      // Update dream status to transcribing
-      updateDream(dream.id, { status: 'transcribing' });
-
-      // Call the transcription edge function
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/dreams-transcribe-retry`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            dreamId: dream.id.replace('temp_', ''), // Remove temp prefix if present
-          })
+      // For pending dreams with audio, we need to transcribe from the audio file
+      if (dream.status === 'pending') {
+        if (!dream.audioUri) {
+          console.error('❌ No audio URI found for pending dream');
+          throw new Error('No audio file found for this dream');
         }
-      );
 
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(responseData.error || 'Retry failed');
+        // Update dream status to transcribing
+        updateDream(dream.id, { status: 'transcribing' });
+
+        // Read the audio file if it exists
+        const fileInfo = await FileSystem.getInfoAsync(dream.audioUri);
+        console.log('📁 Audio file info:', fileInfo);
+        
+        if (!fileInfo.exists) {
+          throw new Error('Audio file not found at: ' + dream.audioUri);
+        }
+
+        // Create dream in Supabase if it doesn't have a real ID
+        let dreamId = dream.id;
+        if (dream.id.startsWith('temp_') || dream.id.startsWith('dream_')) {
+          console.log('📝 Creating dream in database...');
+          const { data, error: createError } = await supabase
+            .from('dreams')
+            .insert({
+              user_id: user.id,
+              raw_transcript: 'Waiting for transcription...',
+              duration: dream.duration,
+              transcription_status: 'pending',
+              created_at: dream.createdAt,
+            })
+            .select()
+            .single();
+          
+          if (createError || !data) {
+            throw new Error('Failed to create dream record');
+          }
+
+          dreamId = data.id;
+          // Update local dream with the real ID
+          updateDream(dream.id, { id: dreamId });
+        }
+
+        // Read the audio file as base64
+        const audioBase64 = await FileSystem.readAsStringAsync(
+          dream.audioUri,
+          { encoding: FileSystem.EncodingType.Base64 }
+        );
+
+        // Call the transcription edge function
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/dreams-transcribe-init`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              dreamId: dreamId,
+              audioBase64,
+              duration: dream.duration
+            })
+          }
+        );
+
+        const responseData = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(responseData.error || 'Transcription failed');
+        }
+
+        // Delete the local audio file after successful upload
+        try {
+          await FileSystem.deleteAsync(dream.audioUri);
+          console.log('🗑️ Deleted local audio file');
+        } catch (deleteError) {
+          console.warn('Failed to delete audio file:', deleteError);
+        }
+
+        Alert.alert(
+          'Transcription Started',
+          'Your dream is being transcribed',
+          [{ text: 'OK' }]
+        );
+      } else {
+        // For failed dreams, use the retry endpoint
+        updateDream(dream.id, { status: 'transcribing' });
+
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/dreams-transcribe-retry`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              dreamId: dream.id.replace('temp_', ''),
+            })
+          }
+        );
+
+        const responseData = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(responseData.error || 'Retry failed');
+        }
+
+        Alert.alert(
+          'Transcription Started',
+          'Your dream is being transcribed',
+          [{ text: 'OK' }]
+        );
       }
-
-      Alert.alert(
-        'Transcription Started',
-        'Your dream is being transcribed',
-        [{ text: 'OK' }]
-      );
     } catch (error) {
-      console.error('Retry transcription error:', error);
+      console.error('Retry transcription error:', {
+        error: error.message || error,
+        dreamId: dream.id,
+        status: dream.status,
+        audioUri: dream.audioUri
+      });
       // Revert status
-      updateDream(dream.id, { status: 'failed' });
+      updateDream(dream.id, { status: dream.status === 'pending' ? 'pending' : 'failed' });
       
+      const errorMessage = error.message || 'Unknown error occurred';
       Alert.alert(
         String(t('record.serviceUnavailable.title')),
-        String(t('record.serviceUnavailable.message')),
+        errorMessage.includes('Audio file not found') 
+          ? 'The audio file for this dream could not be found. It may have been deleted.'
+          : String(t('record.serviceUnavailable.message')),
         [{ text: String(t('actions.ok')) }]
       );
     } finally {

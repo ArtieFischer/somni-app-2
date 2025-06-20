@@ -96,6 +96,8 @@
       "title": "Delete Recording",
       "message": "Do you want to delete this dream recording?"
     },
-    "waitingForTranscription": "Waiting for transcription..."
+    "waitingForTranscription": "Waiting for transcription...",
+    "transcriptionPostponed": "Transcription postponed",
+    "tapToTranscribe": "Tap to transcribe"
   }
 }
