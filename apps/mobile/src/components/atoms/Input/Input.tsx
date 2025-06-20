@@ -13,6 +13,7 @@ import { Theme } from '@somni/theme';
 export interface InputProps extends Omit<TextInputProps, 'style'> {
   label?: string;
   error?: string;
+  helper?: string; // Alias for helperText
   helperText?: string;
   variant?: 'outlined' | 'filled';
   size?: 'small' | 'medium' | 'large';
@@ -24,12 +25,15 @@ export interface InputProps extends Omit<TextInputProps, 'style'> {
 export const Input: React.FC<InputProps> = ({
   label,
   error,
+  helper,
   helperText,
   variant = 'outlined',
   size = 'medium',
   leftIcon,
   rightIcon,
   onRightIconPress,
+  onFocus,
+  onBlur,
   ...textInputProps
 }) => {
   const theme = useTheme();
@@ -51,8 +55,14 @@ export const Input: React.FC<InputProps> = ({
 
         <TextInput
           style={styles.input}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={(e) => {
+            setIsFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            onBlur?.(e);
+          }}
           placeholderTextColor={theme.colors.text.disabled}
           selectionColor={theme.colors.primary}
           {...textInputProps}
@@ -69,9 +79,9 @@ export const Input: React.FC<InputProps> = ({
         )}
       </View>
 
-      {(error || helperText) && (
+      {(error || helperText || helper) && (
         <Text style={error ? styles.errorText : styles.helperText}>
-          {error || helperText}
+          {error || helperText || helper}
         </Text>
       )}
     </View>
@@ -113,7 +123,7 @@ const useStyles = (
       borderColor: hasError
         ? theme.colors.status.error
         : isFocused
-          ? theme.colors.border.focus
+          ? theme.colors.accent.primary
           : theme.colors.border.primary,
       borderRadius: theme.borderRadius.large,
       paddingHorizontal: theme.spacing.medium,

@@ -106,31 +106,48 @@ serve(async (req) => {
 
     // REAL BACKEND INTEGRATION:
     try {
-      console.log('Calling Somni Backend for transcription...', { dreamId, duration });
+      const backendUrl = `${Deno.env.get('SOMNI_BACKEND_URL')}/api/v1/transcription/transcribe`;
+      const backendPayload = {
+        dreamId,
+        audioBase64,
+        duration,
+        options: {
+          languageCode: null,
+          tagAudioEvents: true,
+          diarize: false,
+        },
+      };
+
+      console.log('📤 Calling Somni Backend for transcription:', {
+        url: backendUrl,
+        dreamId,
+        duration,
+        audioSize: audioBase64.length,
+        hasApiSecret: !!Deno.env.get('SOMNI_BACKEND_API_SECRET'),
+        hasBackendUrl: !!Deno.env.get('SOMNI_BACKEND_URL')
+      });
       
-      const backendResponse = await fetch(`${Deno.env.get('SOMNI_BACKEND_URL')}/api/v1/transcription/transcribe`, {
+      const backendResponse = await fetch(backendUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-API-Secret': Deno.env.get('SOMNI_BACKEND_API_SECRET')!,
           'X-Supabase-Token': authHeader.replace('Bearer ', ''),
         },
-        body: JSON.stringify({
-          dreamId,
-          audioBase64,
-          duration,
-          options: {
-            languageCode: null,
-            tagAudioEvents: true,
-            diarize: false,
-          },
-        }),
+        body: JSON.stringify(backendPayload),
+      });
+
+      console.log('📥 Backend response received:', {
+        status: backendResponse.status,
+        statusText: backendResponse.statusText,
+        headers: Object.fromEntries(backendResponse.headers.entries())
       });
 
       if (!backendResponse.ok) {
         const errorText = await backendResponse.text();
-        console.error('Backend transcription failed:', {
+        console.error('❌ Backend transcription failed:', {
           status: backendResponse.status,
+          statusText: backendResponse.statusText,
           error: errorText,
           dreamId,
         });
@@ -151,23 +168,75 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({ error: 'Transcription service unavailable' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       const transcriptionResult = await backendResponse.json();
+      console.log('📥 Backend response data:', {
+        success: transcriptionResult.success,
+        hasTranscription: !!transcriptionResult.transcription,
+        textLength: transcriptionResult.transcription?.text?.length,
+        error: transcriptionResult.error
+      });
       
       if (!transcriptionResult.success) {
-        console.error('Backend returned error:', transcriptionResult.error);
+        console.error('❌ Backend returned error:', {
+          error: transcriptionResult.error,
+          fullResponse: transcriptionResult
+        });
         return new Response(
           JSON.stringify({ error: transcriptionResult.error }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      console.log('Transcription completed successfully:', {
+      console.log('✅ Transcription completed successfully:', {
         dreamId,
         textLength: transcriptionResult.transcription?.text?.length,
+        wordCount: transcriptionResult.transcription?.wordCount,
+        language: transcriptionResult.transcription?.language,
+      });
+
+      // Save transcription to database
+      console.log('💾 Saving transcription to database...', {
+        dreamId,
+        userId: user.id,
+        transcriptLength: transcriptionResult.transcription.text?.length
+      });
+
+      const { error: saveError } = await supabase
+        .from('dreams')
+        .update({
+          raw_transcript: transcriptionResult.transcription.text,
+          transcription_status: 'completed',
+          transcription_metadata: {
+            characterCount: transcriptionResult.transcription.characterCount,
+            wordCount: transcriptionResult.transcription.wordCount,
+            language: transcriptionResult.transcription.language || null,
+            completed_at: new Date().toISOString(),
+            backend_response: transcriptionResult.transcription,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', dreamId)
+        .eq('user_id', user.id);
+
+      if (saveError) {
+        console.error('❌ Failed to save transcription to database:', {
+          error: saveError,
+          dreamId,
+          userId: user.id
+        });
+        return new Response(
+          JSON.stringify({ error: 'Failed to save transcription' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('✅ Dream updated with transcription:', {
+        dreamId,
+        status: 'completed'
       });
 
       return new Response(
@@ -176,18 +245,24 @@ serve(async (req) => {
           dreamId,
           transcription: transcriptionResult.transcription 
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 
     } catch (error) {
-      console.error('Unexpected transcription error:', error);
+      console.error('❌ Unexpected transcription error:', {
+        error: error.message || error,
+        stack: error.stack,
+        dreamId,
+        type: error.constructor.name
+      });
       
       await supabase
         .from('dreams')
         .update({
           transcription_status: 'failed',
           transcription_metadata: {
-            error: 'Unexpected error during transcription',
+            error: error.message || 'Unexpected error during transcription',
+            errorType: error.constructor.name,
             failed_at: new Date().toISOString(),
           },
           updated_at: new Date().toISOString(),
@@ -197,7 +272,7 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ error: 'Internal server error during transcription' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

@@ -28,9 +28,24 @@ export const useStyles = () => {
     },
     footer: {
       padding: theme.spacing.large,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    backButton: {
+      flex: 1,
+      marginRight: theme.spacing.small,
+    },
+    nextButton: {
+      flex: 1,
+      marginLeft: theme.spacing.small,
     },
     skipButton: {
-      marginTop: theme.spacing.medium,
+      position: 'absolute',
+      bottom: -theme.spacing.xxl,
+      left: 0,
+      right: 0,
+      alignItems: 'center',
     },
   });
 }; 

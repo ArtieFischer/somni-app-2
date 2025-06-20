@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '@somni/stores';
 import { useTheme } from '../../../hooks/useTheme';
+import { useAuth } from '../../../hooks/useAuth';
 import { Theme } from '@somni/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { TouchableOpacity } from 'react-native';
@@ -19,6 +20,7 @@ export const OnboardingSleepScheduleScreen: React.FC<
   const theme = useTheme();
   const styles = useStyles(theme);
   const { data, updateData } = useOnboardingStore();
+  const { profile } = useAuth();
 
   const [bedtime, setBedtime] = useState(
     data.sleepSchedule?.bedtime
@@ -47,7 +49,17 @@ export const OnboardingSleepScheduleScreen: React.FC<
       wakeTime: formatTime(wakeTime),
     };
     updateData({ sleepSchedule });
-    navigation.navigate('OnboardingGoalsScreen');
+    
+    // Skip goals screen and check if user is interested in lucid dreaming
+    if (profile?.interested_in_lucid_dreaming === 'yes' || profile?.interested_in_lucid_dreaming === 'dont_know_yet') {
+      navigation.navigate('OnboardingLucidityScreen');
+    } else {
+      navigation.navigate('OnboardingCompleteScreen');
+    }
+  };
+  
+  const handleBack = () => {
+    navigation.goBack();
   };
 
   return (
@@ -55,6 +67,7 @@ export const OnboardingSleepScheduleScreen: React.FC<
       title={String(t('sleepSchedule.title'))}
       description={String(t('sleepSchedule.description'))}
       onNext={handleNext}
+      onBack={handleBack}
       isNextDisabled={false}
     >
       <View style={styles.container}>
@@ -69,15 +82,19 @@ export const OnboardingSleepScheduleScreen: React.FC<
             <Text style={styles.timeText}>{formatTime(bedtime)}</Text>
           </TouchableOpacity>
           {showBedtimePicker && (
-            <DateTimePicker
-              value={bedtime}
-              mode="time"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(event: any, selectedTime?: Date) => {
-                setShowBedtimePicker(Platform.OS === 'ios');
-                if (selectedTime) setBedtime(selectedTime);
-              }}
-            />
+            <View style={Platform.OS === 'ios' ? styles.datePickerWrapper : {}}>
+              <DateTimePicker
+                value={bedtime}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event: any, selectedTime?: Date) => {
+                  setShowBedtimePicker(Platform.OS === 'ios');
+                  if (selectedTime) setBedtime(selectedTime);
+                }}
+                textColor={theme.colors.text.primary}
+                themeVariant="light"
+              />
+            </View>
           )}
         </View>
 
@@ -92,15 +109,19 @@ export const OnboardingSleepScheduleScreen: React.FC<
             <Text style={styles.timeText}>{formatTime(wakeTime)}</Text>
           </TouchableOpacity>
           {showWakeTimePicker && (
-            <DateTimePicker
-              value={wakeTime}
-              mode="time"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(event: any, selectedTime?: Date) => {
-                setShowWakeTimePicker(Platform.OS === 'ios');
-                if (selectedTime) setWakeTime(selectedTime);
-              }}
-            />
+            <View style={Platform.OS === 'ios' ? styles.datePickerWrapper : {}}>
+              <DateTimePicker
+                value={wakeTime}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event: any, selectedTime?: Date) => {
+                  setShowWakeTimePicker(Platform.OS === 'ios');
+                  if (selectedTime) setWakeTime(selectedTime);
+                }}
+                textColor={theme.colors.text.primary}
+                themeVariant="light"
+              />
+            </View>
           )}
         </View>
       </View>
@@ -124,18 +145,24 @@ const useStyles = (theme: Theme) => {
       marginBottom: theme.spacing.small,
     },
     timeButton: {
-      backgroundColor: theme.colors.background.secondary,
+      backgroundColor: theme.colors.purple[100],
       borderRadius: theme.borderRadius.medium,
       paddingVertical: theme.spacing.medium,
       paddingHorizontal: theme.spacing.large,
-      borderWidth: 1,
-      borderColor: theme.colors.border.primary,
+      borderWidth: 2,
+      borderColor: theme.colors.purple[300],
     },
     timeText: {
       fontSize: theme.typography.h3.fontSize,
       fontWeight: '400' as any,
       color: theme.colors.text.primary,
       textAlign: 'center',
+    },
+    datePickerWrapper: {
+      backgroundColor: theme.colors.background.primary,
+      borderRadius: theme.borderRadius.medium,
+      marginTop: theme.spacing.small,
+      padding: theme.spacing.small,
     },
   });
 };

@@ -9,6 +9,7 @@ interface OnboardingScreenLayoutProps {
   children: React.ReactNode;
   onNext: () => void;
   onSkip?: () => void;
+  onBack?: () => void;
   isNextDisabled?: boolean;
 }
 
@@ -18,6 +19,7 @@ export const OnboardingScreenLayout: React.FC<OnboardingScreenLayoutProps> = ({
   children,
   onNext,
   onSkip,
+  onBack,
   isNextDisabled = false,
 }) => {
   const styles = useStyles();
@@ -34,11 +36,22 @@ export const OnboardingScreenLayout: React.FC<OnboardingScreenLayoutProps> = ({
       </View>
       <View style={styles.content}>{children}</View>
       <View style={styles.footer}>
+        {onBack && (
+          <Button
+            variant="secondary"
+            size="large"
+            onPress={onBack}
+            style={styles.backButton}
+          >
+            Back
+          </Button>
+        )}
         <Button
           variant="primary"
           size="large"
           onPress={onNext}
           disabled={isNextDisabled}
+          style={onBack ? styles.nextButton : undefined}
         >
           Next
         </Button>

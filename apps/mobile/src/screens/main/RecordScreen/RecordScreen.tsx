@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Animated, SafeAreaView, Alert } from 'react-native';
 import { supabase } from '../../../lib/supabase';
 import { Text } from '../../../components/atoms';
@@ -15,12 +15,19 @@ import { useRecordingHandler } from '../../../hooks/useRecordingHandler';
 import { useDreamStore } from '@somni/stores';
 import { useAuth } from '../../../hooks/useAuth';
 import { useStyles } from './RecordScreen.styles';
+import { useNavigation } from '@react-navigation/native';
+import { useRealtimeSubscription } from '../../../hooks/useRealtimeSubscription';
+// import { testRealtimeSubscription } from '../../../utils/realtimeDebug';
 
 export const RecordScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
   const styles = useStyles();
   const dreamStore = useDreamStore();
   const { user } = useAuth();
+  const navigation = useNavigation();
+  
+  // Track dreams recorded from this screen to avoid duplicate notifications
+  const recordedDreamIdsRef = useRef<Set<string>>(new Set());
   
   const { 
     isRecording, 
@@ -39,6 +46,7 @@ export const RecordScreen: React.FC = () => {
     isTranscribing,
     savePendingRecording,
     acceptRecording,
+    saveLaterRecording,
     cancelRecording,
   } = useRecordingHandler();
   
@@ -62,43 +70,134 @@ export const RecordScreen: React.FC = () => {
   // Prevent double clicks
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
-  // Monitor real-time updates for transcription completion
-  useEffect(() => {
-    if (!user?.id) return;
+  const handleRecordPress = useCallback(async () => {
+    if (isButtonDisabled || isProcessing) {
+      return;
+    }
 
-    const channel = supabase
-      .channel('dream-transcriptions')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'dreams',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('Dream update received:', payload);
+    setIsButtonDisabled(true);
+    
+    try {
+      if (isRecording) {
+        const result = await stopRecording();
+        savePendingRecording(result);
+      } else {
+        await startRecording();
+      }
+    } catch (err) {
+      console.error('Record button error:', err);
+    } finally {
+      setTimeout(() => {
+        setIsButtonDisabled(false);
+      }, 500);
+    }
+  }, [isButtonDisabled, isProcessing, isRecording, stopRecording, savePendingRecording, startRecording]);
+
+  // Listen for tab press when already focused
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('tabPressWhenFocused', (e) => {
+      // Only handle if not processing and no pending recording
+      if (!isProcessing && !pendingRecording && !isButtonDisabled) {
+        handleRecordPress();
+      }
+    });
+
+    return unsubscribe;
+  }, [isProcessing, pendingRecording, isButtonDisabled, handleRecordPress]);
+
+  // Memoize the real-time event handler
+  const handleRealtimeEvent = useCallback((payload: any) => {
+      console.log('🔔 Dream table event:', {
+        type: payload.eventType,
+        table: payload.table,
+        dreamId: payload.new?.id || payload.old?.id,
+        transcriptionStatus: payload.new?.transcription_status,
+        hasTranscript: !!payload.new?.raw_transcript,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Handle UPDATE events
+      if (payload.eventType === 'UPDATE' && payload.new) {
+        const dream = payload.new;
+        
+        // Check if this is a transcription status update
+        if (dream.transcription_status !== payload.old?.transcription_status) {
+          console.log('📝 Transcription status changed:', {
+            dreamId: dream.id,
+            oldStatus: payload.old?.transcription_status,
+            newStatus: dream.transcription_status,
+            hasTranscript: !!dream.raw_transcript
+          });
           
-          if (payload.new.transcription_status === 'completed') {
-            dreamStore.updateDream(payload.new.id, {
-              rawTranscript: payload.new.raw_transcript,
+          if (dream.transcription_status === 'completed' && dream.raw_transcript) {
+            console.log('✅ Transcription completed for dream:', dream.id);
+            
+            // Update the dream in the store
+            dreamStore.updateDream(dream.id, {
+              rawTranscript: dream.raw_transcript,
               status: 'completed',
             });
             
-            Alert.alert(
-              'Transcription Complete!',
-              'Your dream has been transcribed.',
-              [{ text: 'OK' }]
-            );
+            // Check if this dream exists in the store
+            const existingDream = dreamStore.getDreamById(dream.id);
+            if (!existingDream) {
+              console.log('⚠️ Dream not found in store, adding it');
+              dreamStore.addDream({
+                id: dream.id,
+                userId: dream.user_id,
+                rawTranscript: dream.raw_transcript,
+                status: 'completed',
+                duration: dream.duration || 0,
+                recordedAt: dream.created_at,
+                confidence: 1.0,
+              });
+            }
+            
+            // Remove from tracked dreams after completion
+            if (recordedDreamIdsRef.current.has(dream.id)) {
+              recordedDreamIdsRef.current.delete(dream.id);
+            }
+          } else if (dream.transcription_status === 'failed') {
+            console.log('❌ Transcription failed for dream:', dream.id);
+            dreamStore.updateDream(dream.id, {
+              status: 'failed',
+            });
+          } else if (dream.transcription_status === 'processing') {
+            console.log('⏳ Transcription processing for dream:', dream.id);
+            dreamStore.updateDream(dream.id, {
+              status: 'transcribing',
+            });
           }
         }
-      )
-      .subscribe();
+      }
+      
+      // Handle INSERT events (new dreams)
+      if (payload.eventType === 'INSERT' && payload.new) {
+        console.log('🆕 New dream inserted:', payload.new.id);
+      }
+  }, [dreamStore]);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, dreamStore]);
+  // Add a small delay before subscribing to avoid connection errors on app startup
+  const [shouldSubscribe, setShouldSubscribe] = useState(false);
+  
+  useEffect(() => {
+    if (user?.id) {
+      const timer = setTimeout(() => {
+        setShouldSubscribe(true);
+      }, 1000); // 1 second delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user?.id]);
+
+  // Monitor real-time updates for transcription completion
+  useRealtimeSubscription({
+    channelName: 'dream-transcriptions',
+    table: 'dreams',
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    enabled: shouldSubscribe && !!user?.id,
+    onEvent: handleRealtimeEvent,
+  });
 
   useEffect(() => {
     // Animate content on mount
@@ -143,29 +242,6 @@ export const RecordScreen: React.FC = () => {
     }
   }, [error, clearError, t]);
 
-  const handleRecordPress = async () => {
-    if (isButtonDisabled || isProcessing) {
-      return;
-    }
-
-    setIsButtonDisabled(true);
-    
-    try {
-      if (isRecording) {
-        const result = await stopRecording();
-        savePendingRecording(result);
-      } else {
-        await startRecording();
-      }
-    } catch (err) {
-      console.error('Record button error:', err);
-    } finally {
-      setTimeout(() => {
-        setIsButtonDisabled(false);
-      }, 500);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.innerContainer}>
@@ -183,10 +259,10 @@ export const RecordScreen: React.FC = () => {
           {/* Title section */}
           <View style={styles.header}>
             <Text variant="h1" style={styles.title}>
-              {String(t('record.title'))}
+              {pendingRecording ? String(t('record.dreamRecorded')) : String(t('record.title'))}
             </Text>
             <Text variant="body" color="secondary" style={styles.subtitle}>
-              {String(t('record.subtitle'))}
+              {pendingRecording ? String(t('record.acceptToTranscribe')) : String(t('record.subtitle'))}
             </Text>
           </View>
 
@@ -200,20 +276,27 @@ export const RecordScreen: React.FC = () => {
               />
             ) : (
               <RecordingActions
-                onAccept={acceptRecording}
+                onAccept={async () => {
+                  const dreamId = await acceptRecording();
+                  if (dreamId) {
+                    // Track this dream ID to show notification when it completes
+                    recordedDreamIdsRef.current.add(dreamId);
+                  }
+                }}
+                onSaveLater={saveLaterRecording}
                 onCancel={cancelRecording}
                 isLoading={isTranscribing}
               />
             )}
           </View>
 
-          {/* Recording timer */}
-          {isRecording && (
+          {/* Recording timer - always render to prevent layout shift */}
+          <View style={{ opacity: isRecording ? 1 : 0, minHeight: 80 }}>
             <RecordingTimer
               isRecording={isRecording}
               duration={recordingDuration}
             />
-          )}
+          </View>
 
           {/* Instructions or status */}
           <RecordingStatus

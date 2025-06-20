@@ -9,11 +9,10 @@ export const useStyles = () => {
       backgroundColor: theme.colors.background.elevated,
       borderTopWidth: 1,
       borderTopColor: theme.colors.border.primary,
-      ...theme.shadows.medium,
     },
     tabBar: {
       flexDirection: 'row',
-      height: 65,
+      height: 56,
       paddingHorizontal: theme.spacing.small,
       paddingBottom: theme.spacing.xs,
     },
@@ -21,15 +20,42 @@ export const useStyles = () => {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingTop: theme.spacing.small,
+    },
+    recordTab: {
+      marginTop: -theme.spacing.large,
+    },
+    recordButtonContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    recordButton: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.colors.secondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: theme.colors.secondary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 6,
+      elevation: 6,
+    },
+    recordButtonRecording: {
+      backgroundColor: '#FF0000',
+      shadowColor: '#FF0000',
+      shadowOpacity: 0.5,
     },
     label: {
-      fontSize: 11,
+      fontSize: 10,
       marginTop: 2,
+      fontWeight: '500',
     },
-    activeColor: theme.colors.primary,
-    inactiveColor: theme.colors.text.secondary,
   });
 
-  return styles;
+  return {
+    ...styles,
+    activeColor: theme.colors.secondary,
+    inactiveColor: theme.colors.text.secondary,
+  };
 };

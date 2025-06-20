@@ -8,13 +8,12 @@ export const useStyles = () => {
     container: {
       alignItems: 'center',
       gap: theme.spacing.medium,
+      width: '100%',
+      paddingHorizontal: theme.spacing.large,
     },
-    acceptButton: {
-      width: 200,
-      marginBottom: theme.spacing.small,
-    },
-    cancelButton: {
-      width: 150,
+    buttonWrapper: {
+      width: '100%',
+      maxWidth: 280,
     },
   });
 };

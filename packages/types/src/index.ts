@@ -146,6 +146,12 @@ export interface UserProfile {
   username?: string;
   display_name?: string;
   avatar_url?: string;
+  sex?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  date_of_birth?: string; // ISO date string
+  language: 'en'; // Start with English, will extend later
+  dream_interpreter?: 'carl' | 'sigmund' | 'lakshmi' | 'mary';
+  improve_sleep_quality?: 'yes' | 'no' | 'not_sure';
+  interested_in_lucid_dreaming?: 'yes' | 'no' | 'dont_know_yet';
   is_premium: boolean;
   onboarding_completed: boolean;
   sleep_schedule?: {
@@ -167,6 +173,20 @@ export interface UserProfile {
   };
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Dream Interpreter type
+export interface DreamInterpreter {
+  id: string;
+  name: string;
+  full_name: string;
+  description: string;
+  image_url: string;
+  interpretation_style: {
+    approach: string;
+    focus: string[];
+  };
+  created_at?: string;
 }
 
 // API response types

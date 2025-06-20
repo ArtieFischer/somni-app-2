@@ -1,4 +1,40 @@
 {
+  "steps": {
+    "credentials": "Account",
+    "personal": "Profile",
+    "interpreter": "Guide",
+    "preferences": "Goals",
+    "review": "Review"
+  },
+  "credentials": {
+    "title": "Let's get started",
+    "subtitle": "Create your account to begin tracking your dreams",
+    "email": "Email",
+    "password": "Password",
+    "username": "Username",
+    "usernameHelper": "This will be your unique identifier",
+    "continue": "Continue"
+  },
+  "personalInfo": {
+    "title": "Tell us about yourself",
+    "subtitle": "This helps us personalize your dream journey",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "How should we call you?",
+    "sex": "Sex",
+    "sexOptions": {
+      "male": "Male",
+      "female": "Female", 
+      "other": "Other",
+      "preferNotToSay": "Prefer not to say"
+    },
+    "dateOfBirth": "Date of Birth",
+    "selectDate": "Select your birth date",
+    "language": "Language",
+    "languageNote": "More languages coming soon",
+    "avatarHint": "Tap to add your avatar",
+    "continue": "Continue",
+    "back": "Back"
+  },
   "welcome": {
     "title": "Welcome to the Dream Realm",
     "description": "Before we begin your nocturnal journey, let's set up a few things to personalize your dream exploration.",

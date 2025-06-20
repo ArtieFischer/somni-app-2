@@ -1,28 +1,49 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
-  View, 
   FlatList, 
-  RefreshControl, 
-  TouchableOpacity,
-  TextInput,
-  ScrollView 
+  RefreshControl,
 } from 'react-native';
-import { Text } from '../../../components/atoms';
+import {
+  Box,
+  VStack,
+  HStack,
+  Text,
+  Heading,
+  ScrollView,
+  Pressable,
+  Center,
+} from '../../../components/ui';
+import { SimpleInput } from '../../../components/ui/SimpleInput';
+import { Button } from '../../../components/atoms';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamStore } from '@somni/stores';
-import { useTheme } from '../../../hooks/useTheme';
 import { Dream } from '@somni/types';
-import { useStyles } from './DreamDiaryScreen.styles';
+import { DreamCard } from '../../../components/molecules/DreamCard';
+import { useNavigation } from '@react-navigation/native';
+import { MainTabScreenProps } from '@somni/types';
+import { darkTheme } from '@somni/theme';
+import { Alert } from 'react-native';
+import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../hooks/useAuth';
+import { useRealtimeSubscription } from '../../../hooks/useRealtimeSubscription';
+import { testRealtimeConnection } from '../../../utils/testRealtimeConnection';
+import { testDatabaseRealtime } from '../../../utils/testDatabaseRealtime';
+import { useIsFocused } from '@react-navigation/native';
+
+type DreamDiaryScreenProps = MainTabScreenProps<'DreamDiary'>;
 
 export const DreamDiaryScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
-  const theme = useTheme();
-  const styles = useStyles();
-  const { dreams, searchDreams } = useDreamStore();
+  const navigation = useNavigation<DreamDiaryScreenProps['navigation']>();
+  const { dreams, searchDreams, updateDream, addDream } = useDreamStore();
+  const { session, user } = useAuth();
+  const isFocused = useIsFocused();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'lucid' | 'recent'>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [retryingDreams, setRetryingDreams] = useState<Set<string>>(new Set());
 
   // Filter and search dreams
   const filteredDreams = useMemo(() => {
@@ -56,217 +77,441 @@ export const DreamDiaryScreen: React.FC = () => {
     );
   }, [dreams, searchQuery, selectedFilter, searchDreams]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    // Simulate refresh - in real app, this would sync with backend
-    setTimeout(() => setRefreshing(false), 1000);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return String(t('time.today'));
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return String(t('time.yesterday'));
-    } else {
-      return date.toLocaleDateString();
+  // Fetch dreams on mount (only once)
+  useEffect(() => {
+    if (user?.id) {
+      // Only fetch on first mount, not on every re-render
+      const timer = setTimeout(() => {
+        onRefresh();
+      }, 500);
+      return () => clearTimeout(timer);
     }
+  }, []); // Empty dependency array to run only once
+
+  // Memoize the real-time event handler
+  const handleRealtimeEvent = useCallback((payload: any) => {
+      console.log('🎯 DreamDiary: Realtime event:', {
+        type: payload.eventType,
+        dreamId: payload.new?.id || payload.old?.id,
+        status: payload.new?.transcription_status,
+        hasTranscript: !!payload.new?.raw_transcript,
+      });
+
+      // Handle dream updates
+      if (payload.eventType === 'UPDATE' && payload.new) {
+        const dreamData = payload.new;
+        
+        // Find existing dream in store
+        const existingDream = dreams.find(d => 
+          d.id === dreamData.id || 
+          d.id === `temp_${dreamData.id}` ||
+          d.id.replace('temp_', '') === dreamData.id
+        );
+
+        if (existingDream) {
+          const newStatus = dreamData.transcription_status === 'completed' ? 'completed' : 
+                           dreamData.transcription_status === 'processing' ? 'transcribing' : 
+                           dreamData.transcription_status === 'failed' ? 'failed' : 'pending';
+          
+          console.log('📝 Updating existing dream:', {
+            dreamId: existingDream.id,
+            oldStatus: existingDream.status,
+            newStatus,
+            hasTranscript: !!dreamData.raw_transcript,
+          });
+          
+          updateDream(existingDream.id, {
+            id: dreamData.id,
+            rawTranscript: dreamData.raw_transcript || existingDream.rawTranscript,
+            status: newStatus,
+          });
+          
+        }
+      } else if (payload.eventType === 'INSERT' && payload.new) {
+        const dreamData = payload.new;
+        
+        // Check if dream already exists
+        const exists = dreams.some(d => 
+          d.id === dreamData.id || 
+          d.id === `temp_${dreamData.id}` ||
+          d.id.replace('temp_', '') === dreamData.id
+        );
+
+        if (!exists) {
+          console.log('➕ Adding new dream from realtime:', dreamData.id);
+          addDream({
+            id: dreamData.id,
+            userId: dreamData.user_id || user.id, // Add the missing userId
+            title: `Dream ${new Date(dreamData.created_at).toLocaleDateString()}`,
+            description: dreamData.raw_transcript?.substring(0, 100) + '...' || '',
+            rawTranscript: dreamData.raw_transcript || '',
+            recordedAt: new Date(dreamData.created_at),
+            duration: dreamData.duration || 0,
+            status: dreamData.transcription_status === 'completed' ? 'completed' : 
+                    dreamData.transcription_status === 'processing' ? 'transcribing' : 
+                    dreamData.transcription_status === 'failed' ? 'failed' : 'pending',
+            confidence: 0.8,
+            createdAt: new Date(dreamData.created_at),
+            updatedAt: new Date(dreamData.updated_at || dreamData.created_at),
+          });
+        }
+      }
+  }, [dreams, updateDream, addDream, user?.id, isFocused]);
+
+  // Add a small delay before subscribing to avoid connection errors on app startup
+  const [shouldSubscribe, setShouldSubscribe] = useState(false);
+  
+  useEffect(() => {
+    if (user?.id) {
+      const timer = setTimeout(() => {
+        setShouldSubscribe(true);
+      }, 1000); // 1 second delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user?.id]);
+
+  // Subscribe to real-time dream updates
+  useRealtimeSubscription({
+    channelName: 'dream-diary',
+    table: 'dreams',
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    enabled: shouldSubscribe && !!user?.id,
+    onEvent: handleRealtimeEvent,
+  });
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    
+    if (user?.id) {
+      try {
+        // Fetch dreams from database
+        const { data: dbDreams, error } = await supabase
+          .from('dreams')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        
+        if (!error && dbDreams) {
+          console.log('🔄 Fetched dreams from database:', dbDreams.length);
+          
+          // Update local store with database dreams
+          dbDreams.forEach(dbDream => {
+            const existingDream = dreams.find(d => 
+              d.id === dbDream.id || 
+              d.id === `temp_${dbDream.id}` ||
+              d.id.replace('temp_', '') === dbDream.id
+            );
+            
+            if (existingDream) {
+              // Update existing dream
+              updateDream(existingDream.id, {
+                id: dbDream.id,
+                rawTranscript: dbDream.raw_transcript || existingDream.rawTranscript,
+                status: dbDream.transcription_status === 'completed' ? 'completed' : 
+                        dbDream.transcription_status === 'processing' ? 'transcribing' : 
+                        dbDream.transcription_status === 'failed' ? 'failed' : 'pending',
+              });
+            } else if (dbDream.raw_transcript) {
+              // Add new dream if it has a transcript
+              console.log('➕ Adding dream from database:', dbDream.id);
+              addDream({
+                id: dbDream.id,
+                userId: dbDream.user_id || user.id, // Add the missing userId
+                title: `Dream ${new Date(dbDream.created_at).toLocaleDateString()}`,
+                description: dbDream.raw_transcript.substring(0, 100) + '...',
+                rawTranscript: dbDream.raw_transcript,
+                recordedAt: new Date(dbDream.created_at),
+                duration: dbDream.duration || 0,
+                status: 'completed',
+                confidence: 0.8,
+                createdAt: new Date(dbDream.created_at),
+                updatedAt: new Date(dbDream.updated_at || dbDream.created_at),
+              });
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching dreams:', error);
+      }
+    }
+    
+    setTimeout(() => setRefreshing(false), 500);
   };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+  const handleDreamPress = (dream: Dream) => {
+    navigation.navigate('DreamDetail', { dreamId: dream.id });
   };
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const handleAnalyzePress = (dream: Dream) => {
+    // Navigate to analysis screen or trigger analysis
+    console.log('Analyze dream:', dream.id);
   };
 
-  const getStatusColor = (status: Dream['status']) => {
-    switch (status) {
-      case 'completed':
-        return theme.colors.status.success;
-      case 'transcribing':
-        return theme.colors.status.warning;
-      case 'failed':
-        return theme.colors.status.error;
-      default:
-        return theme.colors.text.secondary;
+  const handleDeletePress = (dream: Dream) => {
+    // Delete dream from store
+    const { deleteDream } = useDreamStore.getState();
+    deleteDream(dream.id);
+  };
+
+  const handleRetryPress = async (dream: Dream) => {
+    if (!session?.access_token || !user?.id) {
+      Alert.alert(
+        'Authentication Required',
+        'Please log in to retry transcription',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Add to retrying set
+    setRetryingDreams(prev => new Set(prev).add(dream.id));
+    
+    try {
+      // Update dream status to transcribing
+      updateDream(dream.id, { status: 'transcribing' });
+
+      // Call the transcription edge function
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/dreams-transcribe-retry`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dreamId: dream.id.replace('temp_', ''), // Remove temp prefix if present
+          })
+        }
+      );
+
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Retry failed');
+      }
+
+      Alert.alert(
+        'Transcription Started',
+        'Your dream is being transcribed',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Retry transcription error:', error);
+      // Revert status
+      updateDream(dream.id, { status: 'failed' });
+      
+      Alert.alert(
+        String(t('record.serviceUnavailable.title')),
+        String(t('record.serviceUnavailable.message')),
+        [{ text: String(t('actions.ok')) }]
+      );
+    } finally {
+      // Remove from retrying set
+      setRetryingDreams(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(dream.id);
+        return newSet;
+      });
     }
   };
 
   const renderDreamItem = ({ item }: { item: Dream }) => (
-    <TouchableOpacity style={styles.dreamCard} activeOpacity={0.8}>
-      <View style={styles.dreamHeader}>
-        <View style={styles.dateContainer}>
-          <Text variant="body" style={styles.dateText}>
-            {formatDate(item.recordedAt)}
-          </Text>
-          <Text variant="caption" color="secondary">
-            {formatTime(item.recordedAt)}
-          </Text>
-        </View>
-        <View style={styles.metaContainer}>
-          <Text variant="caption" style={styles.duration}>
-            🎙️ {formatDuration(item.duration)}
-          </Text>
-          <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-        </View>
-      </View>
-
-      <Text 
-        variant="body" 
-        style={styles.dreamText}
-        numberOfLines={3}
-        ellipsizeMode="tail"
-      >
-        {item.rawTranscript || String(t('record.processing'))}
-      </Text>
-
-      {item.tags && item.tags.length > 0 && (
-        <View style={styles.tagsContainer}>
-          {item.tags.slice(0, 3).map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <Text variant="caption" style={styles.tagText}>
-                {tag}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      <View style={styles.dreamFooter}>
-        <Text variant="caption" color="secondary">
-          {item.confidence ? `${Math.round(item.confidence * 100)}% ${String(t('analysis.confidence', { percentage: Math.round(item.confidence * 100) }))}` : ''}
-        </Text>
-        <TouchableOpacity style={styles.analyzeButton}>
-          <Text variant="caption" style={styles.analyzeButtonText}>
-            {String(t('analysis.title'))} →
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+    <DreamCard 
+      dream={item}
+      onPress={handleDreamPress}
+      onAnalyzePress={handleAnalyzePress}
+      onDeletePress={handleDeletePress}
+      onRetryPress={handleRetryPress}
+    />
   );
 
   const ListHeader = () => (
-    <View style={styles.headerContainer}>
+    <VStack space="lg" px="$4" pt="$3" pb="$3">
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder={String(t('journal.search'))}
-          placeholderTextColor={theme.colors.text.disabled}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+      <Box position="relative">
+        <Box position="absolute" left="$3" top="50%" zIndex={1} style={{ transform: [{ translateY: -9 }] }}>
+          <Ionicons name="search" size={18} color={darkTheme.colors.text.secondary} />
+        </Box>
+        <Box 
+          bg={darkTheme.colors.background.elevated} 
+          borderRadius={24}
+          overflow="hidden"
+        >
+          <SimpleInput
+            placeholder={t('journal.search')}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            size="lg"
+            style={{
+              paddingLeft: 40,
+              paddingRight: searchQuery.length > 0 ? 40 : 16,
+              backgroundColor: darkTheme.colors.background.elevated,
+              borderWidth: 0,
+            }}
+          />
+        </Box>
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Text style={styles.clearIcon}>✕</Text>
-          </TouchableOpacity>
+          <Pressable 
+            onPress={() => setSearchQuery('')}
+            position="absolute" 
+            right="$3" 
+            top="50%" 
+            zIndex={1} 
+            style={{ transform: [{ translateY: -9 }] }}
+          >
+            <Ionicons name="close-circle" size={18} color={darkTheme.colors.text.secondary} />
+          </Pressable>
         )}
-      </View>
+      </Box>
 
       {/* Filters */}
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        style={styles.filtersContainer}
       >
-        {(['all', 'recent', 'lucid'] as const).map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.filterChip,
-              selectedFilter === filter && styles.filterChipActive
-            ]}
-            onPress={() => setSelectedFilter(filter)}
-          >
-            <Text 
-              variant="caption" 
-              style={[
-                styles.filterText,
-                selectedFilter === filter && styles.filterTextActive
-              ]}
-            >
-              {String(t(`journal.filters.${filter}`))}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <HStack space="sm">
+          {(['all', 'recent', 'lucid'] as const).map((filter) => {
+            const isActive = selectedFilter === filter;
+            return (
+              <Pressable
+                key={filter}
+                onPress={() => setSelectedFilter(filter)}
+                bg={isActive ? darkTheme.colors.primary + '20' : darkTheme.colors.background.elevated}
+                borderWidth={1}
+                borderColor={isActive ? darkTheme.colors.primary : 'transparent'}
+                borderRadius="$full"
+                px="$4"
+                py="$2"
+              >
+                <Text 
+                  size="sm" 
+                  fontWeight={isActive ? '$semibold' : '$normal'}
+                  color={isActive ? darkTheme.colors.primary : darkTheme.colors.text.primary}
+                >
+                  {t(`journal.filters.${filter}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </HStack>
       </ScrollView>
 
+      {/* Debug Buttons - Remove this in production */}
+      {__DEV__ && (
+        <VStack space="sm" mb="$2">
+          <HStack space="sm">
+            <Pressable
+              onPress={testRealtimeConnection}
+              bg={darkTheme.colors.background.elevated}
+              borderRadius={8}
+              px="$3"
+              py="$2"
+              flex={1}
+            >
+              <Text size="sm" color={darkTheme.colors.primary} textAlign="center">
+                Test WebSocket
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => testDatabaseRealtime(user?.id || '')}
+              bg={darkTheme.colors.background.elevated}
+              borderRadius={8}
+              px="$3"
+              py="$2"
+              flex={1}
+            >
+              <Text size="sm" color={darkTheme.colors.primary} textAlign="center">
+                Test DB Realtime
+              </Text>
+            </Pressable>
+          </HStack>
+        </VStack>
+      )}
+
       {/* Stats Summary */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text variant="h2" style={styles.statValue}>
-            {dreams.length}
-          </Text>
-          <Text variant="caption" color="secondary">
-            {String(t('journal.stats.total'))}
-          </Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text variant="h2" style={styles.statValue}>
-            {dreams.filter(d => d.tags?.includes('lucid')).length}
-          </Text>
-          <Text variant="caption" color="secondary">
-            {String(t('journal.stats.lucid'))}
-          </Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text variant="h2" style={styles.statValue}>
-            {dreams.length > 0 
-              ? Math.round(dreams.reduce((acc, d) => acc + d.confidence, 0) / dreams.length * 100)
-              : 0}%
-          </Text>
-          <Text variant="caption" color="secondary">
-            {String(t('journal.stats.avgMood'))}
-          </Text>
-        </View>
-      </View>
-    </View>
+      <Box 
+        bg={darkTheme.colors.background.elevated}
+        borderRadius={12}
+        p="$4"
+        shadowColor={darkTheme.colors.black}
+        shadowOffset={{ width: 0, height: 2 }}
+        shadowOpacity={0.1}
+        shadowRadius={4}
+        elevation={3}
+      >
+        <HStack justifyContent="space-around" alignItems="center">
+          <VStack alignItems="center" flex={1}>
+            <Heading size="xl" color={darkTheme.colors.primary}>
+              {dreams.length}
+            </Heading>
+            <Text size="sm" color={darkTheme.colors.text.secondary}>
+              {t('journal.stats.total')}
+            </Text>
+          </VStack>
+          
+          <Box w={1} h={40} bg={darkTheme.colors.border.primary} mx="$4" />
+          
+          <VStack alignItems="center" flex={1}>
+            <Heading size="xl" color={darkTheme.colors.primary}>
+              {dreams.filter(d => d.tags?.includes('lucid')).length}
+            </Heading>
+            <Text size="sm" color={darkTheme.colors.text.secondary}>
+              {t('journal.stats.lucid')}
+            </Text>
+          </VStack>
+          
+          <Box w={1} h={40} bg={darkTheme.colors.border.primary} mx="$4" />
+          
+          <VStack alignItems="center" flex={1}>
+            <Heading size="xl" color={darkTheme.colors.primary}>
+              {dreams.length > 0 
+                ? Math.round(dreams.reduce((acc, d) => acc + d.confidence, 0) / dreams.length * 100)
+                : 0}%
+            </Heading>
+            <Text size="sm" color={darkTheme.colors.text.secondary}>
+              {t('journal.stats.avgMood')}
+            </Text>
+          </VStack>
+        </HStack>
+      </Box>
+    </VStack>
   );
 
   const ListEmpty = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyIcon}>💭</Text>
-      <Text variant="h3" style={styles.emptyTitle}>
-        {String(t('journal.empty'))}
-      </Text>
-      <Text variant="body" color="secondary" style={styles.emptySubtitle}>
-        {String(t('journal.emptySubtitle'))}
-      </Text>
-    </View>
+    <Center flex={1} py="$20" px="$8">
+      <VStack space="lg" alignItems="center">
+        <Text fontSize={64}>💭</Text>
+        <Heading size="lg" textAlign="center">
+          {t('journal.empty')}
+        </Heading>
+        <Text size="md" color={darkTheme.colors.text.secondary} textAlign="center" lineHeight={24}>
+          {t('journal.emptySubtitle')}
+        </Text>
+      </VStack>
+    </Center>
   );
 
   return (
-    <View style={styles.container}>
+    <Box flex={1} bg={darkTheme.colors.background.primary}>
       <FlatList
         data={filteredDreams}
         renderItem={renderDreamItem}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={ListEmpty}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={{ paddingBottom: darkTheme.spacing.xl }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={theme.colors.primary}
+            tintColor={darkTheme.colors.primary}
           />
         }
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={() => <Box h={darkTheme.spacing.medium} />}
       />
-    </View>
+    </Box>
   );
 };

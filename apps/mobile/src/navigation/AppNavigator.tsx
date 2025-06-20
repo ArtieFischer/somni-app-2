@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 import AuthNavigator from './AuthNavigator';
-import MainNavigator from './MainNavigator';
+import MainStackNavigator from './MainStackNavigator';
 import OnboardingNavigator from './OnboardingNavigator';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
@@ -11,7 +11,14 @@ export default function AppNavigator() {
   const theme = useTheme();
   const styles = useStyles(theme);
 
+  console.log('🔍 AppNavigator state:', {
+    isAuthenticated,
+    isLoading,
+    profile: profile ? { id: profile.id, onboarding_completed: profile.onboarding_completed } : null
+  });
+
   if (isLoading) {
+    console.log('⏳ Showing loading screen');
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -22,13 +29,16 @@ export default function AppNavigator() {
   if (isAuthenticated) {
     // If the profile is loaded and onboarding is NOT complete, show the onboarding flow.
     if (profile && !profile.onboarding_completed) {
+      console.log('🎯 Showing onboarding flow');
       return <OnboardingNavigator />;
     }
     // Otherwise, show the main app.
-    return <MainNavigator />;
+    console.log('🏠 Showing main app');
+    return <MainStackNavigator />;
   }
 
   // If not authenticated, show the auth flow.
+  console.log('🔐 Showing auth flow');
   return <AuthNavigator />;
 }
 

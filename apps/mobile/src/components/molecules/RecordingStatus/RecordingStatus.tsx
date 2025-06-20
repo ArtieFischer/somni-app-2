@@ -23,6 +23,9 @@ export const RecordingStatus: React.FC<RecordingStatusProps> = ({
   const styles = useStyles();
 
   const getStatusText = () => {
+    if (isTranscribing) {
+      return String(t('record.waitingForService'));
+    }
     if (isProcessing) {
       return String(t('record.processing'));
     }

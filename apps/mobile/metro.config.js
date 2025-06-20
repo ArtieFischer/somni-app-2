@@ -14,6 +14,23 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'), // Monorepo root node_modules
 ];
 
+// Optimize for faster bundling
+config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
+config.transformer.minifierConfig = {
+  keep_fnames: true,
+  mangle: {
+    keep_fnames: true,
+  },
+};
+
+// Enable caching for faster rebuilds
+const { FileStore } = require('metro-cache');
+config.cacheStores = [
+  new FileStore({
+    root: path.join(projectRoot, '.metro-cache'),
+  }),
+];
+
 // Optional: if you have issues with symlinks (often needed in monorepos)
 // Make sure to install `metro-resolver-symlinks` if you use this
 // const { GazeWatcher } = require('jest-haste-map');

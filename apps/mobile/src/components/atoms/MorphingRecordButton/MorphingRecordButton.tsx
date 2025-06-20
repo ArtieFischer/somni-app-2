@@ -322,13 +322,9 @@ export const MorphingRecordButton: React.FC<MorphingRecordButtonProps> = ({
             ]}
           >
             <View style={styles.iconContainer}>
-              {isRecording ? (
-                <View style={styles.stopIcon} />
-              ) : (
-                <View style={styles.micIcon}>
-                  <Text style={styles.micEmoji}>🎙️</Text>
-                </View>
-              )}
+              <View style={styles.micIcon}>
+                <Text style={styles.micEmoji}>🎙️</Text>
+              </View>
             </View>
           </Animated.View>
 

@@ -5,29 +5,29 @@ import { OnboardingScreenLayout } from '../../../components/organisms/Onboarding
 import { MultiSelectChip } from '../../../components/molecules/MultiSelectChip';
 import { useOnboardingStore } from '@somni/stores';
 import { useTheme } from '../../../hooks/useTheme';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { Theme } from '@somni/theme';
-
-const PRIVACY_OPTIONS = [
-  {
-    key: 'private' as const,
-    label: 'Private',
-    description: 'Only you can see your dreams',
-  },
-  {
-    key: 'anonymous' as const,
-    label: 'Anonymous',
-    description: 'Share dreams anonymously for insights',
-  },
-];
 
 export const OnboardingPrivacyScreen = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
+  const { t } = useTranslation('onboarding');
   const styles = useStyles(theme);
   const { data, updateData } = useOnboardingStore();
   const [selectedPrivacy, setSelectedPrivacy] = useState<
     'private' | 'anonymous'
   >(data.privacy?.defaultVisibility || 'private');
+
+  const PRIVACY_OPTIONS = [
+    {
+      key: 'private' as const,
+      label: String(t('privacy.options.private')),
+    },
+    {
+      key: 'anonymous' as const,
+      label: String(t('privacy.options.anonymous')),
+    },
+  ];
 
   const handleSelect = (privacy: 'private' | 'anonymous') => {
     setSelectedPrivacy(privacy);
@@ -40,8 +40,8 @@ export const OnboardingPrivacyScreen = () => {
 
   return (
     <OnboardingScreenLayout
-      title="Choose your privacy setting"
-      description="You can change this anytime in settings."
+      title={String(t('privacy.title'))}
+      description={String(t('privacy.description'))}
       onNext={handleNext}
       isNextDisabled={false}
     >

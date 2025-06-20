@@ -31,7 +31,12 @@ export const OnboardingLucidityScreen = () => {
 
   const handleNext = () => {
     updateData({ lucidityExperience: selectedExperience });
-    navigation.navigate('OnboardingPrivacyScreen');
+    // Skip privacy screen and go directly to complete
+    navigation.navigate('OnboardingCompleteScreen');
+  };
+  
+  const handleBack = () => {
+    navigation.goBack();
   };
 
   return (
@@ -39,6 +44,7 @@ export const OnboardingLucidityScreen = () => {
       title={String(t('lucidity.title'))}
       description={String(t('lucidity.description'))}
       onNext={handleNext}
+      onBack={handleBack}
       isNextDisabled={!selectedExperience}
     >
       <View style={styles.container}>

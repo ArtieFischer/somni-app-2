@@ -16,18 +16,19 @@ export const SignInSchema = z.object({
 export type SignInData = z.infer<typeof SignInSchema>;
 
 export async function signUpWithEmail(data: SignUpData) {
-  const { error } = await supabase.auth.signUp({
+  const { data: authData, error } = await supabase.auth.signUp({
     email: data.email,
     password: data.password,
     options: {
       data: {
         username: data.username, // This will be available in our trigger
+        display_name: data.username, // Use username as default display name
       },
       emailRedirectTo: process.env.EXPO_PUBLIC_SUPABASE_REDIRECT_URL,
     },
   });
   if (error) throw error;
-  // The onAuthStateChange listener will handle setting the session
+  return authData;
 }
 
 export async function signInWithEmail(data: SignInData) {

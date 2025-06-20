@@ -6,6 +6,7 @@ import { Text } from '../../atoms';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { TabIconName } from '@somni/types';
 import { useStyles } from './CustomTabBar.styles';
+import { useDreamStore } from '@somni/stores';
 
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({
   state,
@@ -14,6 +15,8 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
 }) => {
   const { t } = useTranslation('common');
   const styles = useStyles();
+  const isRecording = useDreamStore(state => state.isRecording);
+  const dreamStore = useDreamStore();
 
   const getIconName = (routeName: string): TabIconName => {
     const iconMap: Record<string, TabIconName> = {
@@ -28,11 +31,11 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
 
   const getTabLabel = (routeName: string): string => {
     const labelMap: Record<string, string> = {
-      Feed: t('navigation.tabs.feed'),
-      DreamDiary: t('navigation.tabs.dreamDiary'),
-      Record: t('navigation.tabs.record'),
-      MetaAnalysis: t('navigation.tabs.metaAnalysis'),
-      Profile: t('navigation.tabs.profile'),
+      Feed: String(t('navigation.tabs.feed')),
+      DreamDiary: String(t('navigation.tabs.dreamDiary')),
+      Record: String(t('navigation.tabs.record')),
+      MetaAnalysis: String(t('navigation.tabs.metaAnalysis')),
+      Profile: String(t('navigation.tabs.profile')),
     };
     return labelMap[routeName] || routeName;
   };
@@ -55,6 +58,13 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
 
             if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
+            } else if (isFocused && route.name === 'Record') {
+              // If already on Record screen, emit a custom event
+              navigation.emit({
+                type: 'tabPressWhenFocused',
+                target: route.key,
+                data: { routeName: route.name }
+              });
             }
           };
 
@@ -65,6 +75,8 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             });
           };
 
+          const isRecord = iconName === 'record';
+
           return (
             <Pressable
               key={route.key}
@@ -74,23 +86,38 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
               testID={options.tabBarTestID}
               onPress={onPress}
               onLongPress={onLongPress}
-              style={styles.tab}
+              style={[styles.tab, isRecord && styles.recordTab]}
             >
-              <TabBarIcon
-                name={iconName}
-                focused={isFocused}
-                color={isFocused ? styles.activeColor : styles.inactiveColor}
-              />
-              {iconName !== 'record' && (
-                <Text
-                  variant="caption"
-                  style={[
-                    styles.label,
-                    { color: isFocused ? styles.activeColor : styles.inactiveColor },
-                  ]}
-                >
-                  {label}
-                </Text>
+              {isRecord ? (
+                <View style={styles.recordButtonContainer}>
+                  <View style={[
+                    styles.recordButton,
+                    isRecording && styles.recordButtonRecording
+                  ]}>
+                    <TabBarIcon
+                      name={iconName}
+                      focused={isFocused}
+                      color="#FFFFFF"
+                    />
+                  </View>
+                </View>
+              ) : (
+                <>
+                  <TabBarIcon
+                    name={iconName}
+                    focused={isFocused}
+                    color={isFocused ? styles.activeColor : styles.inactiveColor}
+                  />
+                  <Text
+                    variant="caption"
+                    style={[
+                      styles.label,
+                      { color: isFocused ? styles.activeColor : styles.inactiveColor },
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </>
               )}
             </Pressable>
           );

@@ -5,6 +5,7 @@ import { useOnboardingStore, useAuthStore } from '@somni/stores';
 import { useAuth } from '../../../hooks/useAuth';
 import { UserRepository } from '../../../infrastructure/repositories/UserRepository';
 import { useTheme } from '../../../hooks/useTheme';
+import { useNavigation } from '@react-navigation/native';
 import { Theme } from '@somni/theme';
 
 const userRepository = new UserRepository();
@@ -12,6 +13,7 @@ const userRepository = new UserRepository();
 export const OnboardingCompleteScreen = () => {
   const theme = useTheme();
   const styles = useStyles(theme);
+  const navigation = useNavigation<any>();
   const { data: onboardingData, reset: resetOnboardingStore } =
     useOnboardingStore();
   const { user, profile, session } = useAuth();
@@ -63,12 +65,17 @@ export const OnboardingCompleteScreen = () => {
       setIsLoading(false);
     }
   };
+  
+  const handleBack = () => {
+    navigation.goBack();
+  };
 
   return (
     <OnboardingScreenLayout
       title="Welcome to Somni!"
       description="You're all set! Let's start your journey to better dream experiences."
       onNext={handleFinish}
+      onBack={handleBack}
       isNextDisabled={isLoading}
     >
       <View style={styles.container}>

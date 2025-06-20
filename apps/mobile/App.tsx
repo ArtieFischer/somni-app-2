@@ -5,6 +5,7 @@ import { View, ActivityIndicator } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initI18n } from './src/shared/locales/i18n';
 import { useTheme } from './src/hooks/useTheme';
+import { GluestackProvider } from './src/providers/GluestackProvider';
 
 export default function App() {
   const [isI18nInitialized, setIsI18nInitialized] = useState(false);
@@ -41,9 +42,11 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <AppNavigator />
-      <StatusBar style="light" />
-    </NavigationContainer>
+    <GluestackProvider>
+      <NavigationContainer>
+        <AppNavigator />
+        <StatusBar style="light" />
+      </NavigationContainer>
+    </GluestackProvider>
   );
 }

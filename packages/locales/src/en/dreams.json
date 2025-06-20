@@ -2,29 +2,100 @@
   "record": {
     "title": "Record Your Dream",
     "subtitle": "Press the button and whisper your dream",
+    "dreamRecorded": "Dream Recorded",
+    "acceptToTranscribe": "Accept recording to start transcription",
     "button": {
       "start": "Tap to start recording",
       "recording": "Recording... {{duration}}s"
     },
     "processing": "Processing...",
     "transcribing": "Transcribing your dream...",
+    "waitingForService": "Waiting for service...",
     "whisperMode": "Whisper your dream...",
     "offline": "Offline mode - will upload when connected",
     "acceptRecording": "Accept Recording",
+    "transcribeNow": "Transcribe now",
+    "transcribeLater": "Transcribe later",
     "cancelRecording": "Cancel",
-    "acceptOrCancel": "Accept or cancel your recording"
+    "acceptOrCancel": "Accept or cancel your recording",
+    "serviceUnavailable": {
+      "title": "Service Temporarily Unavailable",
+      "message": "Service temporarily unavailable or no internet access. Transcription will start as soon as possible. All your dreams are safely stored in Dreams Diary.",
+      "accept": "Accept"
+    }
   },
   "notifications": {
     "dreamCaptured": {
       "title": "Dream Captured",
       "onlineMessage": "Your dream is being transcribed",
       "offlineMessage": "Your dream will be transcribed when online"
+    },
+    "transcriptionStarted": {
+      "title": "Processing Dream",
+      "message": "AI is transcribing your recording..."
+    },
+    "transcriptionComplete": {
+      "title": "Dream Transcribed",
+      "message": "Your dream has been successfully transcribed"
+    },
+    "transcriptionFailed": {
+      "title": "Transcription Failed",
+      "message": "Unable to transcribe your dream. Please try again."
+    },
+    "recordingStarted": {
+      "title": "Recording Started",
+      "message": "Speak clearly about your dream"
+    },
+    "offlineMode": {
+      "title": "Offline Mode",
+      "message": "Your dream will be saved locally and uploaded when online"
+    },
+    "uploadComplete": {
+      "title": "Upload Complete",
+      "message": "Your dream has been uploaded and will be transcribed shortly"
+    },
+    "uploadFailed": {
+      "title": "Upload Failed", 
+      "message": "Unable to upload your dream. It will be retried automatically when connection improves"
     }
   },
   "errors": {
     "recordingError": "Recording Error"
   },
   "actions": {
-    "ok": "OK"
+    "ok": "OK",
+    "tryAgain": "Try again",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "view": "View",
+    "retry": "Retry"
+  },
+  "time": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "analysis": {
+    "confidence": "confidence",
+    "title": "Analyze"
+  },
+  "journal": {
+    "search": "Search your dreams...",
+    "filters": {
+      "all": "All Dreams",
+      "recent": "Recent",
+      "lucid": "Lucid"
+    },
+    "stats": {
+      "total": "Total Dreams",
+      "lucid": "Lucid Dreams",
+      "avgMood": "Avg Clarity"
+    },
+    "empty": "No dreams yet",
+    "emptySubtitle": "Start recording your dreams to see them here",
+    "deleteConfirmation": {
+      "title": "Delete Recording",
+      "message": "Do you want to delete this dream recording?"
+    },
+    "waitingForTranscription": "Waiting for transcription..."
   }
 }

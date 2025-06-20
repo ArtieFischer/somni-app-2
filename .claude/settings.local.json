@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx supabase:*)",
+      "Bash(npx expo install:*)",
+      "Bash(claude mcp)",
+      "Bash(claude mcp:*)",
+      "Bash(claude tools)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(npm i:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(rm:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(npm start)",
+      "Bash(npx:*)",
+      "Bash(npm ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(mv:*)",
+      "Bash(node:*)",
+      "Bash(npm run tsx:*)"
+    ],
+    "deny": []
+  }
+}

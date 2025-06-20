@@ -9,8 +9,6 @@ export const useStyles = (focused: boolean) => {
       alignItems: 'center',
       justifyContent: 'center',
       position: 'relative',
-      width: 60,
-      height: 60,
     },
     iconWrapper: {
       position: 'relative',
@@ -18,16 +16,10 @@ export const useStyles = (focused: boolean) => {
       justifyContent: 'center',
     },
     recordIconWrapper: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: focused ? theme.colors.primary : 'transparent',
-      borderWidth: focused ? 0 : 2,
-      borderColor: theme.colors.primary,
+      // No special styling needed here since the parent handles it
     },
     recordingIconWrapper: {
-      backgroundColor: '#FF0000',
-      borderWidth: 0,
+      // Recording state handled by parent
     },
     icon: {
       alignItems: 'center',
@@ -35,15 +27,15 @@ export const useStyles = (focused: boolean) => {
     },
     iconText: {
       fontSize: 24,
+      color: theme.colors.text.primary,
     },
     recordingGlow: {
       position: 'absolute',
-      width: 64,
-      height: 64,
-      borderRadius: 32,
+      width: 72,
+      height: 72,
+      borderRadius: 36,
       backgroundColor: '#FF0000',
       opacity: 0.2,
-      ...theme.shadows.medium,
     },
   });
 };

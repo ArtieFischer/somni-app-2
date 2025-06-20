@@ -94,13 +94,14 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
         />
 
         <View style={styles.forgotPasswordContainer}>
-          <Button
-            variant="ghost"
-            size="small"
+          <Text 
+            variant="body" 
+            color="secondary"
+            style={{ textDecorationLine: 'underline' }}
             onPress={() => navigation.navigate('ForgotPassword')}
           >
             {String(t('signIn.forgotPassword'))}
-          </Button>
+          </Text>
         </View>
 
         <Button
@@ -120,13 +121,14 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
           </View>
         )}
 
-        <Button
-          variant="ghost"
+        <Text
+          variant="body"
+          color="secondary"
+          style={[styles.linkButton, { textAlign: 'center' }]}
           onPress={() => navigation.navigate('SignUp')}
-          style={styles.linkButton}
         >
-          {t('signIn.noAccount')} {t('signIn.signUp')}
-        </Button>
+          {t('signIn.noAccount')} <Text variant="body" color="primary" style={{ textDecorationLine: 'underline' }}>{t('signIn.signUp')}</Text>
+        </Text>
       </View>
     </SafeAreaView>
   );

@@ -87,7 +87,10 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       durationTimerRef.current = setInterval(() => {
         setRecordingDuration(prev => {
           const newDuration = prev + 1;
-          dreamStore.updateRecordingSession({ duration: newDuration });
+          // Defer the store update to avoid updating during render
+          setTimeout(() => {
+            dreamStore.updateRecordingSession({ duration: newDuration });
+          }, 0);
           return newDuration;
         });
       }, 1000);

@@ -16,7 +16,6 @@
     "experiments": {
       "reactCanary": true
     },
-    "entryPoint": "./index.ts",
     "ios": {
       "supportsTablet": true
     },

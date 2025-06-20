@@ -6,6 +6,7 @@ import * as Notifications from 'expo-notifications';
 import { Alert } from 'react-native';
 import { useStyles } from './OnboardingWelcomeScreen.styles';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface OnboardingWelcomeScreenProps {}
 
@@ -15,6 +16,7 @@ export const OnboardingWelcomeScreen: React.FC<
   const navigation = useNavigation<any>();
   const styles = useStyles();
   const { t } = useTranslation();
+  const { profile } = useAuth();
 
   const handleNext = async () => {
     try {
@@ -28,10 +30,25 @@ export const OnboardingWelcomeScreen: React.FC<
           ),
         );
       }
-      navigation.navigate('OnboardingSleepSchedule');
+      
+      // Check if user wants to improve sleep quality
+      if (profile?.improve_sleep_quality === 'yes' || profile?.improve_sleep_quality === 'not_sure') {
+        navigation.navigate('OnboardingSleepSchedule');
+      } else if (profile?.interested_in_lucid_dreaming === 'yes' || profile?.interested_in_lucid_dreaming === 'dont_know_yet') {
+        navigation.navigate('OnboardingLucidityScreen');
+      } else {
+        navigation.navigate('OnboardingCompleteScreen');
+      }
     } catch (error) {
       console.error('Failed to request notification permissions:', error);
-      navigation.navigate('OnboardingSleepSchedule');
+      // Same navigation logic as above
+      if (profile?.improve_sleep_quality === 'yes' || profile?.improve_sleep_quality === 'not_sure') {
+        navigation.navigate('OnboardingSleepSchedule');
+      } else if (profile?.interested_in_lucid_dreaming === 'yes' || profile?.interested_in_lucid_dreaming === 'dont_know_yet') {
+        navigation.navigate('OnboardingLucidityScreen');
+      } else {
+        navigation.navigate('OnboardingCompleteScreen');
+      }
     }
   };
 

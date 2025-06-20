@@ -11,7 +11,12 @@ const Stack = createNativeStackNavigator();
 
 export default function OnboardingNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        gestureEnabled: false 
+      }}
+    >
       <Stack.Screen
         name="OnboardingWelcome"
         component={OnboardingWelcomeScreen}
