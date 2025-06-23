@@ -1,4 +1,4 @@
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from '@jamsch/expo-speech-recognition';
+import { ExpoSpeechRecognitionModule } from '@jamsch/expo-speech-recognition';
 
 export interface SpeechRecognitionResult {
   transcript: string;
@@ -8,8 +8,6 @@ export interface SpeechRecognitionResult {
 
 export class SpeechService {
   private isListening = false;
-  private onResult?: (result: SpeechRecognitionResult) => void;
-  private onError?: (error: string) => void;
 
   constructor() {
     this.setupEventListeners();

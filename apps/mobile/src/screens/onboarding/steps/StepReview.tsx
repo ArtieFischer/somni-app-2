@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ViewStyle, ScrollView, Image } from 'react-native';
-import { Text, LegacyButton as Button } from '../../../components/atoms';
+import { Text, Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
 
@@ -152,10 +152,10 @@ export const StepReview: React.FC<StepReviewProps> = ({
   return (
     <View style={styles.container}>
       <Text variant="h2" style={{ marginBottom: theme.spacing.small }}>
-        {t('review.title')}
+        {t('review.title') as string}
       </Text>
       <Text variant="body" color="secondary" style={{ marginBottom: theme.spacing.medium }}>
-        {t('review.subtitle')}
+        {t('review.subtitle') as string}
       </Text>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -167,17 +167,17 @@ export const StepReview: React.FC<StepReviewProps> = ({
 
         <View style={styles.section}>
           <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
-            {t('review.accountInfo')}
+            {t('review.accountInfo') as string}
           </Text>
           <View style={styles.row}>
             <Text variant="caption" color="secondary" style={styles.label}>
-              {t('review.email')}
+              {t('review.email') as string}
             </Text>
             <Text variant="caption" style={styles.value} numberOfLines={1} ellipsizeMode="tail">{data.email}</Text>
           </View>
           <View style={styles.row}>
             <Text variant="caption" color="secondary" style={styles.label}>
-              {t('review.handle')}
+              {t('review.handle') as string}
             </Text>
             <Text variant="caption" style={styles.value}>@{data.handle}</Text>
           </View>
@@ -185,23 +185,23 @@ export const StepReview: React.FC<StepReviewProps> = ({
 
         <View style={styles.section}>
           <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
-            {t('review.personalDetails')}
+            {t('review.personalDetails') as string}
           </Text>
           <View style={styles.row}>
             <Text variant="caption" color="secondary" style={styles.label}>
-              {t('review.sex')}
+              {t('review.sex') as string}
             </Text>
             <Text variant="caption" style={styles.value}>{getSexLabel(data.sex)}</Text>
           </View>
           <View style={styles.row}>
             <Text variant="caption" color="secondary" style={styles.label}>
-              {t('review.birthDate')}
+              {t('review.birthDate') as string}
             </Text>
             <Text variant="caption" style={styles.value}>{formatDate(data.birth_date)}</Text>
           </View>
           <View style={styles.row}>
             <Text variant="caption" color="secondary" style={styles.label}>
-              {t('review.language')}
+              {t('review.language') as string}
             </Text>
             <Text variant="caption" style={styles.value}>{getLanguageLabel(data.locale)}</Text>
           </View>
@@ -209,23 +209,23 @@ export const StepReview: React.FC<StepReviewProps> = ({
 
         <View style={styles.section}>
           <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
-            {t('review.dreamSettings')}
+            {t('review.dreamSettings') as string}
           </Text>
           <View style={styles.row}>
             <Text variant="caption" color="secondary" style={styles.label}>
-              {t('review.interpreter')}
+              {t('review.interpreter') as string}
             </Text>
             <Text variant="caption" style={styles.value}>{getInterpreterName(data.dream_interpreter)}</Text>
           </View>
           <View style={styles.row}>
             <Text variant="caption" color="secondary" style={styles.label}>
-              {t('review.improveSleep')}
+              {t('review.improveSleep') as string}
             </Text>
             <Text variant="caption" style={styles.value}>{getPreferenceLabel(data.improve_sleep_quality)}</Text>
           </View>
           <View style={styles.row}>
             <Text variant="caption" color="secondary" style={styles.label}>
-              {t('review.lucidDreaming')}
+              {t('review.lucidDreaming') as string}
             </Text>
             <Text variant="caption" style={styles.value}>{getPreferenceLabel(data.interested_in_lucid_dreaming)}</Text>
           </View>
@@ -235,17 +235,17 @@ export const StepReview: React.FC<StepReviewProps> = ({
         {(data.bedTime || data.wakeTime) && (
           <View style={styles.section}>
             <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
-              {t('review.sleepSchedule')}
+              {t('review.sleepSchedule') as string}
             </Text>
             <View style={styles.row}>
               <Text variant="caption" color="secondary" style={styles.label}>
-                {t('review.bedTime')}
+                {t('review.bedTime') as string}
               </Text>
               <Text variant="caption" style={styles.value}>{formatTime(data.bedTime)}</Text>
             </View>
             <View style={styles.row}>
               <Text variant="caption" color="secondary" style={styles.label}>
-                {t('review.wakeTime')}
+                {t('review.wakeTime') as string}
               </Text>
               <Text variant="caption" style={styles.value}>{formatTime(data.wakeTime)}</Text>
             </View>
@@ -256,7 +256,7 @@ export const StepReview: React.FC<StepReviewProps> = ({
         {data.lucidDreamingExperience && (
           <View style={styles.section}>
             <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
-              {t('review.lucidExperience')}
+              {t('review.lucidExperience') as string}
             </Text>
             <Text variant="caption">{getLucidExperienceLabel(data.lucidDreamingExperience)}</Text>
           </View>
@@ -265,7 +265,7 @@ export const StepReview: React.FC<StepReviewProps> = ({
         {/* Location */}
         <View style={styles.section}>
           <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
-            {t('review.location')}
+            {t('review.location') as string}
           </Text>
           <Text variant="caption">{getLocationLabel()}</Text>
         </View>
@@ -273,19 +273,22 @@ export const StepReview: React.FC<StepReviewProps> = ({
 
       <View style={styles.buttonContainer}>
         <Button
-          variant="ghost"
+          variant="outline"
+          size="md"
           onPress={onPrevious}
           style={{ flex: 1 }}
           disabled={isSubmitting}
         >
-          {t('common.back')}
+          {t('common.back') as string}
         </Button>
         <Button
+          variant="solid"
+          size="md"
           onPress={onSubmit}
           loading={isSubmitting}
           style={{ flex: 1 }}
         >
-          {t('review.complete')}
+          {t('review.complete') as string}
         </Button>
       </View>
     </View>

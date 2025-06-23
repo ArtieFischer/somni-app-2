@@ -18,6 +18,8 @@ export interface ButtonProps {
   leftIcon?: React.ComponentType<any>;
   rightIcon?: React.ComponentType<any>;
   onPress?: () => void;
+  style?: any;
+  textStyle?: any;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -30,22 +32,62 @@ export const Button: React.FC<ButtonProps> = ({
   leftIcon,
   rightIcon,
   onPress,
+  style,
+  textStyle,
   ...props
 }) => {
   const theme = useTheme();
 
   // Custom styling based on our theme
   const getCustomProps = () => {
+    // SOLID variant - purple background for primary CTA buttons
     if (variant === 'solid' && action === 'primary') {
       return {
-        bg: '$primary500',
-        borderColor: '$primary500',
-        '$hover-bg': '$primary600',
-        '$active-bg': '$primary700',
+        bg: theme.colors.button.primary.background,
+        borderColor: theme.colors.button.primary.border,
+        '$hover-bg': theme.colors.primary,
+        '$active-bg': theme.colors.primary,
       };
     }
+
+    // OUTLINE variant - green border/text, transparent background for secondary buttons
+    if (variant === 'outline') {
+      return {
+        bg: 'transparent',
+        borderColor: theme.colors.button.secondary.border,
+        borderWidth: 1,
+        '$hover-bg': `${theme.colors.button.secondary.background}10`,
+        '$active-bg': `${theme.colors.button.secondary.background}20`,
+      };
+    }
+
+    // LINK variant - light text with underline for minor actions
+    if (variant === 'link') {
+      return {
+        bg: 'transparent',
+        borderColor: 'transparent',
+        '$hover-bg': 'transparent',
+        '$active-bg': 'transparent',
+      };
+    }
+
     return {};
   };
+  
+  // Get text color based on variant
+  const getTextColor = () => {
+    if (variant === 'solid') return theme.colors.button.primary.text;
+    if (variant === 'outline') return theme.colors.button.secondary.text;
+    if (variant === 'link') return theme.colors.button.ghost.text;
+    return theme.colors.text.primary;
+  };
+  
+  // Get text decoration
+  const getTextDecoration = () => {
+    return variant === 'link' ? 'underline' : 'none';
+  };
+
+  const customProps = getCustomProps();
 
   return (
     <GluestackButton
@@ -54,12 +96,23 @@ export const Button: React.FC<ButtonProps> = ({
       size={size}
       isDisabled={isDisabled || isLoading}
       onPress={onPress}
-      {...getCustomProps()}
+      style={style}
+      {...customProps}
       {...props}
     >
       {isLoading && <ButtonSpinner mr="$1" />}
       {leftIcon && !isLoading && <ButtonIcon as={leftIcon} mr="$2" />}
-      <ButtonText>{children}</ButtonText>
+      <ButtonText
+        style={[
+          {
+            color: getTextColor(),
+            textDecorationLine: getTextDecoration(),
+          },
+          textStyle
+        ]}
+      >
+        {children}
+      </ButtonText>
       {rightIcon && <ButtonIcon as={rightIcon} ml="$2" />}
     </GluestackButton>
   );

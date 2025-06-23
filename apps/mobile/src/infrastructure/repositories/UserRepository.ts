@@ -141,7 +141,7 @@ export class UserRepository implements IUserRepository {
     const blob = await response.blob();
     
     // Upload to Supabase Storage
-    const { data, error } = await supabaseClient.storage
+    const { error } = await supabaseClient.storage
       .from('avatars')
       .upload(fileName, blob, {
         contentType: 'image/jpeg',

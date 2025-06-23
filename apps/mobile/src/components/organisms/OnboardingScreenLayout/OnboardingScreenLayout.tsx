@@ -11,7 +11,7 @@ interface OnboardingScreenLayoutProps {
   onSkip?: () => void;
   onBack?: () => void;
   isNextDisabled?: boolean;
-  backButtonVariant?: 'primary' | 'secondary' | 'ghost';
+  backButtonVariant?: 'solid' | 'outline' | 'link';
 }
 
 export const OnboardingScreenLayout: React.FC<OnboardingScreenLayoutProps> = ({
@@ -22,7 +22,7 @@ export const OnboardingScreenLayout: React.FC<OnboardingScreenLayoutProps> = ({
   onSkip,
   onBack,
   isNextDisabled = false,
-  backButtonVariant = 'ghost',
+  backButtonVariant = 'outline',
 }) => {
   const styles = useStyles();
 
@@ -41,8 +41,8 @@ export const OnboardingScreenLayout: React.FC<OnboardingScreenLayoutProps> = ({
         {onBack && (
           <View style={styles.backButton}>
             <Button
-              variant="ghost"
-              size="large"
+              variant={backButtonVariant}
+              size="md"
               onPress={onBack}
             >
               Back
@@ -51,17 +51,17 @@ export const OnboardingScreenLayout: React.FC<OnboardingScreenLayoutProps> = ({
         )}
         <View style={onBack ? styles.nextButton : { flex: 1 }}>
           <Button
-            variant="primary"
-            size="large"
+            variant="solid"
+            size="md"
             onPress={onNext}
-            disabled={isNextDisabled}
+            isDisabled={isNextDisabled}
           >
             Next
           </Button>
         </View>
         {onSkip && (
           <View style={styles.skipButton}>
-            <Button variant="ghost" size="medium" onPress={onSkip}>
+            <Button variant="link" size="md" onPress={onSkip}>
               Skip
             </Button>
           </View>

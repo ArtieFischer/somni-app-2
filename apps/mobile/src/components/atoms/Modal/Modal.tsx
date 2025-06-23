@@ -160,7 +160,7 @@ export const RecordingConfirmationModal: React.FC<RecordingConfirmationModalProp
             </Button>
           </HStack>
           <Button
-            variant="link"
+            variant="outline"
             onPress={onClose}
             size="sm"
           >

@@ -8,6 +8,7 @@ import { Input } from '../components/ui';
 import { useTranslation } from '../hooks/useTranslation';
 import { useTheme } from '../hooks/useTheme';
 import { StyleSheet } from 'react-native';
+import SomniLogo from '../../../../assets/logo_somni_full.svg';
 
 interface SignUpScreenProps {
   navigation: any;
@@ -26,6 +27,10 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
       flex: 1,
       justifyContent: 'center',
       paddingHorizontal: theme.spacing.large,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.xxl,
     },
     title: {
       textAlign: 'center',
@@ -62,9 +67,9 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text variant="h1" style={styles.title}>
-          {String(t('signUp.title'))}
-        </Text>
+        <View style={styles.logoContainer}>
+          <SomniLogo width={280} height={93} />
+        </View>
         <Text variant="body" color="secondary" style={styles.subtitle}>
           {String(t('signUp.subtitle'))}
         </Text>
@@ -75,6 +80,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
           render={({ field: { onChange, onBlur, value } }) => (
             <Input
               label={String(t('signUp.username'))}
+              size="md"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -90,6 +96,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
           render={({ field: { onChange, onBlur, value } }) => (
             <Input
               label={String(t('signUp.email'))}
+              size="md"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -106,6 +113,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
           render={({ field: { onChange, onBlur, value } }) => (
             <Input
               label={String(t('signUp.password'))}
+              size="md"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -117,15 +125,21 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
         />
 
         <Button
-          variant="primary"
-          size="large"
+          variant="solid"
+          action="primary"
+          size="md"
           onPress={handleSubmit(onSubmit)}
-          loading={isSubmitting}
+          isLoading={isSubmitting}
+          style={{ marginTop: theme.spacing.medium }}
         >
           {String(t('signUp.button'))}
         </Button>
 
-        <Button variant="ghost" onPress={() => navigation.navigate('SignIn')}>
+        <Button 
+          variant="link" 
+          onPress={() => navigation.navigate('SignIn')}
+          style={{ marginTop: theme.spacing.medium }}
+        >
           {String(t('signUp.hasAccount'))} {String(t('signUp.signIn'))}
         </Button>
       </View>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ViewStyle, TouchableOpacity, ScrollView } from 'react-native';
-import { Text, LegacyButton as Button } from '../../../components/atoms';
+import { Text, Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { OnboardingData } from '../OnboardingScreen';
@@ -157,18 +157,21 @@ export const StepPreferences: React.FC<StepPreferencesProps> = ({
 
       <View style={styles.buttonContainer}>
         <Button
-          variant="ghost"
+          variant="outline"
+          size="md"
           onPress={onPrevious}
           style={{ flex: 1 }}
         >
-          {t('common.back')}
+          {t('common.back') as string}
         </Button>
         <Button
+          variant="solid"
+          size="md"
           onPress={handleContinue}
           disabled={!sleepQuality || !lucidDreaming}
           style={{ flex: 1 }}
         >
-          {t('common.continue')}
+          {t('common.continue') as string}
         </Button>
       </View>
     </ScrollView>

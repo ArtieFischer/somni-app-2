@@ -15,7 +15,6 @@ import {
 } from '@gluestack-ui/themed';
 import { AlertCircleIcon } from '@gluestack-ui/themed';
 import { TextInputProps } from 'react-native';
-import { useTranslation } from '../../hooks/useTranslation';
 import { useTheme } from '../../hooks/useTheme';
 
 export interface InputProps extends TextInputProps {
@@ -46,7 +45,6 @@ export const Input = forwardRef<any, InputProps>(({
   onRightIconPress,
   ...inputProps
 }, ref) => {
-  const { t } = useTranslation();
   const theme = useTheme();
   const hasError = isInvalid || !!error;
 
@@ -56,10 +54,16 @@ export const Input = forwardRef<any, InputProps>(({
       isInvalid={hasError} 
       isDisabled={isDisabled}
       size={size}
+      style={{ marginBottom: theme.spacing.medium }}
     >
       {label && (
         <FormControlLabel>
-          <FormControlLabelText style={{ color: theme.colors.text.primary }}>{label}</FormControlLabelText>
+          <FormControlLabelText 
+            size={size === 'md' ? 'sm' : size}
+            style={{ color: theme.colors.text.primary }}
+          >
+            {label}
+          </FormControlLabelText>
         </FormControlLabel>
       )}
       

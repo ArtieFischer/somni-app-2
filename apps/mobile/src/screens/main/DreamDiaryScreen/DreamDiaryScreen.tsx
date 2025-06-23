@@ -14,7 +14,7 @@ import {
   Center,
 } from '../../../components/ui';
 import { SimpleInput } from '../../../components/ui/SimpleInput';
-import { Button, PillButton } from '../../../components/atoms';
+import { PillButton } from '../../../components/atoms';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamStore } from '@somni/stores';
@@ -45,7 +45,7 @@ export const DreamDiaryScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'lucid' | 'recent'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [retryingDreams, setRetryingDreams] = useState<Set<string>>(new Set());
+  const [, setRetryingDreams] = useState<Set<string>>(new Set());
 
   // Filter and search dreams
   const filteredDreams = useMemo(() => {
@@ -454,7 +454,7 @@ export const DreamDiaryScreen: React.FC = () => {
           overflow="hidden"
         >
           <SimpleInput
-            placeholder={t('journal.search')}
+            placeholder={t('journal.search') as string}
             value={searchQuery}
             onChangeText={setSearchQuery}
             size="lg"
@@ -546,7 +546,7 @@ export const DreamDiaryScreen: React.FC = () => {
               {dreams.length}
             </Heading>
             <Text size="sm" color={darkTheme.colors.text.secondary}>
-              {t('journal.stats.total')}
+              {t('journal.stats.total') as string}
             </Text>
           </VStack>
           
@@ -557,7 +557,7 @@ export const DreamDiaryScreen: React.FC = () => {
               {dreams.filter(d => d.tags?.includes('lucid')).length}
             </Heading>
             <Text size="sm" color={darkTheme.colors.text.secondary}>
-              {t('journal.stats.lucid')}
+              {t('journal.stats.lucid') as string}
             </Text>
           </VStack>
           
@@ -570,7 +570,7 @@ export const DreamDiaryScreen: React.FC = () => {
                 : 0}%
             </Heading>
             <Text size="sm" color={darkTheme.colors.text.secondary}>
-              {t('journal.stats.avgMood')}
+              {t('journal.stats.avgMood') as string}
             </Text>
           </VStack>
         </HStack>
@@ -583,10 +583,10 @@ export const DreamDiaryScreen: React.FC = () => {
       <VStack space="lg" alignItems="center">
         <Text fontSize={64}>💭</Text>
         <Heading size="lg" textAlign="center">
-          {t('journal.empty')}
+          {t('journal.empty') as string}
         </Heading>
         <Text size="md" color={darkTheme.colors.text.secondary} textAlign="center" lineHeight={24}>
-          {t('journal.emptySubtitle')}
+          {t('journal.emptySubtitle') as string}
         </Text>
       </VStack>
     </Center>

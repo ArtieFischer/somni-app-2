@@ -4,23 +4,23 @@ import {
   ScrollView,
   VStack,
   Box,
-  Button,
-  ButtonText,
-  Heading,
   SafeAreaView
 } from '@gluestack-ui/themed';
-import { Text } from '../../../components/atoms';
+import { Text, Button, Card } from '../../../components/atoms';
 import { ProfileHeader } from '../../../components/molecules/ProfileHeader';
 import { SharedDreamsSection } from '../../../components/molecules/SharedDreamsSection';
-import { PreferencesSection } from '../../../components/molecules/PreferencesSection';
+import { DreamingPreferencesSection } from '../../../components/molecules/DreamingPreferencesSection';
+import { UserPreferencesSection } from '../../../components/molecules/UserPreferencesSection';
 import { SupportSection } from '../../../components/molecules/SupportSection';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useAuth } from '../../../hooks/useAuth';
+import { useTheme } from '../../../hooks/useTheme';
 import { useStyles } from './ProfileScreen.styles';
 
 export const ProfileScreen: React.FC = () => {
   const { t } = useTranslation('auth');
   const { signOut } = useAuth();
+  const theme = useTheme();
   const styles = useStyles();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -66,7 +66,11 @@ export const ProfileScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+      >
         <VStack space="lg" style={styles.content}>
           {/* Profile Header with Avatar */}
           <ProfileHeader />
@@ -77,38 +81,41 @@ export const ProfileScreen: React.FC = () => {
             onCreateShared={() => Alert.alert('Coming Soon', 'Dream sharing coming soon!')}
           />
 
-          {/* Preferences Section */}
-          <PreferencesSection />
+          {/* Dreaming Preferences */}
+          <DreamingPreferencesSection />
+          
+          {/* User Preferences */}
+          <UserPreferencesSection />
 
           {/* Support Section */}
           <SupportSection />
 
           {/* Actions Section */}
-          <Box style={styles.actionsSection}>
+          <Card>
             <VStack space="md">
               <Button
                 variant="outline"
                 action="secondary"
-                size="lg"
+                size="md"
                 onPress={handleSignOut}
                 isDisabled={isSigningOut}
+                isLoading={isSigningOut}
                 style={styles.signOutButton}
               >
-                <ButtonText style={styles.signOutButtonText}>
-                  {isSigningOut ? 'Signing Out...' : String(t('profile.signOut'))}
-                </ButtonText>
+                {isSigningOut ? 'Signing Out...' : String(t('profile.signOut'))}
               </Button>
 
-              <TouchableOpacity 
-                style={styles.deleteButton}
+              <Button
+                variant="link"
+                size="md"
                 onPress={handleDeleteAccount}
+                style={{ marginTop: theme.spacing.small, minHeight: 44 }}
+                textStyle={{ color: theme.colors.status.error }}
               >
-                <Text variant="body" style={styles.deleteButtonText}>
-                  {String(t('profile.deleteAccount'))}
-                </Text>
-              </TouchableOpacity>
+                {String(t('profile.deleteAccount'))}
+              </Button>
             </VStack>
-          </Box>
+          </Card>
 
           {/* Version Info */}
           <Box style={styles.versionSection}>

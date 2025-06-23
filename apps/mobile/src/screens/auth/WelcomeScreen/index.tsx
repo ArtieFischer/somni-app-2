@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Text, Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
+import SomniLogo from '../../../../../../assets/logo_somni_full.svg';
 
 interface NavigationType {
   navigate: (screen: string) => void;
@@ -18,21 +19,21 @@ export const WelcomeScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text variant="h1" style={styles.title}>
-          {String(t('title'))}
-        </Text>
+        <View style={styles.logoContainer}>
+          <SomniLogo width={300} height={100} />
+        </View>
         <Text variant="body" color="secondary" style={styles.subtitle}>
           {String(t('subtitle'))}
         </Text>
         <Button
-          variant="primary"
-          size="large"
+          variant="solid"
+          size="md"
           onPress={() => navigation.navigate('SignUp')}
         >
           {String(t('getStarted'))}
         </Button>
         <View style={styles.secondaryButtonContainer}>
-          <Button variant="ghost" onPress={() => navigation.navigate('SignIn')}>
+          <Button variant="link" onPress={() => navigation.navigate('SignIn')}>
             {String(t('alreadyHaveAccount'))}
           </Button>
         </View>
@@ -52,9 +53,9 @@ const createStyles = (theme: any) =>
       justifyContent: 'center',
       paddingHorizontal: theme.spacing.large,
     },
-    title: {
-      textAlign: 'center',
-      marginBottom: theme.spacing.small,
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.xxl,
     },
     subtitle: {
       textAlign: 'center',

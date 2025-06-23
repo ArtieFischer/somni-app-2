@@ -18,7 +18,6 @@ import {
   EyeIcon,
   EyeOffIcon,
 } from '@gluestack-ui/themed';
-import { useTheme } from '../../../hooks/useTheme';
 
 export interface InputProps {
   placeholder?: string;
@@ -66,7 +65,6 @@ export const Input: React.FC<InputProps> = ({
   autoComplete,
   ...props
 }) => {
-  const theme = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const isPasswordField = type === 'password' || secureTextEntry;
 

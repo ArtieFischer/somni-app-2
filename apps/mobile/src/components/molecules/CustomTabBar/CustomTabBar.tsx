@@ -16,7 +16,6 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
   const { t } = useTranslation('common');
   const styles = useStyles();
   const isRecording = useDreamStore(state => state.isRecording);
-  const dreamStore = useDreamStore();
 
   const getIconName = (routeName: string): TabIconName => {
     const iconMap: Record<string, TabIconName> = {

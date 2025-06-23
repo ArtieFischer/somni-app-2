@@ -16,7 +16,7 @@ export const HomeScreen: React.FC = () => {
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         <Text variant="h1" style={styles.title}>
-          {t('navigation.home')}
+          {t('navigation.home') as string}
         </Text>
         
         <Text variant="body" color="secondary" style={styles.subtitle}>
@@ -44,7 +44,7 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         <Button 
-          variant="secondary" 
+          variant="outline" 
           onPress={signOut}
           style={styles.signOutButton}
         >

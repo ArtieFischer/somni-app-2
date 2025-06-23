@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { Country, State, City } from 'country-state-city';
 import { Text } from '../../atoms/Text';
-import { Button } from '../../atoms/Button';
 import { useTheme } from '../../../hooks/useTheme';
 import { Theme } from '@somni/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -33,9 +32,6 @@ type PickerMode = 'country' | 'state' | 'city' | null;
 
 export const CountryStateCityPicker: React.FC<CountryStateCityPickerProps> = ({
   onSelect,
-  selectedCountry,
-  selectedState,
-  selectedCity,
 }) => {
   const theme = useTheme();
   const styles = useStyles(theme);

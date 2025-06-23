@@ -10,15 +10,11 @@ export const useStyles = () => {
       backgroundColor: theme.colors.background.primary,
     },
     content: {
-      padding: theme.spacing.large,
+      paddingBottom: theme.spacing.large,
     },
     comingSoonCard: {
-      backgroundColor: theme.colors.background.elevated,
-      borderRadius: theme.borderRadius.large,
-      padding: theme.spacing.xl,
       alignItems: 'center',
       marginBottom: theme.spacing.xl,
-      ...theme.shadows.medium,
     },
     icon: {
       fontSize: 64,
@@ -44,12 +40,11 @@ export const useStyles = () => {
       marginBottom: theme.spacing.large,
     },
     featureCard: {
-      flexDirection: 'row',
-      backgroundColor: theme.colors.background.elevated,
-      borderRadius: theme.borderRadius.medium,
-      padding: theme.spacing.large,
       marginBottom: theme.spacing.medium,
-      ...theme.shadows.small,
+    },
+    featureCardContent: {
+      flexDirection: 'row',
+      padding: theme.spacing.large,
     },
     featureIcon: {
       fontSize: 32,

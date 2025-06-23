@@ -376,10 +376,10 @@ export const StepLocation: React.FC<StepLocationProps> = ({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text variant="h2" style={{ marginBottom: theme.spacing.small }}>
-          {t('location.title')}
+          {t('location.title') as string}
         </Text>
         <Text variant="body" style={{ color: theme.colors.text.secondary }}>
-          {t('location.description')}
+          {t('location.description') as string}
         </Text>
       </View>
 
@@ -399,7 +399,7 @@ export const StepLocation: React.FC<StepLocationProps> = ({
               locationMethod === 'auto' && styles.optionTextSelected,
             ]}
           >
-            {isLoadingLocation ? t('location.gettingLocation') : t('location.useCurrentLocation')}
+            {isLoadingLocation ? (t('location.gettingLocation') as string) : (t('location.useCurrentLocation') as string)}
           </Text>
           {data.locationDisplay && locationMethod === 'auto' && (
             <Text style={styles.subText}>
@@ -425,7 +425,7 @@ export const StepLocation: React.FC<StepLocationProps> = ({
               locationMethod === 'manual' && styles.optionTextSelected,
             ]}
           >
-            {t('location.enterManually')}
+            {t('location.enterManually') as string}
           </Text>
         </TouchableOpacity>
 
@@ -459,7 +459,7 @@ export const StepLocation: React.FC<StepLocationProps> = ({
               locationMethod === 'skip' && styles.optionTextSelected,
             ]}
           >
-            {t('location.skipForNow')}
+            {t('location.skipForNow') as string}
           </Text>
         </TouchableOpacity>
       </View>
@@ -477,18 +477,21 @@ export const StepLocation: React.FC<StepLocationProps> = ({
 
       <View style={styles.footer}>
         <Button
-          variant="ghost"
+          variant="outline"
+          size="md"
           onPress={onPrevious}
           style={{ flex: 1 }}
         >
-          {t('common.back')}
+          {t('common.back') as string}
         </Button>
         <Button
+          variant="solid"
+          size="md"
           onPress={handleNext}
           disabled={locationMethod === 'manual' && (!selectedCountry || !selectedCity)}
           style={{ flex: 1 }}
         >
-          {t('common.continue')}
+          {t('common.continue') as string}
         </Button>
       </View>
     </ScrollView>

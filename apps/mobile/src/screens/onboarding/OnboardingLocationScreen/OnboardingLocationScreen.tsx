@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { OnboardingScreenLayout } from '../../../components/organisms/OnboardingScreenLayout';
@@ -20,55 +20,56 @@ export const OnboardingLocationScreen = () => {
   const theme = useTheme();
   const { t } = useTranslation('onboarding');
   const styles = useStyles(theme);
-  const { data, updateData } = useOnboardingStore();
-  
+  const { updateData } = useOnboardingStore();
+
   const [locationMode, setLocationMode] = useState<LocationMode>('none');
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [selectedState, setSelectedState] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('');
-  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [coordinates, setCoordinates] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
   const handleShareLocation = async () => {
     try {
       setIsLoadingLocation(true);
-      
+
       // Request permission
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert(
           String(t('location.locationPermission.title')),
           String(t('location.locationPermission.message')),
-          [
-            { text: 'OK', onPress: () => setIsLoadingLocation(false) }
-          ]
+          [{ text: 'OK', onPress: () => setIsLoadingLocation(false) }],
         );
         return;
       }
-      
+
       // Get current location
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      
+
       setCoordinates({
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
-      
+
       // Get location details (country, city)
       const [reverseGeocode] = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
-      
+
       if (reverseGeocode) {
         setSelectedCountry(reverseGeocode.country || '');
         setSelectedState(reverseGeocode.region || '');
         setSelectedCity(reverseGeocode.city || '');
       }
-      
+
       setLocationMode('automatic');
       setIsLoadingLocation(false);
     } catch (error) {
@@ -77,9 +78,7 @@ export const OnboardingLocationScreen = () => {
       Alert.alert(
         'Location Error',
         'Could not get your location. Please try manual entry.',
-        [
-          { text: 'OK', onPress: () => handleSetManually() }
-        ]
+        [{ text: 'OK', onPress: () => handleSetManually() }],
       );
     }
   };
@@ -108,7 +107,7 @@ export const OnboardingLocationScreen = () => {
   const handleNext = () => {
     let locationAccuracy: LocationAccuracy = 'none';
     let locationData: any = {};
-    
+
     if (locationMode === 'automatic' && coordinates) {
       locationAccuracy = 'exact';
       locationData = {
@@ -123,12 +122,12 @@ export const OnboardingLocationScreen = () => {
         locationCity: selectedCity || undefined,
       };
     }
-    
+
     updateData({
       locationAccuracy,
       ...locationData,
     });
-    
+
     navigation.navigate('OnboardingCompleteScreen');
   };
 
@@ -136,7 +135,8 @@ export const OnboardingLocationScreen = () => {
     navigation.goBack();
   };
 
-  const isNextDisabled = locationMode === 'selecting' || 
+  const isNextDisabled =
+    locationMode === 'selecting' ||
     (locationMode === 'manual' && !selectedCountry) ||
     isLoadingLocation;
 
@@ -148,7 +148,7 @@ export const OnboardingLocationScreen = () => {
       onBack={handleBack}
       isNextDisabled={isNextDisabled}
     >
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -157,16 +157,16 @@ export const OnboardingLocationScreen = () => {
           <View style={styles.buttonsContainer}>
             <Button
               onPress={handleShareLocation}
-              variant="primary"
-              size="large"
+              variant="solid"
+              size="lg"
               style={styles.button}
-              loading={isLoadingLocation}
-              disabled={isLoadingLocation}
+              isLoading={isLoadingLocation}
+              isDisabled={isLoadingLocation}
             >
               <View style={styles.buttonContent}>
-                <Ionicons 
-                  name="location" 
-                  size={20} 
+                <Ionicons
+                  name="location"
+                  size={20}
                   color={theme.colors.button.primary.text}
                   style={styles.buttonIcon}
                 />
@@ -175,17 +175,17 @@ export const OnboardingLocationScreen = () => {
                 </Text>
               </View>
             </Button>
-            
+
             <Button
               onPress={handleSetManually}
-              variant="secondary"
-              size="large"
+              variant="outline"
+              size="lg"
               style={styles.button}
             >
               <View style={styles.buttonContent}>
-                <Ionicons 
-                  name="globe-outline" 
-                  size={20} 
+                <Ionicons
+                  name="globe-outline"
+                  size={20}
                   color={theme.colors.button.secondary.text}
                   style={styles.buttonIcon}
                 />
@@ -194,17 +194,17 @@ export const OnboardingLocationScreen = () => {
                 </Text>
               </View>
             </Button>
-            
+
             <Button
               onPress={handleDontShare}
-              variant="ghost"
-              size="large"
+              variant="link"
+              size="lg"
               style={styles.button}
             >
               <View style={styles.buttonContent}>
-                <Ionicons 
-                  name="close-circle-outline" 
-                  size={20} 
+                <Ionicons
+                  name="close-circle-outline"
+                  size={20}
                   color={theme.colors.button.ghost.text}
                   style={styles.buttonIcon}
                 />
@@ -216,19 +216,20 @@ export const OnboardingLocationScreen = () => {
 
             {/* Privacy Info */}
             <View style={styles.privacyInfo}>
-              <Ionicons 
-                name="shield-checkmark-outline" 
-                size={16} 
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={16}
                 color={theme.colors.text.secondary}
                 style={styles.privacyIcon}
               />
               <Text style={styles.privacyText}>
-                Your location data is encrypted and only used to provide localized dream insights
+                Your location data is encrypted and only used to provide
+                localized dream insights
               </Text>
             </View>
           </View>
         )}
-        
+
         {locationMode === 'manual' && (
           <View style={styles.manualContainer}>
             <View style={styles.instructionContainer}>
@@ -236,7 +237,7 @@ export const OnboardingLocationScreen = () => {
                 Select your location for personalized dream insights
               </Text>
             </View>
-            
+
             <CountryStateCityPicker
               onSelect={(data) => {
                 if (data.country) {
@@ -253,34 +254,32 @@ export const OnboardingLocationScreen = () => {
               selectedState={selectedState}
               selectedCity={selectedCity}
             />
-            
+
             <Button
               onPress={() => setLocationMode('none')}
-              variant="ghost"
-              size="medium"
+              variant="outline"
+              size="md"
               style={styles.backToOptionsButton}
             >
               <View style={styles.buttonContent}>
-                <Ionicons 
-                  name="arrow-back" 
-                  size={16} 
+                <Ionicons
+                  name="arrow-back"
+                  size={16}
                   color={theme.colors.text.secondary}
                   style={styles.buttonIcon}
                 />
-                <Text style={styles.backToOptionsText}>
-                  Back to options
-                </Text>
+                <Text style={styles.backToOptionsText}>Back to options</Text>
               </View>
             </Button>
           </View>
         )}
-        
+
         {locationMode === 'automatic' && (
           <View style={styles.successContainer}>
             <View style={styles.successCard}>
-              <Ionicons 
-                name="checkmark-circle" 
-                size={48} 
+              <Ionicons
+                name="checkmark-circle"
+                size={48}
                 color={theme.colors.status.success}
                 style={styles.successIcon}
               />
@@ -289,9 +288,9 @@ export const OnboardingLocationScreen = () => {
               </Text>
               {selectedCountry && (
                 <View style={styles.locationDetails}>
-                  <Ionicons 
-                    name="location-outline" 
-                    size={16} 
+                  <Ionicons
+                    name="location-outline"
+                    size={16}
                     color={theme.colors.text.secondary}
                     style={styles.locationIcon}
                   />
@@ -301,11 +300,11 @@ export const OnboardingLocationScreen = () => {
                 </View>
               )}
             </View>
-            
+
             <Button
               onPress={handleSetManually}
-              variant="ghost"
-              size="medium"
+              variant="link"
+              size="md"
               style={styles.changeLocationButton}
             >
               Change location manually

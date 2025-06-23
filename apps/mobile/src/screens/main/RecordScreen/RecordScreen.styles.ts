@@ -7,15 +7,13 @@ export const useStyles = () => {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.colors.background.primary,
+      backgroundColor: 'transparent', // Let the Skia background show through
     },
     innerContainer: {
       flex: 1,
-      justifyContent: 'center',
     },
     content: {
       flex: 1,
-      justifyContent: 'center',
       paddingVertical: theme.spacing.large,
       paddingHorizontal: theme.spacing.medium,
     },
@@ -23,14 +21,50 @@ export const useStyles = () => {
       alignItems: 'center',
       paddingHorizontal: theme.spacing.large,
       marginBottom: theme.spacing.large,
+      paddingTop: theme.spacing.large,
     },
     title: {
       textAlign: 'center',
       marginBottom: theme.spacing.small,
+      color: 'rgba(255, 255, 255, 0.9)',
     },
     subtitle: {
       textAlign: 'center',
       lineHeight: 22,
+      color: 'rgba(255, 255, 255, 0.7)',
+    },
+    centerButtonSection: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 300,
+    },
+    actionsWrapper: {
+      alignItems: 'center',
+      width: '100%',
+    },
+    pendingHeader: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.large,
+    },
+    pendingTitle: {
+      textAlign: 'center',
+      marginBottom: theme.spacing.small,
+      color: 'rgba(255, 255, 255, 0.9)',
+    },
+    pendingSubtitle: {
+      textAlign: 'center',
+      lineHeight: 22,
+      color: 'rgba(255, 255, 255, 0.7)',
+    },
+    timerSection: {
+      alignItems: 'center',
+      paddingVertical: theme.spacing.medium,
+    },
+    statusSection: {
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.large,
+      paddingBottom: theme.spacing.large,
     },
     buttonSection: {
       alignItems: 'center',

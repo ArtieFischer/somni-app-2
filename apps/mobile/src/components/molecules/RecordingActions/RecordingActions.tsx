@@ -48,7 +48,7 @@ export const RecordingActions: React.FC<RecordingActionsProps> = ({
       <View style={styles.buttonWrapper}>
         <Button
           action="negative"
-          variant="link"
+          variant="outline"
           size="lg"
           onPress={onCancel}
           isDisabled={isLoading}

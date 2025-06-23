@@ -10,7 +10,7 @@ interface StepIndicatorProps {
   currentStepKey?: string;
 }
 
-export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, totalSteps, currentStepKey }) => {
+export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, totalSteps }) => {
   const theme = useTheme();
   const { t } = useTranslation('onboarding');
   

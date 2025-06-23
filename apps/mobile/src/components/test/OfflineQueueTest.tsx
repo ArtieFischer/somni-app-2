@@ -1,7 +1,6 @@
 {/* Queue Settings */}import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useOfflineRecordingQueue } from '../../hooks/useOfflineRecordingQueue'; // Fixed import - no .ts extension
-import { OfflineRecording } from '@somni/types';
 
 const TestButton: React.FC<{
   title: string;
@@ -25,7 +24,7 @@ const TestButton: React.FC<{
 
 export const OfflineQueueTest: React.FC = () => {
   const queueHook = useOfflineRecordingQueue();
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [, setRefreshKey] = useState(0);
   const [wifiOnlyMode, setWifiOnlyMode] = useState(true);
   const [maxRetries, setMaxRetries] = useState(3);
 
@@ -182,17 +181,6 @@ export const OfflineQueueTest: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getNetworkStatusIcon = (): string => {
-    const { networkStatus } = queueHook;
-    
-    if (!networkStatus.isOnline) return '🔴';
-    if (networkStatus.isWifi && networkStatus.quality === 'excellent') return '🟢';
-    if (networkStatus.isWifi && networkStatus.quality === 'good') return '🟡';
-    if (networkStatus.isWifi) return '🟠';
-    if (networkStatus.type === 'cellular' && networkStatus.quality === 'excellent') return '📶';
-    if (networkStatus.type === 'cellular') return '📱';
-    return '⚪';
-  };
 
   const getStatusIcon = (status: string): string => {
     switch (status) {
@@ -541,7 +529,7 @@ export const OfflineQueueTest: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>❌ Failed Recordings ({failedRecordings.length})</Text>
           
-          {failedRecordings.map((recording, index) => (
+          {failedRecordings.map((recording) => (
             <View key={recording.id} style={[styles.recordingCard, { borderLeftColor: '#E74C3C' }]}>
               <View style={styles.recordingHeader}>
                 <Text style={styles.recordingId}>
@@ -577,7 +565,7 @@ export const OfflineQueueTest: React.FC = () => {
             🔄 Active Queue ({pendingRecordings.length + uploadingRecordings.length})
           </Text>
           
-          {[...uploadingRecordings, ...pendingRecordings].map((recording, index) => (
+          {[...uploadingRecordings, ...pendingRecordings].map((recording) => (
             <View key={recording.id} style={[styles.recordingCard, { 
               borderLeftColor: getStatusColor(recording.status) 
             }]}>
@@ -610,7 +598,7 @@ export const OfflineQueueTest: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>✅ Completed Uploads ({completedRecordings.length})</Text>
           
-          {completedRecordings.slice(0, 5).map((recording, index) => (
+          {completedRecordings.slice(0, 5).map((recording) => (
             <View key={recording.id} style={[styles.recordingCard, { borderLeftColor: '#4ECDC4' }]}>
               <View style={styles.recordingHeader}>
                 <Text style={styles.recordingId}>

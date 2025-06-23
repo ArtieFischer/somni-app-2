@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Alert } from 'react-native';
-import { Text } from '../../atoms';
+import { Text, Card } from '../../atoms';
 import { 
   Box,
   VStack,
@@ -45,7 +45,7 @@ export const SupportSection: React.FC = () => {
   );
 
   return (
-    <Box style={styles.container}>
+    <Card>
       <VStack space="md">
         <Heading size="md" style={styles.sectionTitle}>
           {String(t('profile.support.title'))}
@@ -91,6 +91,6 @@ export const SupportSection: React.FC = () => {
           />
         </VStack>
       </VStack>
-    </Box>
+    </Card>
   );
 };

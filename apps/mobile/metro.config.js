@@ -7,6 +7,18 @@ const workspaceRoot = path.resolve(projectRoot, '../..'); // Assuming apps/mobil
 
 const config = getDefaultConfig(projectRoot);
 
+// SVG transformer configuration
+config.transformer = {
+  ...config.transformer,
+  babelTransformerPath: require.resolve('react-native-svg-transformer'),
+};
+
+config.resolver = {
+  ...config.resolver,
+  assetExts: config.resolver.assetExts.filter((ext) => ext !== 'svg'),
+  sourceExts: [...config.resolver.sourceExts, 'svg'],
+};
+
 // Monorepo settings:
 config.watchFolders = [workspaceRoot]; // Watch the entire monorepo
 config.resolver.nodeModulesPaths = [
@@ -17,6 +29,7 @@ config.resolver.nodeModulesPaths = [
 // Optimize for faster bundling
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 config.transformer.minifierConfig = {
+  ...config.transformer.minifierConfig,
   keep_fnames: true,
   mangle: {
     keep_fnames: true,

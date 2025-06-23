@@ -5,17 +5,12 @@ export const useStyles = () => {
   const theme = useTheme();
   
   return StyleSheet.create({
-    container: {
-      backgroundColor: theme.colors.background.secondary,
-      borderRadius: theme.borderRadius.large,
-      padding: theme.spacing.large,
-      marginBottom: theme.spacing.medium,
-      ...theme.shadows.small,
-    },
+    // Container styles removed - now handled by Card component
     sectionTitle: {
       fontSize: theme.typography.h3.fontSize,
       fontWeight: '600' as any,
       color: theme.colors.text.primary,
+      marginBottom: theme.spacing.small,
     },
     supportRow: {
       paddingVertical: theme.spacing.medium,
@@ -23,9 +18,9 @@ export const useStyles = () => {
       borderRadius: theme.borderRadius.small,
     },
     supportIcon: {
-      fontSize: 20,
+      fontSize: 24,
       textAlign: 'center' as any,
-      width: 24,
+      width: 32,
     },
     supportLabel: {
       fontSize: theme.typography.body.fontSize,
@@ -33,14 +28,15 @@ export const useStyles = () => {
       color: theme.colors.text.primary,
     },
     chevron: {
-      fontSize: 18,
+      fontSize: 24,
       color: theme.colors.text.secondary,
-      fontWeight: '300' as any,
+      marginLeft: theme.spacing.small,
     },
     divider: {
-      backgroundColor: theme.colors.border,
+      backgroundColor: theme.colors.border.primary,
       height: 1,
-      marginHorizontal: theme.spacing.medium,
+      marginHorizontal: 0,
+      opacity: 0.4,
     },
   });
 };

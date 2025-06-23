@@ -14,16 +14,9 @@ export const useStyles = () => {
       backgroundColor: theme.colors.background.primary,
     },
     content: {
-      padding: theme.spacing.large,
       paddingBottom: theme.spacing.xl,
     },
-    actionsSection: {
-      backgroundColor: theme.colors.background.secondary,
-      borderRadius: theme.borderRadius.large,
-      padding: theme.spacing.large,
-      marginBottom: theme.spacing.medium,
-      ...theme.shadows.small,
-    },
+    // Actions section styles removed - now handled by Card component
     signOutButton: {
       borderColor: theme.colors.secondary,
       borderWidth: 1,
@@ -45,7 +38,8 @@ export const useStyles = () => {
     },
     versionSection: {
       marginTop: theme.spacing.large,
-      paddingVertical: theme.spacing.large,
+      paddingTop: theme.spacing.large,
+      paddingBottom: theme.spacing.xxl,
     },
     versionText: {
       fontSize: theme.typography.caption.fontSize,

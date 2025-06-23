@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import { Text, Button } from '../../atoms';
+import { TouchableOpacity } from 'react-native';
+import { Text, Button, Card } from '../../atoms';
 import { 
   Box,
   VStack,
@@ -10,7 +10,6 @@ import {
   Badge,
   BadgeText
 } from '@gluestack-ui/themed';
-import { useTheme } from '../../../hooks/useTheme';
 import { useStyles } from './SharedDreamsSection.styles';
 
 interface SharedDreamsSectionProps {
@@ -22,11 +21,10 @@ export const SharedDreamsSection: React.FC<SharedDreamsSectionProps> = ({
   onViewAll, 
   onCreateShared 
 }) => {
-  const theme = useTheme();
   const styles = useStyles();
 
   return (
-    <Box style={styles.container}>
+    <Card>
       <VStack space="md">
         <HStack justifyContent="space-between" alignItems="center">
           <Heading size="md" style={styles.sectionTitle}>
@@ -76,6 +74,6 @@ export const SharedDreamsSection: React.FC<SharedDreamsSectionProps> = ({
           </Center>
         </Box>
       </VStack>
-    </Box>
+    </Card>
   );
 };

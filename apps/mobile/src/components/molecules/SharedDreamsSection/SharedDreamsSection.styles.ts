@@ -5,13 +5,7 @@ export const useStyles = () => {
   const theme = useTheme();
   
   return StyleSheet.create({
-    container: {
-      backgroundColor: theme.colors.background.secondary,
-      borderRadius: theme.borderRadius.large,
-      padding: theme.spacing.large,
-      marginBottom: theme.spacing.medium,
-      ...theme.shadows.small,
-    },
+    // Container styles removed - now handled by Card component
     sectionTitle: {
       fontSize: theme.typography.h3.fontSize,
       fontWeight: '600' as any,

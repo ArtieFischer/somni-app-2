@@ -96,7 +96,7 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
       </Box>
 
       {/* Dream Topic */}
-      <Card variant="elevated">
+      <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
           <Text size="sm" color="$textLight400" fontWeight="$medium">
             DREAM TOPIC
@@ -108,7 +108,7 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
       </Card>
 
       {/* Symbols */}
-      <Card variant="elevated">
+      <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
           <Text size="sm" color="$textLight400" fontWeight="$medium">
             KEY SYMBOLS
@@ -132,7 +132,7 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
       </Card>
 
       {/* Quick Take */}
-      <Card variant="elevated">
+      <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
           <Text size="sm" color="$textLight400" fontWeight="$medium">
             QUICK TAKE
@@ -148,7 +148,7 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
   const renderAnalysis = () => (
     <VStack space="lg">
       {/* Dream Work */}
-      <Card variant="elevated">
+      <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
           <Text size="sm" color="$textLight400" fontWeight="$medium">
             DREAM WORK
@@ -160,7 +160,7 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
       </Card>
 
       {/* Interpretation */}
-      <Card variant="elevated">
+      <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
           <Text size="sm" color="$textLight400" fontWeight="$medium">
             DETAILED INTERPRETATION
@@ -175,7 +175,7 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
 
   const renderReflection = () => (
     <VStack space="lg">
-      <Card variant="elevated">
+      <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
           <Text size="sm" color="$textLight400" fontWeight="$medium">
             SELF-REFLECTION QUESTION

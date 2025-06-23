@@ -5,7 +5,6 @@ import { useTheme } from '../hooks/useTheme';
 import MainNavigator from './MainNavigator';
 import { DreamDetailScreen } from '../screens/dream/DreamDetailScreen';
 import { DebugScreen } from '../screens/settings/DebugScreen';
-import { Dream } from '@somni/types';
 import { useDreamStore } from '@somni/stores';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();

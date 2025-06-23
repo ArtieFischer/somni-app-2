@@ -423,7 +423,7 @@ export const ProfileOnboardingScreen: React.FC<ProfileOnboardingScreenProps> = (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text variant="h1" style={{ textAlign: 'center', marginBottom: theme.spacing.medium }}>
-          {t('profileSetup.title')}
+          {t('profileSetup.title') as string}
         </Text>
         <StepIndicator currentStep={getCurrentStepNumber()} totalSteps={totalSteps} currentStepKey={currentStep} />
       </View>

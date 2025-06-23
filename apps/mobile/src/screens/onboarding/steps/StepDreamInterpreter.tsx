@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, ViewStyle, TouchableOpacity, ScrollView, Image, Dimensions, Animated } from 'react-native';
-import { Text, LegacyButton as Button } from '../../../components/atoms';
+import { Text, Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { supabase } from '../../../lib/supabase';
@@ -307,18 +307,21 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
 
       <View style={styles.buttonContainer}>
         <Button
-          variant="ghost"
+          variant="outline"
+          size="md"
           onPress={onPrevious}
           style={{ flex: 1 }}
         >
-          {t('common.back')}
+          {t('common.back') as string}
         </Button>
         <Button
+          variant="solid"
+          size="md"
           onPress={handleContinue}
           disabled={!selectedInterpreter}
           style={{ flex: 1 }}
         >
-          {t('common.continue')}
+          {t('common.continue') as string}
         </Button>
       </View>
     </View>

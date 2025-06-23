@@ -4,9 +4,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '../../../lib/supabase';
-import { AuthInput } from '../../../components/molecules/AuthInput';
-import { Button, Text } from '../../../components/atoms';
+import { Input } from '../../../components/ui';
+import { Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
+import SomniLogo from '../../../../../../assets/logo_somni_full.svg';
 
 const ForgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -44,15 +45,16 @@ export const ForgotPasswordScreen: React.FC<{ navigation: any }> = ({
       ]}
     >
       <View style={styles.content}>
-        <Text variant="h2" style={styles.title}>
-          Reset Password
-        </Text>
+        <View style={styles.logoContainer}>
+          <SomniLogo width={260} height={87} />
+        </View>
         <Controller
           control={control}
           name="email"
           render={({ field: { onChange, onBlur, value } }) => (
-            <AuthInput
+            <Input
               label="Email"
+              size="md"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -63,15 +65,16 @@ export const ForgotPasswordScreen: React.FC<{ navigation: any }> = ({
           )}
         />
         <Button
-          variant="primary"
-          size="large"
+          variant="solid"
+          size="md"
           onPress={handleSubmit(onSubmit)}
-          loading={isSubmitting}
+          isLoading={isSubmitting}
+          style={{ marginTop: theme.spacing.medium }}
         >
           Send Reset Link
         </Button>
-        <View style={{ marginTop: 16 }}>
-          <Button variant="ghost" onPress={() => navigation.goBack()}>
+        <View style={{ marginTop: theme.spacing.medium }}>
+          <Button variant="link" onPress={() => navigation.goBack()}>
             Back to Sign In
           </Button>
         </View>
@@ -83,5 +86,6 @@ export const ForgotPasswordScreen: React.FC<{ navigation: any }> = ({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, justifyContent: 'center', padding: 24 },
+  logoContainer: { alignItems: 'center', marginBottom: 32 },
   title: { textAlign: 'center', marginBottom: 24 },
 });

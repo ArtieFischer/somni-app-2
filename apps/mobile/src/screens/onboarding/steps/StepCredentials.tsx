@@ -171,14 +171,17 @@ export const StepCredentials: React.FC<StepCredentialsProps> = ({
       <View style={[styles.buttonContainer, { flexDirection: 'row', gap: theme.spacing.medium }]}>
         {navigation && (
           <Button
-            variant="secondary"
+            variant="outline"
+            size="md"
             onPress={() => navigation.goBack()}
             style={{ flex: 1 }}
           >
-            {t('common.back')}
+            {t('common.back') as string}
           </Button>
         )}
         <Button
+          variant="solid"
+          size="md"
           onPress={handleSubmit(onSubmit)}
           loading={isCheckingUsername}
           style={{ flex: navigation ? 1 : undefined }}

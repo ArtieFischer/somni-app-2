@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import { Text, LegacyButton as Button, Input, RadioButton } from '../../../components/atoms';
+import { Text, Button, Input, RadioButton } from '../../../components/atoms';
 import { LanguageSelector } from '../../../components/molecules/LanguageSelector';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -60,7 +60,6 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
     control,
     handleSubmit,
     formState: { errors },
-    setValue,
   } = useForm<PersonalInfoData>({
     resolver: zodResolver(PersonalInfoSchema),
     defaultValues: {
@@ -153,7 +152,7 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 2,
-      borderColor: theme.colors.accent.primary,
+      borderColor: theme.colors.accent,
       borderStyle: 'dashed',
     },
     avatar: {
@@ -174,8 +173,8 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
       borderColor: theme.colors.background.secondary,
     },
     sexOptionSelected: {
-      borderColor: theme.colors.accent.primary,
-      backgroundColor: theme.colors.accent.primary + '10',
+      borderColor: theme.colors.accent,
+      backgroundColor: `${theme.colors.accent}10`,
     },
     dateButton: {
       paddingVertical: theme.spacing.medium,
@@ -209,7 +208,7 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
       <View style={styles.avatarContainer}>
         <TouchableOpacity style={styles.avatarButton} onPress={pickImage}>
           {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+            <Image source={{ uri: avatarUri }} style={styles.avatar as any} />
           ) : (
             <Text variant="h1">📷</Text>
           )}
@@ -223,7 +222,7 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
         <Controller
           control={control}
           name="username"
-          render={({ field: { onChange, onBlur, value } }) => (
+          render={({ field: { onChange, value } }) => (
             <Input
               label={String(t('personalInfo.displayName'))}
               placeholder={String(t('personalInfo.displayNamePlaceholder'))}
@@ -323,7 +322,7 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
                           <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                             <Text variant="body" color="secondary">Cancel</Text>
                           </TouchableOpacity>
-                          <Text variant="subtitle">Select Date</Text>
+                          <Text variant="body">Select Date</Text>
                           <TouchableOpacity onPress={() => {
                             onChange(selectedDate.toISOString().split('T')[0]);
                             setShowDatePicker(false);
@@ -335,7 +334,7 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
                           value={selectedDate}
                           mode="date"
                           display="spinner"
-                          onChange={(event, date) => {
+                          onChange={(_, date) => {
                             if (date) {
                               setSelectedDate(date);
                             }
@@ -372,12 +371,16 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
 
       <View style={styles.buttonContainer}>
         <Button
-          variant="ghost"
+          variant="outline"
+          size="md"
           onPress={onPrevious}
+          style={{ flex: 1 }}
         >
           {String(t('personalInfo.back'))}
         </Button>
         <Button
+          variant="solid"
+          size="md"
           onPress={handleSubmit(onSubmit)}
           style={{ flex: 1 }}
         >

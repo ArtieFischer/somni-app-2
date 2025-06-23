@@ -1,2 +1,2 @@
-export { Button as LegacyButton, ButtonProps as LegacyButtonProps } from './Button';
-export { Button, ButtonGroup, ButtonProps } from './GluestackButton';
+export { Button, ButtonGroup } from './GluestackButton';
+export type { ButtonProps } from './GluestackButton';

@@ -79,7 +79,7 @@ export const OnboardingSleepScheduleScreen: React.FC<
       onNext={handleNext}
       onBack={handleBack}
       isNextDisabled={false}
-      backButtonVariant="ghost"
+      backButtonVariant="outline"
     >
       <ScrollView 
         style={styles.container} 

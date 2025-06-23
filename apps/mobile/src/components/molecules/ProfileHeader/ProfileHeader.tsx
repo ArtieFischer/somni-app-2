@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, Alert } from 'react-native';
 import { Image } from 'expo-image';
-import { Text } from '../../atoms';
+import { Text, Card } from '../../atoms';
 import { 
   VStack,
   HStack,
   Badge,
   BadgeText,
-  BadgeIcon,
-  Box
+  BadgeIcon
 } from '@gluestack-ui/themed';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
@@ -233,91 +232,41 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onAvatarUpdate }) 
   }, [profile?.avatar_url]);
 
   return (
-    <Box style={styles.container}>
-      <VStack space="md" alignItems="center">
+    <Card noPadding>
+      <VStack space="lg" alignItems="center" style={styles.cardContent}>
+        {/* Avatar */}
         <TouchableOpacity onPress={handleAvatarPress} disabled={isUpdatingAvatar}>
-          <View style={{ position: 'relative' }}>
-            {hasAvatar && profile?.avatar_url ? (
-              <View style={{
-                width: 96,
-                height: 96,
-                borderRadius: 48,
-                backgroundColor: theme.colors.background.secondary,
-                overflow: 'hidden',
-                borderWidth: 2,
-                borderColor: theme.colors.primary
-              }}>
-                <Image 
-                  source={{ uri: profile.avatar_url }} 
-                  style={{ 
-                    width: 96, 
-                    height: 96,
-                  }}
-                  contentFit="cover"
-                  transition={200}
-                  onError={(error) => {
-                    console.error('Avatar image load error:', error);
-                    console.error('Failed URL:', profile.avatar_url);
-                    setImageLoadError(true);
-                  }}
-                  onLoad={() => {
-                    console.log('Avatar loaded successfully from:', profile.avatar_url);
-                  }}
-                />
-              </View>
-            ) : (
-              <View style={{
-                width: 96,
-                height: 96,
-                borderRadius: 48,
-                backgroundColor: theme.colors.background.secondary,
-                justifyContent: 'center',
-                alignItems: 'center',
-                overflow: 'hidden'
-              }}>
-                <Text style={{ 
-                  fontSize: 32, 
-                  fontWeight: '600',
-                  color: theme.colors.text.primary,
-                  lineHeight: 32,
-                  includeFontPadding: false,
-                  textAlignVertical: 'center'
-                }}>
-                  {getInitials()}
-                </Text>
-              </View>
-            )}
-            <View style={{ 
-              position: 'absolute', 
-              bottom: 0, 
-              right: 0, 
-              width: 36, 
-              height: 36, 
-              borderRadius: 18, 
-              backgroundColor: theme.colors.primary, 
-              justifyContent: 'center', 
-              alignItems: 'center',
-              borderWidth: 3,
-              borderColor: theme.colors.background.primary,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 4,
-              elevation: 5
-            }}>
-              <Text style={{ fontSize: 18 }}>📷</Text>
+          {hasAvatar && profile?.avatar_url ? (
+            <View style={styles.avatarContainer}>
+              <Image 
+                source={{ uri: profile.avatar_url }} 
+                style={styles.avatarImage}
+                contentFit="cover"
+                transition={200}
+                onError={(error) => {
+                  console.error('Avatar image load error:', error);
+                  console.error('Failed URL:', profile.avatar_url);
+                  setImageLoadError(true);
+                }}
+                onLoad={() => {
+                  console.log('Avatar loaded successfully from:', profile.avatar_url);
+                }}
+              />
             </View>
-          </View>
+          ) : (
+            <View style={[styles.avatarContainer, styles.avatarFallbackContainer]}>
+              <Text style={styles.avatarFallbackText}>
+                {getInitials()}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
-        {!isUpdatingAvatar && (
-          <Text variant="caption" color="secondary" style={{ marginTop: 4 }}>
-            Tap to change photo
-          </Text>
-        )}
 
-        <VStack space="xs" alignItems="center">
+        {/* Name and Info */}
+        <VStack space="sm" alignItems="center">
+          {/* Name with Premium Badge */}
           <HStack space="sm" alignItems="center">
-            <Text variant="h2" style={styles.displayName}>
+            <Text variant="h1" style={styles.displayName}>
               {getDisplayName()}
             </Text>
             {profile?.is_premium && (
@@ -328,20 +277,27 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onAvatarUpdate }) 
             )}
           </HStack>
           
-          <Text variant="body" color="secondary" style={styles.email}>
-            {user?.email}
-          </Text>
+          {/* Location */}
+          {(profile?.location_city || profile?.location_country) && (
+            <Text variant="body" style={styles.location}>
+              📍 {[profile.location_city, profile.location_country].filter(Boolean).join(', ')}
+            </Text>
+          )}
 
+          {/* Handle */}
           {profile?.handle && (
-            <Text variant="caption" color="secondary" style={styles.handle}>
+            <Text variant="body" style={styles.handle}>
               @{profile.handle.replace('@', '')}
             </Text>
           )}
 
+          {/* Account Age Pill */}
           {getAccountAge() && (
-            <Text variant="caption" color="secondary" style={styles.accountAge}>
-              {getAccountAge()}
-            </Text>
+            <View style={styles.accountAgePill}>
+              <Text style={styles.accountAgeText}>
+                {getAccountAge()}
+              </Text>
+            </View>
           )}
         </VStack>
 
@@ -351,6 +307,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onAvatarUpdate }) 
           </Text>
         )}
       </VStack>
-    </Box>
+    </Card>
   );
 };

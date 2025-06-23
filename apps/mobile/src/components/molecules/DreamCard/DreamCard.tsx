@@ -10,6 +10,7 @@ import {
   Spinner,
   Image,
 } from '../../ui';
+import { Card } from '../../atoms';
 import { Dream } from '@somni/types';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { darkTheme } from '@somni/theme';
@@ -40,9 +41,9 @@ export const DreamCard: React.FC<DreamCardProps> = ({
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return t('time.today');
+      return t('time.today') as string;
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return t('time.yesterday');
+      return t('time.yesterday') as string;
     } else {
       return date.toLocaleDateString();
     }
@@ -85,18 +86,8 @@ export const DreamCard: React.FC<DreamCardProps> = ({
   // Removed unused getStatusColor function
 
   return (
-    <Pressable
-      onPress={() => onPress?.(dream)}
-      bg={darkTheme.colors.background.elevated}
-      borderRadius={12}
-      p="$4"
-      mx="$4"
-      shadowColor="#000000"
-      shadowOffset={{ width: 0, height: 2 }}
-      shadowOpacity={0.1}
-      shadowRadius={4}
-      elevation={3}
-    >
+    <Card variant="elevated">
+      <Pressable onPress={() => onPress?.(dream)}>
       <VStack space="md">
         {/* Header */}
         <HStack justifyContent="space-between" alignItems="center">
@@ -296,6 +287,7 @@ export const DreamCard: React.FC<DreamCardProps> = ({
           )}
         </HStack>
       </VStack>
-    </Pressable>
+      </Pressable>
+    </Card>
   );
 };

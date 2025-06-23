@@ -28,7 +28,7 @@ export const IntegratedQueueTest: React.FC = () => {
   const queueHook = useOfflineRecordingQueue();
   const dreamStore = useDreamStore();
   const networkStatus = useNetworkStatus();
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [, setRefreshKey] = useState(0);
 
   // Force re-render to see real-time updates
   useEffect(() => {

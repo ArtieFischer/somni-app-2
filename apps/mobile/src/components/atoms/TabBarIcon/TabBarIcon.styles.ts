@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { useTheme } from '../../../hooks/useTheme';
 
-export const useStyles = (focused: boolean) => {
+export const useStyles = (_focused: boolean) => {
   const theme = useTheme();
 
   return StyleSheet.create({

@@ -14,6 +14,10 @@ export const useStyles = () => {
       justifyContent: 'center',
       paddingHorizontal: theme.spacing.large,
     },
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.large,
+    },
     title: {
       textAlign: 'center',
       marginBottom: theme.spacing.small,

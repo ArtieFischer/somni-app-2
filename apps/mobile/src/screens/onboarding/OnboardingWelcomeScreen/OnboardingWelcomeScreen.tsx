@@ -23,11 +23,11 @@ export const OnboardingWelcomeScreen: React.FC<
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          t('onboarding.permissions.title', 'Permissions Recommended'),
+          t('onboarding.permissions.title', 'Permissions Recommended') as string,
           t(
             'onboarding.permissions.message',
             'We recommend enabling notifications for features like reality checks.',
-          ),
+          ) as string,
         );
       }
       
@@ -42,11 +42,11 @@ export const OnboardingWelcomeScreen: React.FC<
 
   return (
     <OnboardingScreenLayout
-      title={t('onboarding.welcome.title', 'Welcome to Somni')}
+      title={t('onboarding.welcome.title', 'Welcome to Somni') as string}
       description={t(
         'onboarding.welcome.description',
         "Before we begin, let's set up a few things to personalize your dream journey.",
-      )}
+      ) as string}
       onNext={handleNext}
     >
       <View style={styles.animationContainer}>

@@ -408,10 +408,10 @@ export const StepSleepSchedule: React.FC<StepSleepScheduleProps> = ({
       />
 
       <View style={styles.footer}>
-        <Button variant="secondary" onPress={onPrevious} style={{ flex: 1 }}>
+        <Button variant="outline" size="md" onPress={onPrevious} style={{ flex: 1 }}>
           {String(t('common.back'))}
         </Button>
-        <Button onPress={handleNext} style={{ flex: 1 }}>
+        <Button variant="solid" size="md" onPress={handleNext} style={{ flex: 1 }}>
           {String(t('common.continue'))}
         </Button>
       </View>

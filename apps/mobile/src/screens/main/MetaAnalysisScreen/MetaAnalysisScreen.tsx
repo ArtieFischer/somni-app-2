@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
-import { Text } from '../../../components/atoms';
+import { Text, Card } from '../../../components/atoms';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamStore } from '@somni/stores';
 import { useStyles } from './MetaAnalysisScreen.styles';
@@ -30,7 +30,7 @@ export const MetaAnalysisScreen: React.FC = () => {
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         {/* Basic Stats Available Now */}
-        <View style={styles.statsCard}>
+        <Card variant="elevated" style={styles.statsCard}>
           <Text variant="h3" style={styles.cardTitle}>
             {String(t('analysis.currentInsights'))}
           </Text>
@@ -61,12 +61,12 @@ export const MetaAnalysisScreen: React.FC = () => {
               <Text variant="caption" color="secondary">
                 {String(t('stats.peakHour'))}
               </Text>
+              </View>
             </View>
-          </View>
-        </View>
+          </Card>
 
         {/* Coming Soon Card */}
-        <View style={styles.comingSoonCard}>
+        <Card variant="elevated" style={styles.comingSoonCard}>
           <Text style={styles.icon}>📊</Text>
           <Text variant="h2" style={styles.title}>
             {String(t('analysis.advancedAnalysis'))}
@@ -77,7 +77,7 @@ export const MetaAnalysisScreen: React.FC = () => {
           <Text variant="caption" color="secondary" style={styles.subtitle}>
             {String(t('analysis.comingSoon.subtitle'))}
           </Text>
-        </View>
+        </Card>
 
         {/* Feature preview */}
         <View style={styles.featureSection}>
@@ -85,65 +85,75 @@ export const MetaAnalysisScreen: React.FC = () => {
             {String(t('analysis.features.title'))}
           </Text>
 
-          <View style={styles.featureCard}>
-            <Text style={styles.featureIcon}>🎯</Text>
-            <View style={styles.featureContent}>
+          <Card style={styles.featureCard}>
+            <View style={styles.featureCardContent}>
+              <Text style={styles.featureIcon}>🎯</Text>
+              <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
                 {String(t('analysis.features.patternAnalysis.title'))}
               </Text>
               <Text variant="caption" color="secondary">
                 {String(t('analysis.features.patternAnalysis.description'))}
               </Text>
+              </View>
             </View>
-          </View>
+          </Card>
 
-          <View style={styles.featureCard}>
-            <Text style={styles.featureIcon}>🌙</Text>
-            <View style={styles.featureContent}>
+          <Card style={styles.featureCard}>
+            <View style={styles.featureCardContent}>
+              <Text style={styles.featureIcon}>🌙</Text>
+              <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
                 {String(t('analysis.features.sleepCorrelation.title'))}
               </Text>
               <Text variant="caption" color="secondary">
                 {String(t('analysis.features.sleepCorrelation.description'))}
               </Text>
+              </View>
             </View>
-          </View>
+          </Card>
 
-          <View style={styles.featureCard}>
-            <Text style={styles.featureIcon}>🧠</Text>
-            <View style={styles.featureContent}>
+          <Card style={styles.featureCard}>
+            <View style={styles.featureCardContent}>
+              <Text style={styles.featureIcon}>🧠</Text>
+              <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
                 {String(t('analysis.features.aiInsights.title'))}
               </Text>
               <Text variant="caption" color="secondary">
                 {String(t('analysis.features.aiInsights.description'))}
               </Text>
+              </View>
             </View>
-          </View>
+          </Card>
 
-          <View style={styles.featureCard}>
-            <Text style={styles.featureIcon}>📈</Text>
-            <View style={styles.featureContent}>
+          <Card style={styles.featureCard}>
+            <View style={styles.featureCardContent}>
+              <Text style={styles.featureIcon}>📈</Text>
+              <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
                 {String(t('analysis.features.lucidProgress.title'))}
               </Text>
               <Text variant="caption" color="secondary">
                 {String(t('analysis.features.lucidProgress.description'))}
               </Text>
+              </View>
             </View>
-          </View>
+          </Card>
 
-          <View style={styles.featureCard}>
-            <Text style={styles.featureIcon}>🎮</Text>
-            <View style={styles.featureContent}>
+          <Card style={styles.featureCard}>
+            <View style={styles.featureCardContent}>
+              <Text style={styles.featureIcon}>🎮</Text>
+              <View style={styles.featureContent}>
               <Text variant="body" style={styles.featureTitle}>
                 {String(t('analysis.features.dreamQuests.title'))}
               </Text>
               <Text variant="caption" color="secondary">
                 {String(t('analysis.features.dreamQuests.description'))}
               </Text>
+              </View>
             </View>
-          </View>
+          </Card>
         </View>
       </View>
     </ScrollView>

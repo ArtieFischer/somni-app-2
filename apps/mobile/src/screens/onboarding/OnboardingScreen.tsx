@@ -11,17 +11,15 @@ import {
 } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
-import { Text, Button } from '../../components/atoms';
+import { Text } from '../../components/atoms';
 import { StepIndicator } from './components/StepIndicator';
 import { StepCredentials } from './steps/StepCredentials';
 import { StepPersonalInfo } from './steps/StepPersonalInfo';
 import { StepDreamInterpreter } from './steps/StepDreamInterpreter';
 import { StepPreferences } from './steps/StepPreferences';
 import { StepReview } from './steps/StepReview';
-import { signUpWithEmail } from '../../api/auth';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '@somni/stores';
-import type { DreamInterpreter } from '@somni/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -86,35 +84,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
     }
   };
 
-  const uploadAvatar = async (userId: string, file: any): Promise<string | null> => {
-    try {
-      const fileExt = file.uri.split('.').pop();
-      const fileName = `avatar.${fileExt}`;
-      const filePath = `${userId}/${fileName}`;
-
-      // Convert URI to blob for React Native
-      const response = await fetch(file.uri);
-      const blob = await response.blob();
-
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, {
-          contentType: file.type || 'image/jpeg',
-          upsert: true,
-        });
-
-      if (error) throw error;
-
-      const { data: publicUrl } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      return publicUrl.publicUrl;
-    } catch (error) {
-      console.error('Avatar upload error:', error);
-      return null;
-    }
-  };
 
   const handleSubmit = async () => {
     console.log('=== DEBUG: handleSubmit called ===');
@@ -198,8 +167,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
       if (!authData.session && authData.user) {
         console.log('Email confirmation required, showing alert...');
         Alert.alert(
-          t('auth:emailConfirmation.title'),
-          t('auth:emailConfirmation.message'),
+          t('auth:emailConfirmation.title') as string,
+          t('auth:emailConfirmation.message') as string,
           [{ text: 'OK', onPress: () => navigation.navigate('SignIn') }]
         );
       } else {

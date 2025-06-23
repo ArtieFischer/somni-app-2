@@ -2,7 +2,6 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text } from '../../components/atoms';
 import { useAuth } from '../../hooks/useAuth';
-import { useTheme } from '../../hooks/useTheme';
 
 /**
  * Demo screen showing how to access user's onboarding answers
@@ -13,7 +12,6 @@ import { useTheme } from '../../hooks/useTheme';
  * 3. profile.interested_in_lucid_dreaming - 'yes' | 'no' | 'dont_know_yet'
  */
 export const UserPreferencesDemo: React.FC = () => {
-  const theme = useTheme();
   const { profile, isLoading } = useAuth();
 
   // Helper function to format preference values

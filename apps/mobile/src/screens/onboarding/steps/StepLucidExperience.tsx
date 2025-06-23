@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { Text, LegacyButton as Button } from '../../../components/atoms';
+import { Text, Button } from '../../../components/atoms';
 
 interface StepLucidExperienceProps {
   data: any;
@@ -82,10 +82,10 @@ export const StepLucidExperience: React.FC<StepLucidExperienceProps> = ({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text variant="h2" style={{ marginBottom: theme.spacing.small }}>
-          {t('lucidExperience.title')}
+          {t('lucidExperience.title') as string}
         </Text>
         <Text variant="body" style={{ color: theme.colors.text.secondary }}>
-          {t('lucidExperience.description')}
+          {t('lucidExperience.description') as string}
         </Text>
       </View>
 
@@ -106,7 +106,7 @@ export const StepLucidExperience: React.FC<StepLucidExperienceProps> = ({
                 data.lucidDreamingExperience === level.value && styles.optionTextSelected,
               ]}
             >
-              {t(`lucidExperience.levels.${level.value}`, level.label)}
+              {(t(`lucidExperience.levels.${level.value}`, level.label) as string)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -114,17 +114,20 @@ export const StepLucidExperience: React.FC<StepLucidExperienceProps> = ({
 
       <View style={styles.footer}>
         <Button
-          variant="ghost"
+          variant="outline"
+          size="md"
           onPress={onPrevious}
           style={{ flex: 1 }}
         >
-          {t('common.back')}
+          {t('common.back') as string}
         </Button>
         <Button
+          variant="solid"
+          size="md"
           onPress={handleNext}
           style={{ flex: 1 }}
         >
-          {t('common.continue')}
+          {t('common.continue') as string}
         </Button>
       </View>
     </ScrollView>

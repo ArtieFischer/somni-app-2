@@ -39,14 +39,14 @@ export default function MainNavigator() {
         name="Feed" 
         component={FeedScreen}
         options={{
-          headerTitle: t('navigation.screens.feed.title'),
+          headerTitle: t('navigation.screens.feed.title') as string,
         }}
       />
       <Tab.Screen 
         name="DreamDiary" 
         component={DreamDiaryScreen}
         options={{
-          headerTitle: t('navigation.screens.dreamDiary.title'),
+          headerTitle: t('navigation.screens.dreamDiary.title') as string,
         }}
       />
       <Tab.Screen 
@@ -60,14 +60,14 @@ export default function MainNavigator() {
         name="MetaAnalysis" 
         component={MetaAnalysisScreen}
         options={{
-          headerTitle: t('navigation.screens.metaAnalysis.title'),
+          headerTitle: t('navigation.screens.metaAnalysis.title') as string,
         }}
       />
       <Tab.Screen 
         name="Profile" 
         component={ProfileScreen}
         options={{
-          headerTitle: t('navigation.screens.profile.title'),
+          headerTitle: t('navigation.screens.profile.title') as string,
         }}
       />
     </Tab.Navigator>

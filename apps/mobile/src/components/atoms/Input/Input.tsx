@@ -40,12 +40,6 @@ export const Input: React.FC<InputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const styles = useStyles(theme, variant, size, isFocused, !!error);
 
-  const inputHeight = {
-    small: 40,
-    medium: 48,
-    large: 56,
-  };
-
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}

@@ -153,16 +153,14 @@ export const TimePicker: React.FC<TimePickerProps> = ({
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               <Button
-                variant="ghost"
+                variant="outline"
                 onPress={onClose}
-                style={styles.button}
               >
                 Cancel
               </Button>
               <Button
-                variant="primary"
+                variant="solid"
                 onPress={handleConfirm}
-                style={styles.button}
               >
                 Confirm
               </Button>

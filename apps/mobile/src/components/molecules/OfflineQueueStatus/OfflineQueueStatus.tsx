@@ -44,18 +44,18 @@ export const OfflineQueueStatus: React.FC = () => {
     }
     
     if (uploadingCount > 0) {
-      return t('offline.uploading');
+      return t('offline.uploading') as string;
     }
     
     if (failedCount > 0) {
-      return t('offline.failed', { count: failedCount });
+      return t('offline.failed', { count: failedCount }) as string;
     }
     
     if (!isConnected) {
-      return t('offline.noConnection', { count: pendingCount });
+      return t('offline.noConnection', { count: pendingCount }) as string;
     }
     
-    return t('offline.pending', { count: pendingCount });
+    return t('offline.pending', { count: pendingCount }) as string;
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -89,22 +89,22 @@ export const OfflineQueueStatus: React.FC = () => {
         <View style={styles.actions}>
           {failedCount > 0 && isConnected && (
             <Button
-              variant="secondary"
-              size="small"
+              variant="outline"
+              size="sm"
               onPress={(e) => {
                 e.stopPropagation();
                 retryFailedRecordings();
               }}
               disabled={isProcessing}
             >
-              {t('offline.retry')}
+              {t('offline.retry') as string}
             </Button>
           )}
           
           {pendingCount > 0 && isConnected && !isProcessing && (
             <Button
-              variant="secondary"
-              size="small"
+              variant="outline"
+              size="sm"
               onPress={(e) => {
                 e.stopPropagation();
                 processQueue();

@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, View, Alert } from 'react-native';
+import { SafeAreaView, View, Alert, StyleSheet } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signInWithEmail, SignInSchema, SignInData } from '../../../api/auth';
 import { Text, Button } from '../../../components/atoms';
-import { AuthInput } from '../../../components/molecules/AuthInput';
+import { Input } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useBiometricAuth } from '../../../hooks/useBiometricAuth';
-import { useStyles } from './SignInScreen.styles';
+import { useTheme } from '../../../hooks/useTheme';
+import SomniLogo from '../../../../../../assets/logo_somni_full.svg';
 
 interface SignInScreenProps {
   navigation: any;
@@ -15,10 +16,41 @@ interface SignInScreenProps {
 
 export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
   const { t } = useTranslation('auth');
-  const styles = useStyles();
+  const theme = useTheme();
   const { saveCredentials, attemptBiometricSignIn, getSavedCredentials } =
     useBiometricAuth();
   const [canUseBiometrics, setCanUseBiometrics] = useState(false);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background.primary,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingHorizontal: theme.spacing.large,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.xxl,
+    },
+    subtitle: {
+      textAlign: 'center',
+      marginBottom: theme.spacing.xl,
+    },
+    forgotPasswordContainer: {
+      alignItems: 'center',
+      marginVertical: theme.spacing.medium,
+    },
+    biometricContainer: {
+      marginTop: theme.spacing.medium,
+    },
+    linkContainer: {
+      marginTop: theme.spacing.medium,
+      alignItems: 'center',
+    },
+  });
 
   const {
     control,
@@ -39,7 +71,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
       // Navigation will be handled by auth state change
     } catch (error) {
       if (error instanceof Error) {
-        Alert.alert(t('signIn.error.invalidCredentials'), error.message);
+        Alert.alert(t('signIn.error.invalidCredentials') as string, error.message);
       }
     }
   };
@@ -54,9 +86,9 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text variant="h1" style={styles.title}>
-          {String(t('signIn.title'))}
-        </Text>
+        <View style={styles.logoContainer}>
+          <SomniLogo width={280} height={93} />
+        </View>
         <Text variant="body" color="secondary" style={styles.subtitle}>
           {String(t('signIn.subtitle'))}
         </Text>
@@ -65,8 +97,9 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
           control={control}
           name="email"
           render={({ field: { onChange, onBlur, value } }) => (
-            <AuthInput
-              label={t('signIn.email')}
+            <Input
+              label={String(t('signIn.email'))}
+              size="md"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -81,8 +114,9 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
           control={control}
           name="password"
           render={({ field: { onChange, onBlur, value } }) => (
-            <AuthInput
-              label={t('signIn.password')}
+            <Input
+              label={String(t('signIn.password'))}
+              size="md"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -93,42 +127,43 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
           )}
         />
 
-        <View style={styles.forgotPasswordContainer}>
-          <Text 
-            variant="body" 
-            color="secondary"
-            style={{ textDecorationLine: 'underline' }}
+        <View style={[styles.forgotPasswordContainer, { marginTop: theme.spacing.small }]}>
+          <Button 
+            variant="link" 
             onPress={() => navigation.navigate('ForgotPassword')}
           >
             {String(t('signIn.forgotPassword'))}
-          </Text>
+          </Button>
         </View>
 
         <Button
-          variant="primary"
-          size="large"
+          variant="solid"
+          action="primary"
+          size="md"
           onPress={handleSubmit(onSubmit)}
-          loading={isSubmitting}
+          isLoading={isSubmitting}
         >
           {String(t('signIn.button'))}
         </Button>
 
         {canUseBiometrics && (
-          <View style={{ marginTop: 16 }}>
-            <Button variant="secondary" size="large" onPress={onBiometricPress}>
+          <View style={styles.biometricContainer}>
+            <Button 
+              variant="outline" 
+              action="secondary" 
+              size="md" 
+              onPress={onBiometricPress}
+            >
               Use Face ID / Touch ID
             </Button>
           </View>
         )}
 
-        <Text
-          variant="body"
-          color="secondary"
-          style={[styles.linkButton, { textAlign: 'center' }]}
-          onPress={() => navigation.navigate('SignUp')}
-        >
-          {t('signIn.noAccount')} <Text variant="body" color="primary" style={{ textDecorationLine: 'underline' }}>{t('signIn.signUp')}</Text>
-        </Text>
+        <View style={styles.linkContainer}>
+          <Button variant="link" onPress={() => navigation.navigate('SignUp')}>
+            {String(t('signIn.noAccount'))} {String(t('signIn.signUp'))}
+          </Button>
+        </View>
       </View>
     </SafeAreaView>
   );

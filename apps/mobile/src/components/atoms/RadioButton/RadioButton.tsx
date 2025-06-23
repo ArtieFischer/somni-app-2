@@ -9,7 +9,6 @@ import {
   HStack,
 } from '@gluestack-ui/themed';
 import { CircleIcon } from '@gluestack-ui/themed';
-import { useTheme } from '../../../hooks/useTheme';
 
 export interface RadioOption {
   value: string;
@@ -34,7 +33,6 @@ export const RadioButton: React.FC<RadioButtonProps> = ({
   size = 'md',
   isDisabled = false,
 }) => {
-  const theme = useTheme();
   const Container = orientation === 'vertical' ? VStack : HStack;
 
   return (

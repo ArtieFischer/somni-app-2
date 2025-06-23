@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useDreamStore } from '@somni/stores';
 import { AudioService } from '../infrastructure/services/AudioService';
 import { useOfflineRecordingQueue } from './useOfflineRecordingQueue';
-import { useNetworkStatus } from './useNetworkStatus';
 import { useAuth } from './useAuth'; // Import useAuth
 
 // Create a singleton instance
@@ -37,7 +36,6 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
   const dreamStore = useDreamStore();
   const { user } = useAuth(); // Get user from auth
   const offlineQueue = useOfflineRecordingQueue();
-  const { isConnected } = useNetworkStatus();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);

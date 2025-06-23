@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Animated, SafeAreaView, Alert } from 'react-native';
-import { supabase } from '../../../lib/supabase';
 import { Text } from '../../../components/atoms';
-import { MorphingRecordButton } from '../../../components/atoms/MorphingRecordButton';
+import { DreamyBackground } from '../../../components/atoms/DreamyBackground';
+import { SkiaRecordButton } from '../../../components/atoms/SkiaRecordButton';
 import { RecordingTimer } from '../../../components/molecules/RecordingTimer';
 import { RecordingActions } from '../../../components/molecules/RecordingActions';
 import { RecordingStatus } from '../../../components/molecules/RecordingStatus';
@@ -95,7 +95,7 @@ export const RecordScreen: React.FC = () => {
 
   // Listen for tab press when already focused
   useEffect(() => {
-    const unsubscribe = navigation.addListener('tabPressWhenFocused', (e) => {
+    const unsubscribe = navigation.addListener('tabPressWhenFocused', (_e) => {
       // Only handle if not processing and no pending recording
       if (!isProcessing && !pendingRecording && !isButtonDisabled) {
         handleRecordPress();
@@ -244,6 +244,9 @@ export const RecordScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Dreamy animated background */}
+      <DreamyBackground active={isRecording} />
+      
       <View style={styles.innerContainer}>
         <OfflineQueueStatus />
 
@@ -256,56 +259,74 @@ export const RecordScreen: React.FC = () => {
             },
           ]}
         >
-          {/* Title section */}
-          <View style={styles.header}>
-            <Text variant="h1" style={styles.title}>
-              {pendingRecording ? String(t('record.dreamRecorded')) : String(t('record.title'))}
-            </Text>
-            <Text variant="body" color="secondary" style={styles.subtitle}>
-              {pendingRecording ? String(t('record.acceptToTranscribe')) : String(t('record.subtitle'))}
-            </Text>
-          </View>
+          {/* Title section - only show when not recording for cleaner look */}
+          {!isRecording && (
+            <View style={styles.header}>
+              <Text variant="h1" style={styles.title}>
+                {pendingRecording ? String(t('record.dreamRecorded')) : String(t('record.title'))}
+              </Text>
+              <Text variant="body" color="secondary" style={styles.subtitle}>
+                {pendingRecording ? String(t('record.acceptToTranscribe')) : String(t('record.subtitle'))}
+              </Text>
+            </View>
+          )}
 
-          {/* Main recording button or accept/cancel buttons */}
-          <View style={styles.buttonSection}>
+          {/* Main recording button section - centered */}
+          <View style={styles.centerButtonSection}>
             {!pendingRecording ? (
-              <MorphingRecordButton
+              <SkiaRecordButton
                 isRecording={isRecording}
                 onPress={handleRecordPress}
                 amplitude={amplitude}
+                size={220}
               />
             ) : (
-              <RecordingActions
-                onAccept={async () => {
-                  const dreamId = await acceptRecording();
-                  if (dreamId) {
-                    // Track this dream ID to show notification when it completes
-                    recordedDreamIdsRef.current.add(dreamId);
-                  }
-                }}
-                onSaveLater={saveLaterRecording}
-                onCancel={cancelRecording}
-                isLoading={isTranscribing}
-              />
+              <View style={styles.actionsWrapper}>
+                {/* Show title above actions when there's a pending recording */}
+                <View style={styles.pendingHeader}>
+                  <Text variant="h2" style={styles.pendingTitle}>
+                    {String(t('record.dreamRecorded'))}
+                  </Text>
+                  <Text variant="body" color="secondary" style={styles.pendingSubtitle}>
+                    {String(t('record.acceptToTranscribe'))}
+                  </Text>
+                </View>
+                <RecordingActions
+                  onAccept={async () => {
+                    const dreamId = await acceptRecording();
+                    if (dreamId) {
+                      // Track this dream ID to show notification when it completes
+                      recordedDreamIdsRef.current.add(dreamId);
+                    }
+                  }}
+                  onSaveLater={saveLaterRecording}
+                  onCancel={cancelRecording}
+                  isLoading={isTranscribing}
+                />
+              </View>
             )}
           </View>
 
-          {/* Recording timer - always render to prevent layout shift */}
-          <View style={{ opacity: isRecording ? 1 : 0, minHeight: 80 }}>
-            <RecordingTimer
+          {/* Recording timer - positioned below button */}
+          {isRecording && (
+            <View style={styles.timerSection}>
+              <RecordingTimer
+                isRecording={isRecording}
+                duration={recordingDuration}
+              />
+            </View>
+          )}
+
+          {/* Instructions or status - at bottom */}
+          <View style={styles.statusSection}>
+            <RecordingStatus
               isRecording={isRecording}
-              duration={recordingDuration}
+              isProcessing={isProcessing}
+              isTranscribing={isTranscribing}
+              hasPendingRecording={!!pendingRecording}
+              isOnline={isOnline}
             />
           </View>
-
-          {/* Instructions or status */}
-          <RecordingStatus
-            isRecording={isRecording}
-            isProcessing={isProcessing}
-            isTranscribing={isTranscribing}
-            hasPendingRecording={!!pendingRecording}
-            isOnline={isOnline}
-          />
         </Animated.View>
       </View>
     </SafeAreaView>
