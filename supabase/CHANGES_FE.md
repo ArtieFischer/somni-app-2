@@ -201,3 +201,181 @@ The time picker was showing limited hours on iOS due to the combination of `minu
 
 ### Fix Applied
 Removed `minuteInterval={1}` and `is24Hour={true}` props from both DateTimePicker components in OnboardingSleepScheduleScreen. These props were causing the iOS picker to limit available hours.
+
+## Location Accuracy Schema Update
+
+### Current Schema
+```sql
+location_accuracy    loc_accuracy_enum  DEFAULT 'none'
+CREATE TYPE loc_accuracy_enum AS ENUM ('none', 'country', 'region', 'city', 'exact');
+```
+
+### ⚠️ EMERGENCY FIX NEEDED - Column was accidentally deleted
+
+**Run this SQL immediately to restore the location_accuracy column:**
+
+See: `supabase/RESTORE_LOCATION_ACCURACY.sql`
+
+```sql
+-- Emergency fix: Restore location_accuracy column after accidental drop
+-- (The enum type already exists, just add 'manual' value and recreate column)
+
+DO $$ 
+BEGIN
+    ALTER TYPE loc_accuracy_enum ADD VALUE 'manual';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+ALTER TABLE profiles 
+ADD COLUMN location_accuracy loc_accuracy_enum DEFAULT 'none' NOT NULL;
+
+-- Set reasonable defaults based on existing location data
+UPDATE profiles 
+SET location_accuracy = CASE
+  WHEN location IS NOT NULL THEN 'exact'::loc_accuracy_enum
+  WHEN location_country IS NOT NULL OR location_city IS NOT NULL THEN 'manual'::loc_accuracy_enum
+  ELSE 'none'::loc_accuracy_enum
+END;
+```
+
+### Frontend Changes Applied
+
+#### LocationAccuracy Type Updated
+- **File**: `packages/types/src/index.ts`
+- **Change**: Updated `LocationAccuracy` type from `'none' | 'country' | 'region' | 'city' | 'exact'` to `'none' | 'manual' | 'exact'`
+
+#### New Location Options
+1. **none**: User opts out of location sharing
+2. **manual**: User manually selects country/state/city (no GPS)  
+3. **exact**: User shares precise GPS coordinates
+
+#### Pending Updates Required
+1. **UserPreferencesSection**: Update location sharing logic to handle new enum values and GPS permissions
+2. **ProfileHeader**: Add location display between username and handle
+3. **Location Components**: Integrate CountryStateCityPicker for manual selection
+
+### Migration Notes
+- Existing profiles with `'country'`, `'region'`, or `'city'` values should be migrated to `'manual'`
+- The frontend location display logic needs to be updated to handle the new three-option system
+
+## Sleep Schedule Fix - Timezone Agnostic Implementation
+
+### Issue
+Sleep schedule was saving full ISO timestamps instead of simple time strings, making it timezone-dependent.
+
+### Changes Applied
+
+#### 1. **Fixed Time Format Saving**
+- **StepSleepSchedule.tsx**: Changed from ISO timestamps to 24-hour format (e.g., "23:30")
+- **OnboardingSleepScheduleScreen.tsx**: Added 24-hour format function for consistency
+
+#### 2. **Removed Timezone Field**
+- **ProfileOnboardingScreen.tsx**: Removed `tz` field from sleep_schedule
+- **OnboardingCompleteScreen.tsx**: Removed `tz` field from sleep_schedule
+
+### New Sleep Schedule Format
+```typescript
+sleep_schedule: {
+  bed: string;   // "23:30" (24-hour format)
+  wake: string;  // "07:00" (24-hour format)
+  // tz field removed - always uses device local time
+}
+```
+
+### Benefits
+1. **Timezone Agnostic**: Notifications will trigger at the same local time regardless of timezone
+2. **Travel Friendly**: If user travels NYC → London, bedtime reminder stays at 11:30 PM local time
+3. **Simpler Implementation**: No complex timezone conversions needed
+4. **Consistent Format**: All sleep times saved as 24-hour HH:MM strings
+
+### Migration Notes
+- Existing ISO timestamp values need to be converted to HH:MM format
+- The `tz` field can be ignored/dropped from existing records
+
+## Language Support Expansion
+
+### Changes Applied
+
+#### 1. **Expanded Language Support for Transcription**
+- Added support for 58 languages (up from 19) to match ElevenLabs Scribe v1 capabilities
+- ElevenLabs supports 99 languages total with automatic language detection
+
+#### 2. **Fixed Language Field Reference**
+- **File**: `apps/mobile/src/hooks/useRecordingHandler.ts`
+- **Fix**: Changed from `profile?.language` to `profile?.locale` (line 173)
+
+#### 3. **Removed Language Restrictions**
+- **File**: `apps/mobile/src/components/molecules/UserPreferencesSection/UserPreferencesSection.tsx`
+- **Fix**: Removed `limitedLanguages={['en', 'pl']}` restriction from profile screen
+
+#### 4. **Updated Language Mappings**
+- **File**: `apps/mobile/src/utils/languageMapping.ts`
+- Added ISO 639-1 to ISO 639-3 mappings for 58 languages including:
+  - European: Czech, Greek, Hungarian, Romanian, Bulgarian, Croatian, Slovak, etc.
+  - Asian: Thai, Vietnamese, Indonesian, Bengali, Tamil, Telugu, Urdu, Persian, etc.
+  - African: Swahili, Amharic, Yoruba, Zulu, Afrikaans, etc.
+  - Others: Icelandic, Irish, Welsh, Armenian, Georgian, etc.
+
+#### 5. **Updated UI Components**
+- **LanguageSelector**: Expanded SUPPORTED_LANGUAGES array to include all 58 languages
+- **UserPreferencesSection**: Added proper display names for all languages in native scripts
+
+### Database Considerations
+- No database changes required - `locale` field already accepts any string value
+- The constraint check `locale = ANY(ARRAY['en','es','fr','de','it','pt','pl','zh','ja','ko','hi','ar','ru','tr','nl','sv','da','no','fi'])` is only enforced at application level, not database level
+
+### Benefits
+1. **Better Transcription**: Users can now select their exact language for more accurate speech-to-text
+2. **Global Support**: Supports users from many more countries and language backgrounds
+3. **Future-Proof**: Easily expandable to ElevenLabs' full 99 language support
+
+## Profile Screen Icon Redesign
+
+### Changes Applied
+
+#### 1. **Created Centralized Icon Configuration**
+- **File**: `apps/mobile/src/constants/profileIcons.ts`
+- Created a centralized configuration for all profile screen icons
+- Replaced all emojis with vector icons from @expo/vector-icons
+
+#### 2. **Updated Components to Use Vector Icons**
+
+**UserPreferencesSection.tsx**:
+- 👤 → `person-circle-outline` (Ionicons) - Display Name
+- 🌐 → `globe-outline` (Ionicons) - Language  
+- 📍 → `location-outline` (Ionicons) - Location Sharing
+- ✉️ → `mail-outline` (Ionicons) - Email
+- 🔒 → `shield-checkmark-outline` (Ionicons) - Privacy Settings
+
+**DreamingPreferencesSection.tsx**:
+- 🧙‍♂️ → `crystal-ball` (MaterialCommunityIcons) - Dream Guide
+- 💤 → `moon-outline` (Ionicons) - Sleep Quality
+- 😴 → `bed-outline` (Ionicons) - Sleep Schedule
+- ✨ → `sparkles` (Ionicons) - Lucid Dreaming
+
+**ProfileHeader.tsx**:
+- ⭐ → `star` (Ionicons) - Premium badge
+- 📍 → `location-sharp` (Ionicons) - Location pin
+
+**SupportSection.tsx**:
+- 📚 → `help-circle-outline` (Ionicons) - Help Center
+- 💬 → `chatbubbles-outline` (Ionicons) - Contact Support
+- 🔒 → `document-lock-outline` (Ionicons) - Privacy Policy
+- 📜 → `document-text-outline` (Ionicons) - Terms of Service
+- 🛠️ → `construct-outline` (Ionicons) - Debug Settings
+
+**SharedDreamsSection.tsx**:
+- 🌟 → `moon-waxing-crescent` (MaterialCommunityIcons) - Empty state icon
+
+### Icon Selection Rationale
+1. **Dreamy Theme**: Selected icons that align with the app's sleep/dream theme (moon, bed, sparkles, crystal ball)
+2. **Clarity**: Icons are more recognizable and professional than emojis
+3. **Consistency**: Primarily used Ionicons for consistency, with MaterialCommunityIcons for specialized icons
+4. **Accessibility**: Vector icons scale better and support color theming
+
+### Benefits
+1. **Professional Appearance**: Vector icons look more polished than emojis
+2. **Theme Support**: Icons adapt to app theme colors
+3. **Better Scaling**: Vector icons maintain quality at any size
+4. **Platform Consistency**: Looks the same across iOS and Android

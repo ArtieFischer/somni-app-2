@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "lib": ["DOM", "ESNext"],
+    "lib": ["DOM", "ESNext", "deno.ns"],
     "moduleResolution": "bundler", // Or "node"
     "resolveJsonModule": true,
     "esModuleInterop": true,
@@ -23,7 +23,13 @@
       "@somni/stores": ["packages/stores/src"],
       "@somni/ui-core": ["packages/ui-core/src"],
       "@somni/config/*": ["packages/config/*"]
-    }
+    },
+    "plugins": [
+      {
+        "name": "typescript-deno-plugin",
+        "importmap": "supabase/functions/import_map.json"   // optional
+      }
+    ]
   },
-  "exclude": ["node_modules", "dist", "build", "apps/**/dist", "packages/**/dist", "types/dist", "utils/dist"]
+  "exclude": ["node_modules", "dist", "build", "apps/**/dist", "packages/**/dist", "types/dist", "utils/dist", "supabase/functions/**"]
 }

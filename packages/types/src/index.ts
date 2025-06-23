@@ -141,7 +141,7 @@ export interface NetworkStatus {
 }
 
 // Location accuracy levels
-export type LocationAccuracy = 'none' | 'country' | 'region' | 'city' | 'exact';
+export type LocationAccuracy = 'none' | 'manual' | 'exact';
 
 // Sex enum
 export type Sex = 'male' | 'female' | 'other' | 'unspecified' | 'prefer_not_to_say';

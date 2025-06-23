@@ -27,7 +27,11 @@
       "Bash(npm run:*)",
       "Bash(for file in StepReview.tsx StepLucidExperience.tsx StepPreferences.tsx StepDreamInterpreter.tsx)",
       "Bash(do echo \"=== $file ===\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(find:*)",
+      "Bash(for f in StepPersonalInfo.tsx StepLucidExperience.tsx StepReview.tsx StepLocation.tsx StepDreamInterpreter.tsx StepPreferences.tsx)",
+      "Bash(do sed -i '' 's/variant=\"\"ghost\"\"/variant=\"\"link\"\"/g' \"$f\")",
+      "WebFetch(domain:docs.expo.dev)"
     ],
     "deny": []
   }

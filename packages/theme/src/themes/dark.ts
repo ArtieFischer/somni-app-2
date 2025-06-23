@@ -33,8 +33,8 @@ export const darkTheme: Theme = {
       },
       ghost: {
         background: 'transparent',
-        text: '#10B981', // Ethereal teal (green)
-        border: '#10B981', // Ethereal teal (green)
+        text: '#CBD5E1', // Soft silver (light text for link variant)
+        border: 'transparent',
       },
     },
     status: {

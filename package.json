@@ -10,7 +10,9 @@
     "dev:web": "npm run dev --workspace=@somni/web",
     "build:web": "npm run build --workspace=@somni/web",
     "lint": "npm run lint --workspaces",
-    "prepare": "husky"
+    "prepare": "husky",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +23,7 @@
     "utils"
   ],
   "devDependencies": {
+    "@types/deno": "^2.3.0",
     "@typescript-eslint/eslint-plugin": "^8.33.1",
     "@typescript-eslint/parser": "^8.33.1",
     "eslint": "^9.28.0",
@@ -30,13 +33,17 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "husky": "^9.1.7",
     "prettier": "^3.5.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-deno-plugin": "^1.31.0"
   },
   "dependencies": {
     "country-state-city": "^3.2.1",
     "dotenv": "^16.5.0",
     "expo-location": "~18.1.5",
     "react-native-web": "^0.20.0",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "expo": "~53.0.12",
+    "react": "19.0.0",
+    "react-native": "0.79.4"
   }
 }
