@@ -35,3 +35,19 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# iOS build artefacts
+ios/build/
+ios/Pods/
+ios/DerivedData/
+*.xcworkspace
+*.xcuserstate
+
+# Android build artefacts
+android/.gradle/
+android/app/build/
+android/build/
+
+# Expo & Metro
+.expo/
+node_modules/
