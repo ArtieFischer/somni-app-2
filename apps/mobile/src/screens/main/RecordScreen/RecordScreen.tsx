@@ -243,11 +243,12 @@ export const RecordScreen: React.FC = () => {
   }, [error, clearError, t]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Dreamy animated background */}
+    <View style={styles.fullScreenContainer}>
+      {/* Dreamy animated background - full screen */}
       <DreamyBackground active={isRecording} />
       
-      <View style={styles.innerContainer}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.innerContainer}>
         <OfflineQueueStatus />
 
         <Animated.View
@@ -278,7 +279,7 @@ export const RecordScreen: React.FC = () => {
                 isRecording={isRecording}
                 onPress={handleRecordPress}
                 amplitude={amplitude}
-                size={220}
+                size={300}
               />
             ) : (
               <View style={styles.actionsWrapper}>
@@ -328,7 +329,8 @@ export const RecordScreen: React.FC = () => {
             />
           </View>
         </Animated.View>
-      </View>
-    </SafeAreaView>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 };

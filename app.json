@@ -1,5 +1,8 @@
 {
   "ios": {
     "bundleIdentifier": "com.anonymous.somni-monorepo"
+  },
+  "android": {
+    "package": "com.anonymous.somnimonorepo"
   }
 }

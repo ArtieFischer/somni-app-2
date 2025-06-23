@@ -5,6 +5,10 @@ export const useStyles = () => {
   const theme = useTheme();
 
   return StyleSheet.create({
+    fullScreenContainer: {
+      flex: 1,
+      backgroundColor: '#000', // Fallback color
+    },
     container: {
       flex: 1,
       backgroundColor: 'transparent', // Let the Skia background show through

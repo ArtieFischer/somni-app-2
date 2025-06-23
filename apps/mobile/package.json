@@ -54,20 +54,20 @@
     "expo-status-bar": "~2.2.3",
     "i18next": "^23.11.5",
     "lottie-react-native": "7.2.2",
-    "react": "19.1.0",
-    "react-dom": "^19.0.0",
+    "react-dom": "19.0.0",
     "react-hook-form": "^7.57.0",
     "react-i18next": "^14.1.2",
-    "react-native": "0.79.3",
+    "react-native": "0.79.4",
     "react-native-country-codes-picker": "^2.3.5",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "^5.4.1",
     "react-native-screens": "^4.11.1",
-    "react-native-svg": "^13.4.0",
+    "react-native-svg": "^15.12.0",
     "react-native-url-polyfill": "^2.0.0",
-    "react-native-web": "^0.20.0",
+    "react-native-web": "0.20.0",
     "zod": "^3.25.56",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "react": "19.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -76,6 +76,11 @@
     "babel-plugin-module-resolver": "^5.0.2",
     "react-native-svg-transformer": "^1.5.1",
     "typescript": "~5.8.3"
+  },
+  "overrides": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native-web": "0.20.0"
   },
   "private": true
 }

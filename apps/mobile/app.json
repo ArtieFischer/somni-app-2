@@ -38,6 +38,12 @@
     "plugins": [
       "expo-secure-store",
       "expo-audio"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "36c8a587-bf29-4443-99fe-cba048963687"
+      }
+    },
+    "owner": "gregorylime"
   }
 }
