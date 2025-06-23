@@ -256,7 +256,7 @@ export const ProfileOnboardingScreen: React.FC<ProfileOnboardingScreenProps> = (
           sleep_schedule: formData.bedTime && formData.wakeTime ? {
             bed: formData.bedTime,
             wake: formData.wakeTime,
-            tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            // Timezone removed - notifications will use device local time
           } : null,
           improve_sleep_quality: formData.improve_sleep_quality === 'yes',
           interested_in_lucid_dreaming: formData.interested_in_lucid_dreaming === 'yes',

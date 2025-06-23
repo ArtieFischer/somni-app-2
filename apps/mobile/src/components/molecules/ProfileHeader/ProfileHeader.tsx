@@ -18,6 +18,8 @@ import { UserRepository } from '../../../infrastructure/repositories/UserReposit
 import { useTheme } from '../../../hooks/useTheme';
 import { useStyles } from './ProfileHeader.styles';
 import { supabase } from '../../../lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
+import { ProfileIcons } from '../../../constants/profileIcons';
 
 const userRepository = new UserRepository();
 
@@ -271,7 +273,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onAvatarUpdate }) 
             </Text>
             {profile?.is_premium && (
               <Badge variant="solid" action="success" size="sm">
-                <BadgeIcon as={() => <Text style={styles.premiumIcon}>⭐</Text>} />
+                <BadgeIcon as={() => {
+                  const IconComponent = ProfileIcons.premium.family;
+                  return (
+                    <IconComponent 
+                      name={ProfileIcons.premium.name as any}
+                      size={14} 
+                      color="white"
+                    />
+                  );
+                }} />
                 <BadgeText>Premium</BadgeText>
               </Badge>
             )}
@@ -279,14 +290,21 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onAvatarUpdate }) 
           
           {/* Location */}
           {(profile?.location_city || profile?.location_country) && (
-            <Text variant="body" style={styles.location}>
-              📍 {[profile.location_city, profile.location_country].filter(Boolean).join(', ')}
-            </Text>
+            <HStack space="xs" alignItems="center">
+              <Ionicons 
+                name={ProfileIcons.locationPin.name as any} 
+                size={14} 
+                color={theme.colors.text.secondary}
+              />
+              <Text variant="caption" color="secondary" style={styles.location}>
+                {[profile.location_city, profile.location_country].filter(Boolean).join(', ')}
+              </Text>
+            </HStack>
           )}
 
           {/* Handle */}
           {profile?.handle && (
-            <Text variant="body" style={styles.handle}>
+            <Text variant="caption" color="secondary" style={styles.handle}>
               @{profile.handle.replace('@', '')}
             </Text>
           )}

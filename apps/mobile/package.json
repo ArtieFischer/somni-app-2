@@ -12,11 +12,15 @@
     "setup-skia-web": "node scripts/setup-skia-web.js"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~5.0.4",
     "@expo/vector-icons": "^14.1.0",
     "@gluestack-style/react": "^1.0.57",
     "@gluestack-ui/config": "^1.1.20",
     "@gluestack-ui/themed": "^1.1.73",
     "@hookform/resolvers": "^5.0.1",
+    "@react-native-aria/focus": "^0.2.9",
+    "@react-native-aria/interactions": "^0.2.16",
+    "@react-native-aria/overlays": "^0.3.15",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "^8.4.1",
     "@react-native-community/netinfo": "^11.4.1",
@@ -51,6 +55,7 @@
     "i18next": "^23.11.5",
     "lottie-react-native": "7.2.2",
     "react": "19.1.0",
+    "react-dom": "^19.0.0",
     "react-hook-form": "^7.57.0",
     "react-i18next": "^14.1.2",
     "react-native": "0.79.3",

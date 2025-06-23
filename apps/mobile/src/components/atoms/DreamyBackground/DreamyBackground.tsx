@@ -1,14 +1,20 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
-import {
-  Canvas,
-  BlurMask,
-  Fill,
-  Paint,
-  vec,
-  Skia,
-  RuntimeShader,
-} from '@shopify/react-native-skia';
+import { StyleSheet, View } from 'react-native';
+
+// Conditionally import Skia to handle web
+let Canvas: any, BlurMask: any, Fill: any, Paint: any, vec: any, Skia: any, RuntimeShader: any;
+try {
+  const SkiaModule = require('@shopify/react-native-skia');
+  Canvas = SkiaModule.Canvas;
+  BlurMask = SkiaModule.BlurMask;
+  Fill = SkiaModule.Fill;
+  Paint = SkiaModule.Paint;
+  vec = SkiaModule.vec;
+  Skia = SkiaModule.Skia;
+  RuntimeShader = SkiaModule.RuntimeShader;
+} catch (e) {
+  console.log('Skia not available, using fallback');
+}
 
 interface DreamyBackgroundProps {
   /** set to true while mic is recording → background starts breathing */
@@ -73,6 +79,19 @@ export const DreamyBackground: React.FC<DreamyBackgroundProps> = ({ active }) =>
       }`;
     return Skia.RuntimeEffect.Make(src)!;
   }, []);
+
+  // Fallback for web without Skia
+  if (!Canvas || !Skia) {
+    return (
+      <View style={[
+        StyleSheet.absoluteFill, 
+        { 
+          backgroundColor: active ? '#1a0f2e' : '#0a051a',
+          opacity: 0.9,
+        }
+      ]} />
+    );
+  }
 
   return (
     <Canvas style={StyleSheet.absoluteFill}>

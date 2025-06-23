@@ -9,8 +9,9 @@ interface Language {
   nativeName: string;
 }
 
-// ElevenLabs supported languages (subset of the 99 available)
+// ElevenLabs supported languages - expanded list for better transcription support
 const SUPPORTED_LANGUAGES: Language[] = [
+  // Major languages
   { code: 'en', name: 'English', nativeName: 'English' },
   { code: 'es', name: 'Spanish', nativeName: 'Español' },
   { code: 'fr', name: 'French', nativeName: 'Français' },
@@ -30,6 +31,49 @@ const SUPPORTED_LANGUAGES: Language[] = [
   { code: 'da', name: 'Danish', nativeName: 'Dansk' },
   { code: 'no', name: 'Norwegian', nativeName: 'Norsk' },
   { code: 'fi', name: 'Finnish', nativeName: 'Suomi' },
+  
+  // Additional European languages
+  { code: 'cs', name: 'Czech', nativeName: 'Čeština' },
+  { code: 'el', name: 'Greek', nativeName: 'Ελληνικά' },
+  { code: 'hu', name: 'Hungarian', nativeName: 'Magyar' },
+  { code: 'ro', name: 'Romanian', nativeName: 'Română' },
+  { code: 'bg', name: 'Bulgarian', nativeName: 'Български' },
+  { code: 'hr', name: 'Croatian', nativeName: 'Hrvatski' },
+  { code: 'sk', name: 'Slovak', nativeName: 'Slovenčina' },
+  { code: 'sl', name: 'Slovenian', nativeName: 'Slovenščina' },
+  { code: 'et', name: 'Estonian', nativeName: 'Eesti' },
+  { code: 'lv', name: 'Latvian', nativeName: 'Latviešu' },
+  { code: 'lt', name: 'Lithuanian', nativeName: 'Lietuvių' },
+  { code: 'uk', name: 'Ukrainian', nativeName: 'Українська' },
+  { code: 'sr', name: 'Serbian', nativeName: 'Српски' },
+  { code: 'ca', name: 'Catalan', nativeName: 'Català' },
+  
+  // Asian languages
+  { code: 'th', name: 'Thai', nativeName: 'ไทย' },
+  { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt' },
+  { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia' },
+  { code: 'ms', name: 'Malay', nativeName: 'Bahasa Melayu' },
+  { code: 'tl', name: 'Filipino', nativeName: 'Filipino' },
+  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা' },
+  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்' },
+  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' },
+  { code: 'ur', name: 'Urdu', nativeName: 'اردو' },
+  { code: 'fa', name: 'Persian', nativeName: 'فارسی' },
+  { code: 'he', name: 'Hebrew', nativeName: 'עברית' },
+  
+  // Other languages
+  { code: 'sw', name: 'Swahili', nativeName: 'Kiswahili' },
+  { code: 'af', name: 'Afrikaans', nativeName: 'Afrikaans' },
+  { code: 'is', name: 'Icelandic', nativeName: 'Íslenska' },
+  { code: 'ga', name: 'Irish', nativeName: 'Gaeilge' },
+  { code: 'cy', name: 'Welsh', nativeName: 'Cymraeg' },
+  { code: 'sq', name: 'Albanian', nativeName: 'Shqip' },
+  { code: 'mk', name: 'Macedonian', nativeName: 'Македонски' },
+  { code: 'hy', name: 'Armenian', nativeName: 'Հայերեն' },
+  { code: 'ka', name: 'Georgian', nativeName: 'ქართული' },
+  { code: 'az', name: 'Azerbaijani', nativeName: 'Azərbaycan' },
+  { code: 'kk', name: 'Kazakh', nativeName: 'Қазақ' },
+  { code: 'uz', name: 'Uzbek', nativeName: 'O\'zbek' },
 ];
 
 interface LanguageSelectorProps {

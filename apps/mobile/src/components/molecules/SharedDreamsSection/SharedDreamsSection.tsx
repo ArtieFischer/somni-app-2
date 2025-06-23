@@ -11,6 +11,9 @@ import {
   BadgeText
 } from '@gluestack-ui/themed';
 import { useStyles } from './SharedDreamsSection.styles';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ProfileIcons } from '../../../constants/profileIcons';
+import { useTheme } from '../../../hooks/useTheme';
 
 interface SharedDreamsSectionProps {
   onViewAll?: () => void;
@@ -22,6 +25,9 @@ export const SharedDreamsSection: React.FC<SharedDreamsSectionProps> = ({
   onCreateShared 
 }) => {
   const styles = useStyles();
+  const theme = useTheme();
+  const EmptyIcon = ProfileIcons.emptySharedDreams.family;
+  const emptyIconName = ProfileIcons.emptySharedDreams.name;
 
   return (
     <Card>
@@ -38,7 +44,11 @@ export const SharedDreamsSection: React.FC<SharedDreamsSectionProps> = ({
         <Box style={styles.emptyStateContainer}>
           <Center>
             <VStack space="md" alignItems="center">
-              <Text style={styles.emptyStateIcon}>🌟</Text>
+              <EmptyIcon 
+                name={emptyIconName as any} 
+                size={64} 
+                color={theme.colors.text.muted}
+              />
               
               <VStack space="xs" alignItems="center">
                 <Text variant="body" style={styles.emptyStateTitle}>

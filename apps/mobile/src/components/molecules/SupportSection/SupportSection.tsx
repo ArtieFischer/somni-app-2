@@ -12,21 +12,29 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useStyles } from './SupportSection.styles';
 import { MainTabScreenProps } from '@somni/types';
+import { Ionicons } from '@expo/vector-icons';
+import { ProfileIcons } from '../../../constants/profileIcons';
+import { useTheme } from '../../../hooks/useTheme';
 
 export const SupportSection: React.FC = () => {
   const { t } = useTranslation('auth');
   const styles = useStyles();
+  const theme = useTheme();
   const navigation = useNavigation<MainTabScreenProps<'Profile'>['navigation']>();
 
   const SupportRow = ({ 
-    icon, 
+    iconKey, 
     label, 
     onPress 
   }: { 
-    icon: string; 
+    iconKey: keyof typeof ProfileIcons; 
     label: string; 
     onPress: () => void;
-  }) => (
+  }) => {
+    const iconConfig = ProfileIcons[iconKey];
+    const IconComponent = iconConfig.family;
+    
+    return (
     <TouchableOpacity 
       style={styles.supportRow} 
       onPress={onPress}
@@ -34,7 +42,11 @@ export const SupportSection: React.FC = () => {
     >
       <HStack justifyContent="space-between" alignItems="center" flex={1}>
         <HStack space="md" alignItems="center" flex={1}>
-          <Text style={styles.supportIcon}>{icon}</Text>
+          <IconComponent 
+            name={iconConfig.name as any} 
+            size={24} 
+            color={theme.colors.text.secondary}
+          />
           <Text variant="body" style={styles.supportLabel}>
             {label}
           </Text>
@@ -42,7 +54,8 @@ export const SupportSection: React.FC = () => {
         <Text style={styles.chevron}>›</Text>
       </HStack>
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <Card>
@@ -53,7 +66,7 @@ export const SupportSection: React.FC = () => {
 
         <VStack space="xs">
           <SupportRow
-            icon="📚"
+            iconKey="helpCenter"
             label={String(t('profile.support.help'))}
             onPress={() => Alert.alert(String(t('profile.support.help')), String(t('errors.help')))}
           />
@@ -61,7 +74,7 @@ export const SupportSection: React.FC = () => {
           <Divider style={styles.divider} />
 
           <SupportRow
-            icon="💬"
+            iconKey="contactSupport"
             label={String(t('profile.support.contact'))}
             onPress={() => Alert.alert(String(t('profile.support.contact')), String(t('errors.contact')))}
           />
@@ -69,7 +82,7 @@ export const SupportSection: React.FC = () => {
           <Divider style={styles.divider} />
 
           <SupportRow
-            icon="🔒"
+            iconKey="privacyPolicy"
             label={String(t('profile.support.privacy'))}
             onPress={() => Alert.alert(String(t('profile.support.privacy')), String(t('errors.privacy')))}
           />
@@ -77,7 +90,7 @@ export const SupportSection: React.FC = () => {
           <Divider style={styles.divider} />
 
           <SupportRow
-            icon="📜"
+            iconKey="termsOfService"
             label={String(t('profile.support.terms'))}
             onPress={() => Alert.alert(String(t('profile.support.terms')), String(t('errors.terms')))}
           />
@@ -85,7 +98,7 @@ export const SupportSection: React.FC = () => {
           <Divider style={styles.divider} />
 
           <SupportRow
-            icon="🛠️"
+            iconKey="debugSettings"
             label="Debug Settings"
             onPress={() => navigation.navigate('Debug')}
           />

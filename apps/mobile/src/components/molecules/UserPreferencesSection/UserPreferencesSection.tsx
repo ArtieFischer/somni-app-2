@@ -17,6 +17,8 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useStyles } from './UserPreferencesSection.styles';
 import { LocationAccuracy } from '@somni/types';
 import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
+import { ProfileIcons } from '../../../constants/profileIcons';
 
 const userRepository = new UserRepository();
 
@@ -146,22 +148,31 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
     }
   };
 
-  const handleManualLocationSelect = async (locationData: {
+  const handleManualLocationSelect = (locationData: {
     country?: { name: string; code: string };
     state?: { name: string; code: string };
     city?: { name: string };
   }) => {
+    // Just update the selected location state, don't save yet
     setSelectedLocation(locationData);
-    
+  };
+
+  const handleSaveManualLocation = async () => {
+    if (!selectedLocation.country) {
+      Alert.alert('Error', 'Please select at least a country');
+      return;
+    }
+
     const updateData = {
-      country: locationData.country?.name || '',
-      city: [locationData.city?.name, locationData.state?.name]
+      country: selectedLocation.country.name,
+      city: [selectedLocation.city?.name, selectedLocation.state?.name]
         .filter(Boolean)
         .join(', ') || '',
     };
 
     await updateLocationAccuracy('manual', updateData);
     setShowLocationModal(false);
+    setSelectedLocation({});
   };
 
   const updateLocationAccuracy = async (accuracy: LocationAccuracy, locationData: any) => {
@@ -207,6 +218,75 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
     }
   };
 
+  const getLanguageDisplayName = (locale: string) => {
+    const languages: Record<string, string> = {
+      // Major languages
+      'en': 'English',
+      'es': 'Español',
+      'fr': 'Français',
+      'de': 'Deutsch',
+      'it': 'Italiano',
+      'pt': 'Português',
+      'pl': 'Polski',
+      'zh': '中文',
+      'ja': '日本語',
+      'ko': '한국어',
+      'hi': 'हिन्दी',
+      'ar': 'العربية',
+      'ru': 'Русский',
+      'tr': 'Türkçe',
+      'nl': 'Nederlands',
+      'sv': 'Svenska',
+      'da': 'Dansk',
+      'no': 'Norsk',
+      'fi': 'Suomi',
+      
+      // Additional European languages
+      'cs': 'Čeština',
+      'el': 'Ελληνικά',
+      'hu': 'Magyar',
+      'ro': 'Română',
+      'bg': 'Български',
+      'hr': 'Hrvatski',
+      'sk': 'Slovenčina',
+      'sl': 'Slovenščina',
+      'et': 'Eesti',
+      'lv': 'Latviešu',
+      'lt': 'Lietuvių',
+      'uk': 'Українська',
+      'sr': 'Српски',
+      'ca': 'Català',
+      
+      // Asian languages
+      'th': 'ไทย',
+      'vi': 'Tiếng Việt',
+      'id': 'Bahasa Indonesia',
+      'ms': 'Bahasa Melayu',
+      'tl': 'Filipino',
+      'bn': 'বাংলা',
+      'ta': 'தமிழ்',
+      'te': 'తెలుగు',
+      'ur': 'اردو',
+      'fa': 'فارسی',
+      'he': 'עברית',
+      
+      // Other languages
+      'sw': 'Kiswahili',
+      'af': 'Afrikaans',
+      'is': 'Íslenska',
+      'ga': 'Gaeilge',
+      'cy': 'Cymraeg',
+      'sq': 'Shqip',
+      'mk': 'Македонски',
+      'hy': 'Հայերեն',
+      'ka': 'ქართული',
+      'az': 'Azərbaycan',
+      'kk': 'Қазақ',
+      'uz': 'O\'zbek'
+    };
+    return languages[locale] || 'English';
+  };
+
   const getLocationSharingText = (accuracy?: LocationAccuracy) => {
     const texts = {
       none: 'Not sharing',
@@ -227,18 +307,22 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
   };
 
   const PreferenceRow = ({ 
-    icon, 
+    iconKey, 
     label, 
     value, 
     onPress,
     rightElement
   }: { 
-    icon: string; 
+    iconKey: keyof typeof ProfileIcons; 
     label: string; 
     value?: string; 
     onPress?: () => void;
     rightElement?: React.ReactNode;
-  }) => (
+  }) => {
+    const iconConfig = ProfileIcons[iconKey];
+    const IconComponent = iconConfig.family;
+    
+    return (
     <TouchableOpacity 
       style={styles.preferenceRow} 
       onPress={onPress}
@@ -247,7 +331,11 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
     >
       <HStack justifyContent="space-between" alignItems="center" flex={1}>
         <HStack space="md" alignItems="center" flex={1}>
-          <Text style={styles.preferenceIcon}>{icon}</Text>
+          <IconComponent 
+            name={iconConfig.name as any} 
+            size={24} 
+            color={theme.colors.text.secondary}
+          />
           <VStack flex={1}>
             <Text variant="body" style={styles.preferenceLabel}>
               {label}
@@ -265,7 +353,8 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
         </HStack>
       </HStack>
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <Card>
@@ -277,7 +366,7 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
         <VStack space="xs">
           {/* Display Name */}
           <PreferenceRow
-            icon="👤"
+            iconKey="displayName"
             label="Display Name"
             value={profile?.username || 'Not set'}
             onPress={() => {
@@ -290,9 +379,9 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
 
           {/* Language */}
           <PreferenceRow
-            icon="🌐"
+            iconKey="language"
             label="Language"
-            value={profile?.locale === 'pl' ? 'Polski' : 'English'}
+            value={getLanguageDisplayName(profile?.locale || 'en')}
             onPress={() => setShowLanguageModal(true)}
           />
 
@@ -300,7 +389,7 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
 
           {/* Location Sharing */}
           <PreferenceRow
-            icon="📍"
+            iconKey="location"
             label="Location Sharing"
             value={getLocationDisplayText()}
             onPress={() => {
@@ -321,7 +410,7 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
 
           {/* Email */}
           <PreferenceRow
-            icon="✉️"
+            iconKey="email"
             label="Email"
             value={user?.email}
           />
@@ -330,7 +419,7 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
 
           {/* Privacy Settings */}
           <PreferenceRow
-            icon="🔒"
+            iconKey="privacy"
             label="Privacy Settings"
             onPress={() => Alert.alert('Privacy Settings', 'Privacy settings coming soon!')}
           />
@@ -363,7 +452,6 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
               currentLanguage={profile?.locale || 'en'}
               onLanguageChange={handleLanguageChange}
               label=""
-              limitedLanguages={['en', 'pl']}
             />
           </View>
         </View>
@@ -431,13 +519,20 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
             <View style={{ padding: theme.spacing.medium }}>
               <CountryStateCityPicker
                 onSelect={handleManualLocationSelect}
+                selectedCountry={selectedLocation.country?.name}
+                selectedState={selectedLocation.state?.name}
+                selectedCity={selectedLocation.city?.name}
               />
             </View>
             
-            <View style={{ padding: theme.spacing.medium }}>
+            <HStack space="md" style={{ padding: theme.spacing.medium }}>
               <TouchableOpacity 
-                onPress={() => setShowLocationModal(false)}
+                onPress={() => {
+                  setShowLocationModal(false);
+                  setSelectedLocation({});
+                }}
                 style={{
+                  flex: 1,
                   backgroundColor: theme.colors.background.secondary,
                   padding: theme.spacing.medium,
                   borderRadius: theme.borderRadius.medium,
@@ -446,7 +541,29 @@ export const UserPreferencesSection: React.FC<UserPreferencesSectionProps> = ({ 
               >
                 <Text variant="body" color="secondary">Cancel</Text>
               </TouchableOpacity>
-            </View>
+              
+              <TouchableOpacity 
+                onPress={handleSaveManualLocation}
+                disabled={!selectedLocation.country || isUpdating}
+                style={{
+                  flex: 1,
+                  backgroundColor: selectedLocation.country ? theme.colors.primary : theme.colors.background.secondary,
+                  padding: theme.spacing.medium,
+                  borderRadius: theme.borderRadius.medium,
+                  alignItems: 'center',
+                  opacity: (!selectedLocation.country || isUpdating) ? 0.5 : 1
+                }}
+              >
+                <Text 
+                  variant="body" 
+                  style={{ 
+                    color: selectedLocation.country ? 'white' : theme.colors.text.secondary 
+                  }}
+                >
+                  {isUpdating ? 'Saving...' : 'Save Location'}
+                </Text>
+              </TouchableOpacity>
+            </HStack>
           </View>
         </View>
       </Modal>

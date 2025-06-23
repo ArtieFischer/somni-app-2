@@ -74,5 +74,40 @@ export const useStyles = () => {
       color: theme.colors.text.secondary,
       fontWeight: '300' as any,
     },
+    timeLabel: {
+      fontSize: theme.typography.body.fontSize,
+      fontWeight: '600' as any,
+      color: theme.colors.text.primary,
+      marginBottom: theme.spacing.xs,
+    },
+    timeSelector: {
+      backgroundColor: theme.colors.background.secondary,
+      borderRadius: theme.borderRadius.medium,
+      padding: theme.spacing.large,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.colors.border.primary,
+    },
+    timeSelectorActive: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primary + '10',
+    },
+    timeText: {
+      fontSize: theme.typography.h2.fontSize,
+      fontWeight: '600' as any,
+      color: theme.colors.primary,
+    },
+    modalButton: {
+      flex: 1,
+      padding: theme.spacing.medium,
+      borderRadius: theme.borderRadius.medium,
+      alignItems: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.colors.background.secondary,
+    },
+    saveButton: {
+      backgroundColor: theme.colors.primary,
+    },
   });
 };

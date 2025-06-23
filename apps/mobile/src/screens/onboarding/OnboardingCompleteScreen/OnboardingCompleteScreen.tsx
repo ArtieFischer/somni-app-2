@@ -41,7 +41,7 @@ export const OnboardingCompleteScreen = () => {
             ? {
                 bed: onboardingData.sleepSchedule.bedtime,
                 wake: onboardingData.sleepSchedule.wakeTime,
-                tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                // Timezone removed - notifications will use device local time
               }
             : null,
           improve_sleep_quality: onboardingData.improve_sleep_quality ? 

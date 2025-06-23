@@ -57,10 +57,16 @@ export const OnboardingSleepScheduleScreen: React.FC<
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
+  const format24HourTime = (date: Date) => {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
   const handleNext = () => {
     const sleepSchedule = {
-      bedtime: formatTime(bedtime),
-      wakeTime: formatTime(wakeTime),
+      bedtime: format24HourTime(bedtime),
+      wakeTime: format24HourTime(wakeTime),
     };
     updateData({ sleepSchedule });
     

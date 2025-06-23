@@ -170,7 +170,7 @@ export const useRecordingHandler = () => {
         audioBase64,
         duration: pendingRecording?.duration || dreamStore.recordingSession.duration,
         // Use the language from user profile, convert to 3-letter code for ElevenLabs
-        language: getElevenLabsLanguageCode(profile?.language || 'en')
+        language: getElevenLabsLanguageCode(profile?.locale || 'en')
       };
 
       console.log('📤 Sending transcription request:', {

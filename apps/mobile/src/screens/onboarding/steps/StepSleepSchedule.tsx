@@ -293,15 +293,14 @@ export const StepSleepSchedule: React.FC<StepSleepScheduleProps> = ({
   };
 
   const handleNext = () => {
-    const bedTimeDate = new Date();
-    bedTimeDate.setHours(bedTime.hour, bedTime.minute, 0, 0);
-
-    const wakeTimeDate = new Date();
-    wakeTimeDate.setHours(wakeTime.hour, wakeTime.minute, 0, 0);
+    // Format times as HH:MM strings (24-hour format)
+    const formatTimeString = (hour: number, minute: number) => {
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    };
 
     onUpdate({
-      bedTime: bedTimeDate.toISOString(),
-      wakeTime: wakeTimeDate.toISOString(),
+      bedTime: formatTimeString(bedTime.hour, bedTime.minute),
+      wakeTime: formatTimeString(wakeTime.hour, wakeTime.minute),
     });
     onNext();
   };

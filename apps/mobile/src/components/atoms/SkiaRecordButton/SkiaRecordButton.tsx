@@ -1,17 +1,23 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View, Animated } from 'react-native';
-import {
-  Canvas,
-  BlurMask,
-  Paint,
-  vec,
-  Skia,
-  Group,
-  Circle,
-  LinearGradient,
-  RadialGradient,
-} from '@shopify/react-native-skia';
 import SomniLogoMoon from '../../../../../../assets/logo_somni_moon.svg';
+
+// Conditionally import Skia to handle web
+let Canvas: any, BlurMask: any, Paint: any, vec: any, Skia: any, Group: any, Circle: any, LinearGradient: any, RadialGradient: any;
+try {
+  const SkiaModule = require('@shopify/react-native-skia');
+  Canvas = SkiaModule.Canvas;
+  BlurMask = SkiaModule.BlurMask;
+  Paint = SkiaModule.Paint;
+  vec = SkiaModule.vec;
+  Skia = SkiaModule.Skia;
+  Group = SkiaModule.Group;
+  Circle = SkiaModule.Circle;
+  LinearGradient = SkiaModule.LinearGradient;
+  RadialGradient = SkiaModule.RadialGradient;
+} catch (e) {
+  console.log('Skia not available, using fallback');
+}
 
 interface SkiaRecordButtonProps {
   isRecording: boolean;
@@ -94,6 +100,41 @@ export const SkiaRecordButton: React.FC<SkiaRecordButtonProps> = ({
     const a = 0.3 + 0.4 * progress;
     return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${a})`;
   }, [progress]);
+
+  // Fallback for web without Skia - CSS-based button
+  if (!Canvas || !Skia) {
+    return (
+      <Pressable 
+        onPress={onPress} 
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        style={[styles.container, { width: size, height: size }]}
+      >
+        <View style={[
+          styles.fallbackButton,
+          {
+            width: size - 40,
+            height: size - 40,
+            borderRadius: (size - 40) / 2,
+            backgroundColor: isRecording ? 'rgba(204, 25, 51, 0.3)' : 'rgba(38, 20, 64, 0.5)',
+            transform: [{ scale: pressed ? 0.96 : scale }],
+          }
+        ]}>
+          <View style={[
+            styles.fallbackInnerCircle,
+            {
+              width: size - 80,
+              height: size - 80,
+              borderRadius: (size - 80) / 2,
+              backgroundColor: isRecording ? 'rgba(204, 25, 51, 0.5)' : 'rgba(60, 40, 80, 0.7)',
+            }
+          ]}>
+            <SomniLogoMoon width={60} height={60} style={styles.logo} />
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable 
@@ -213,5 +254,22 @@ const styles = StyleSheet.create({
   },
   logo: {
     tintColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  fallbackButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  fallbackInnerCircle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
 });

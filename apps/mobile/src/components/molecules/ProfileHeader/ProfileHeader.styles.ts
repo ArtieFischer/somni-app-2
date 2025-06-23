@@ -49,12 +49,12 @@ export const useStyles = () => {
       textAlign: 'center' as any,
     },
     location: {
-      fontSize: theme.typography.body.fontSize + 2,
+      fontSize: theme.typography.caption.fontSize,
       color: theme.colors.text.secondary,
       textAlign: 'center' as any,
     },
     handle: {
-      fontSize: theme.typography.body.fontSize,
+      fontSize: theme.typography.caption.fontSize,
       color: theme.colors.text.secondary,
       textAlign: 'center' as any,
       fontWeight: '500' as any,
