@@ -1,70 +1,28 @@
 import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, Switch, Alert, Modal } from 'react-native';
-import { Text, Button } from '../../../components/atoms';
-import { LanguageSelector } from '../../../components/molecules/LanguageSelector';
+import { Alert, TouchableOpacity } from 'react-native';
+import { 
+  ScrollView,
+  VStack,
+  Box,
+  Button,
+  ButtonText,
+  Heading,
+  SafeAreaView
+} from '@gluestack-ui/themed';
+import { Text } from '../../../components/atoms';
+import { ProfileHeader } from '../../../components/molecules/ProfileHeader';
+import { SharedDreamsSection } from '../../../components/molecules/SharedDreamsSection';
+import { PreferencesSection } from '../../../components/molecules/PreferencesSection';
+import { SupportSection } from '../../../components/molecules/SupportSection';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useAuth } from '../../../hooks/useAuth';
-import { useDreamStore, useSettingsStore, useAuthStore } from '@somni/stores';
 import { useStyles } from './ProfileScreen.styles';
-import { supabase } from '../../../lib/supabase';
 
 export const ProfileScreen: React.FC = () => {
   const { t } = useTranslation('auth');
-  const { user, profile, signOut } = useAuth();
-  const { dreams, totalRecordingTime } = useDreamStore();
-  const { settings, updateSettings } = useSettingsStore();
+  const { signOut } = useAuth();
   const styles = useStyles();
-
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const [isUpdatingLanguage, setIsUpdatingLanguage] = useState(false);
-
-  const handleLanguageChange = async (newLanguage: string) => {
-    if (!user?.id || newLanguage === profile?.language) {
-      setShowLanguageModal(false);
-      return;
-    }
-
-    setIsUpdatingLanguage(true);
-    try {
-      // Update in database
-      const { error } = await supabase
-        .from('users_profile')
-        .update({ language: newLanguage })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      // Update local profile - we need to refetch the profile
-      const { data: updatedProfile, error: fetchError } = await supabase
-        .from('users_profile')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Update the auth store with new profile
-      const authStore = useAuthStore.getState();
-      authStore.setProfile(updatedProfile);
-
-      Alert.alert(
-        'Success',
-        'Language preference updated successfully',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Language update error:', error);
-      Alert.alert(
-        'Error',
-        'Failed to update language preference. Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setIsUpdatingLanguage(false);
-      setShowLanguageModal(false);
-    }
-  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -89,277 +47,82 @@ export const ProfileScreen: React.FC = () => {
     );
   };
 
-  const formatRecordingTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Coming Soon', 'Account deletion will be available in a future update.');
+          }
+        }
+      ]
+    );
   };
-
-  const getAccountAge = () => {
-    if (!profile?.createdAt) return '0 days';
-    
-    const createdDate = new Date(profile.createdAt);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - createdDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return '1 day';
-    if (diffDays < 30) return `${diffDays} days`;
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months`;
-    return `${Math.floor(diffDays / 365)} years`;
-  };
-
-  const SettingRow = ({ 
-    icon, 
-    label, 
-    value, 
-    onPress 
-  }: { 
-    icon: string; 
-    label: string; 
-    value?: string | React.ReactNode; 
-    onPress?: () => void;
-  }) => (
-    <TouchableOpacity 
-      style={styles.settingRow} 
-      onPress={onPress}
-      disabled={!onPress}
-      activeOpacity={onPress ? 0.7 : 1}
-    >
-      <View style={styles.settingLeft}>
-        <Text style={styles.settingIcon}>{icon}</Text>
-        <Text variant="body" style={styles.settingLabel}>
-          {label}
-        </Text>
-      </View>
-      <View style={styles.settingRight}>
-        {typeof value === 'string' ? (
-          <Text variant="body" color="secondary" style={styles.settingValue}>
-            {value}
-          </Text>
-        ) : (
-          value
-        )}
-        {onPress && <Text style={styles.chevron}>›</Text>}
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        {/* Profile Header */}
-        <View style={styles.profileSection}>
-          <View style={styles.avatar}>
-            <Text variant="h1">
-              {profile?.avatarUrl ? '👤' : '🌙'}
-            </Text>
-          </View>
-          <Text variant="h2" style={styles.username}>
-            {profile?.displayName || profile?.username || user?.email?.split('@')[0] || 'Dreamer'}
-          </Text>
-          <Text variant="body" color="secondary">
-            {user?.email}
-          </Text>
-          {profile?.isPremium && (
-            <View style={styles.premiumBadge}>
-              <Text style={styles.premiumIcon}>⭐</Text>
-              <Text variant="caption" style={styles.premiumText}>
-                {String(t('profile.premium'))}
-              </Text>
-            </View>
-          )}
-        </View>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <VStack space="lg" style={styles.content}>
+          {/* Profile Header with Avatar */}
+          <ProfileHeader />
 
-        {/* Stats Section */}
-        <View style={styles.statsSection}>
-          <Text variant="h3" style={styles.sectionTitle}>
-            {String(t('profile.stats.title'))}
-          </Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text variant="h2" style={styles.statValue}>
-                {dreams.length}
-              </Text>
-              <Text variant="caption" color="secondary">
-                {String(t('profile.stats.totalDreams'))}
-              </Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text variant="h2" style={styles.statValue}>
-                {formatRecordingTime(totalRecordingTime)}
-              </Text>
-              <Text variant="caption" color="secondary">
-                {String(t('profile.stats.recordingTime'))}
-              </Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text variant="h2" style={styles.statValue}>
-                {getAccountAge()}
-              </Text>
-              <Text variant="caption" color="secondary">
-                {String(t('profile.stats.dreamJourney'))}
-              </Text>
-            </View>
-          </View>
-        </View>
+          {/* Shared Dreams Section */}
+          <SharedDreamsSection 
+            onViewAll={() => Alert.alert('Coming Soon', 'Shared dreams feature coming soon!')}
+            onCreateShared={() => Alert.alert('Coming Soon', 'Dream sharing coming soon!')}
+          />
 
-        {/* Settings Section */}
-        <View style={styles.section}>
-          <Text variant="h3" style={styles.sectionTitle}>
-            {String(t('profile.preferences.title'))}
-          </Text>
-          
-          <SettingRow
-            icon="🌙"
-            label={String(t('profile.preferences.theme'))}
-            value={settings.theme === 'dark' ? String(t('profile.preferences.values.dark')) : String(t('profile.preferences.values.light'))}
-            onPress={() => {
-              Alert.alert(String(t('profile.preferences.theme')), String(t('errors.theme')));
-            }}
-          />
-          
-          <SettingRow
-            icon="🌐"
-            label={String(t('profile.preferences.language'))}
-            value={profile?.language === 'pl' ? 'Polski' : 'English'}
-            onPress={() => setShowLanguageModal(true)}
-          />
-          
-          <SettingRow
-            icon="🔔"
-            label={String(t('profile.preferences.notifications'))}
-            value={
-              <Switch
-                value={settings.notifications.enabled}
-                onValueChange={(value) => 
-                  updateSettings({ 
-                    notifications: { ...settings.notifications, enabled: value } 
-                  })
-                }
-                trackColor={{ false: '#767577', true: styles.switchTrack.color }}
-                thumbColor={settings.notifications.enabled ? styles.switchThumb.color : '#f4f3f4'}
-              />
-            }
-          />
-          
-          <SettingRow
-            icon="🎙️"
-            label={String(t('profile.preferences.whisperMode'))}
-            value={
-              <Switch
-                value={settings.recording.whisperMode}
-                onValueChange={(value) => 
-                  updateSettings({ 
-                    recording: { ...settings.recording, whisperMode: value } 
-                  })
-                }
-                trackColor={{ false: '#767577', true: styles.switchTrack.color }}
-                thumbColor={settings.recording.whisperMode ? styles.switchThumb.color : '#f4f3f4'}
-              />
-            }
-          />
-        </View>
+          {/* Preferences Section */}
+          <PreferencesSection />
 
-        {/* Support Section */}
-        <View style={styles.section}>
-          <Text variant="h3" style={styles.sectionTitle}>
-            {String(t('profile.support.title'))}
-          </Text>
-          
-          <SettingRow
-            icon="📚"
-            label={String(t('profile.support.help'))}
-            onPress={() => Alert.alert(String(t('profile.support.help')), String(t('errors.help')))}
-          />
-          
-          <SettingRow
-            icon="💬"
-            label={String(t('profile.support.contact'))}
-            onPress={() => Alert.alert(String(t('profile.support.contact')), String(t('errors.contact')))}
-          />
-          
-          <SettingRow
-            icon="🔒"
-            label={String(t('profile.support.privacy'))}
-            onPress={() => Alert.alert(String(t('profile.support.privacy')), String(t('errors.privacy')))}
-          />
-          
-          <SettingRow
-            icon="📜"
-            label={String(t('profile.support.terms'))}
-            onPress={() => Alert.alert(String(t('profile.support.terms')), String(t('errors.terms')))}
-          />
-        </View>
+          {/* Support Section */}
+          <SupportSection />
 
-        {/* Actions Section */}
-        <View style={styles.section}>
-          <Button
-            variant="secondary"
-            size="large"
-            onPress={handleSignOut}
-            loading={isSigningOut}
-          >
-            {String(t('profile.signOut'))}
-          </Button>
-          
-          <TouchableOpacity style={styles.dangerButton}>
-            <Text variant="body" style={styles.dangerButtonText}>
-              {String(t('profile.deleteAccount'))}
-            </Text>
-          </TouchableOpacity>
-        </View>
+          {/* Actions Section */}
+          <Box style={styles.actionsSection}>
+            <VStack space="md">
+              <Button
+                variant="outline"
+                action="secondary"
+                size="lg"
+                onPress={handleSignOut}
+                isDisabled={isSigningOut}
+                style={styles.signOutButton}
+              >
+                <ButtonText style={styles.signOutButtonText}>
+                  {isSigningOut ? 'Signing Out...' : String(t('profile.signOut'))}
+                </ButtonText>
+              </Button>
 
-        {/* Version Info */}
-        <View style={styles.versionInfo}>
-          <Text variant="caption" color="secondary">
-            {String(t('version.info'))}
-          </Text>
-          <Text variant="caption" color="secondary">
-            {String(t('version.tagline'))}
-          </Text>
-        </View>
-      </View>
-
-      {/* Language Selector Modal */}
-      <Modal
-        visible={showLanguageModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowLanguageModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowLanguageModal(false)}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text variant="h3">Select Language</Text>
-              <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
-                <Text variant="h2">×</Text>
+              <TouchableOpacity 
+                style={styles.deleteButton}
+                onPress={handleDeleteAccount}
+              >
+                <Text variant="body" style={styles.deleteButtonText}>
+                  {String(t('profile.deleteAccount'))}
+                </Text>
               </TouchableOpacity>
-            </View>
-            
-            <LanguageSelector
-              currentLanguage={profile?.language || 'en'}
-              onLanguageChange={handleLanguageChange}
-              label=""
-              limitedLanguages={['en', 'pl']}
-            />
-            
-            {isUpdatingLanguage && (
-              <View style={styles.modalLoading}>
-                <Text variant="body" color="secondary">Updating...</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </ScrollView>
+            </VStack>
+          </Box>
+
+          {/* Version Info */}
+          <Box style={styles.versionSection}>
+            <VStack space="xs" alignItems="center">
+              <Text variant="caption" color="secondary" style={styles.versionText}>
+                {String(t('version.info'))}
+              </Text>
+              <Text variant="caption" color="secondary" style={styles.taglineText}>
+                {String(t('version.tagline'))}
+              </Text>
+            </VStack>
+          </Box>
+        </VStack>
+      </ScrollView>
+    </SafeAreaView>
   );
 };

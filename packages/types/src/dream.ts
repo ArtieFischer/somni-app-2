@@ -1,75 +1,96 @@
+// Sleep phase enum
+export type SleepPhase = 'unknown' | 'n1' | 'n2' | 'n3' | 'rem';
+
+// Transcription status enum
+export type TranscriptionStatus = 'pending' | 'processing' | 'done' | 'error';
+
+// Location accuracy for dreams
+export type DreamLocationAccuracy = 'none' | 'country' | 'region' | 'city' | 'exact';
+
 export interface Dream {
   id: string;
-  userId: string;
-  rawTranscript: string;
-  title?: string;
-  duration: number;
-  confidence: number;
-  wasEdited: boolean;
-  recordedAt: string;
-  createdAt: string;
-  status: 'pending' | 'transcribing' | 'completed' | 'failed';
-  audioUri?: string;
-  fileSize?: number;
-  tags?: string[];
-  emotions?: string[];
+  user_id: string; // Changed from userId
   
-  // Optional metadata
-  updatedAt?: string;
-  version?: number;
-  metadata?: Record<string, any>;
+  // Content
+  title?: string; // AI-generated title
+  raw_transcript?: string; // Changed from rawTranscript
+  refined_narrative?: string; // New field
   
-  // NEW: Transcription fields
-  transcriptionStatus?: 'pending' | 'processing' | 'completed' | 'failed';
-  transcriptionMetadata?: {
-    language?: string;
-    confidence?: number;
-    words?: Array<{
-      text: string;
-      start: number;
-      end: number;
-      speaker_id?: string;
-    }>;
-    processedAt?: string;
-    model?: string;
-  };
-  transcriptionJobId?: string;
+  // Sleep data
+  sleep_phase: SleepPhase;
+  is_lucid: boolean;
+  mood_before?: number; // -5 to 5 scale
+  mood_after?: number; // -5 to 5 scale
+  
+  // Location
+  location?: { lat: number; lng: number };
+  location_accuracy: DreamLocationAccuracy;
+  
+  // Embedding - MiniLM 384 dimensions
+  embedding?: number[];
+  
+  // Transcription
+  transcription_status: TranscriptionStatus;
+  transcription_metadata?: Record<string, any>;
+  transcription_job_id?: string;
+  
+  // Image generation
+  image_prompt?: string;
+  
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+  
+  // Legacy fields for backward compatibility
+  userId?: string; // Use user_id
+  rawTranscript?: string; // Use raw_transcript
+  createdAt?: string; // Use created_at
+  updatedAt?: string; // Use updated_at
+  recordedAt?: string; // Use created_at
+  duration?: number; // Deprecated
+  confidence?: number; // Deprecated
+  wasEdited?: boolean; // Deprecated
+  status?: 'pending' | 'transcribing' | 'completed' | 'failed'; // Use transcription_status
+  audioUri?: string; // Deprecated
+  fileSize?: number; // Deprecated
+  tags?: string[]; // Use dream_themes
+  emotions?: string[]; // Use mood fields
+  image_url?: string; // Use dream_images table
 }
 
 export interface DreamDTO {
   id?: string;
-  userId: string;
-  rawTranscript: string;
-  title?: string;
-  duration: number;
-  confidence: number;
-  wasEdited: boolean;
-  recordedAt: string;
-  createdAt: string;
-  status: 'pending' | 'transcribing' | 'completed' | 'failed';
-  audioUri?: string;
-  fileSize?: number;
-  tags?: string[];
-  emotions?: string[];
-  updatedAt?: string;
-  version?: number;
-  metadata?: Record<string, any>;
+  user_id: string;
   
-  // NEW: Transcription fields
-  transcriptionStatus?: 'pending' | 'processing' | 'completed' | 'failed';
-  transcriptionMetadata?: {
-    language?: string;
-    confidence?: number;
-    words?: Array<{
-      text: string;
-      start: number;
-      end: number;
-      speaker_id?: string;
-    }>;
-    processedAt?: string;
-    model?: string;
-  };
-  transcriptionJobId?: string;
+  // Content
+  title?: string;
+  raw_transcript?: string;
+  refined_narrative?: string;
+  
+  // Sleep data
+  sleep_phase?: SleepPhase;
+  is_lucid?: boolean;
+  mood_before?: number;
+  mood_after?: number;
+  
+  // Location
+  location?: { lat: number; lng: number };
+  location_accuracy?: DreamLocationAccuracy;
+  
+  // Embedding
+  embedding?: number[];
+  
+  // Transcription
+  transcription_status?: TranscriptionStatus;
+  transcription_metadata?: Record<string, any>;
+  transcription_job_id?: string;
+  
+  // Image generation
+  image_prompt?: string;
+  
+  // Timestamps
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface RecordingSession {

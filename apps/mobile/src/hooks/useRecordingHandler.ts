@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
+import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
 import { useDreamStore } from '@somni/stores';
 import { useAuth } from './useAuth';
@@ -74,15 +75,72 @@ export const useRecordingHandler = () => {
 
       // Create dream in Supabase
       console.log('📝 Creating dream in database...');
+      
+      // Prepare dream data with location if user has enabled location sharing
+      const dreamData: any = {
+        user_id: user.id,
+        raw_transcript: '',
+        duration: pendingRecording?.duration || dreamStore.recordingSession.duration,
+        transcription_status: 'pending',
+        created_at: new Date().toISOString(),
+      };
+      
+      // Add location data based on user's location sharing preferences
+      if (profile?.settings?.location_sharing && profile.settings.location_sharing !== 'none') {
+        dreamData.location_accuracy = profile.settings.location_sharing;
+        
+        // Try to get current location if user has 'exact' sharing enabled
+        if (profile.settings.location_sharing === 'exact') {
+          try {
+            // Check if we already have location permission
+            const { status } = await Location.getForegroundPermissionsAsync();
+            
+            if (status === 'granted') {
+              console.log('📍 Getting current location for dream...');
+              const currentLocation = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced,
+              });
+              
+              dreamData.location = {
+                lat: currentLocation.coords.latitude,
+                lng: currentLocation.coords.longitude
+              };
+              
+              console.log('📍 Current location captured:', dreamData.location);
+            } else {
+              // Fall back to stored location from profile
+              if (profile.location) {
+                dreamData.location = profile.location;
+                console.log('📍 Using stored location from profile');
+              }
+            }
+          } catch (locationError) {
+            console.warn('Failed to get current location, using profile location:', locationError);
+            // Fall back to stored location from profile
+            if (profile.location) {
+              dreamData.location = profile.location;
+            }
+          }
+        } else {
+          // For country/city level, use stored location from profile
+          if (profile.location) {
+            dreamData.location = profile.location;
+          }
+        }
+        
+        console.log('📍 Adding location data to dream:', {
+          accuracy: dreamData.location_accuracy,
+          hasCoordinates: !!dreamData.location,
+          isRealTime: dreamData.location_accuracy === 'exact'
+        });
+      } else {
+        // Explicitly set to 'none' if user hasn't enabled location sharing
+        dreamData.location_accuracy = 'none';
+      }
+      
       const { data, error: createError } = await supabase
         .from('dreams')
-        .insert({
-          user_id: user.id,
-          raw_transcript: '',
-          duration: pendingRecording?.duration || dreamStore.recordingSession.duration,
-          transcription_status: 'pending',
-          created_at: new Date().toISOString(),
-        })
+        .insert(dreamData)
         .select()
         .single();
       

@@ -10,11 +10,13 @@ import {
   Badge,
   BadgeText,
   Pressable,
+  Image,
 } from '@gluestack-ui/themed';
 import { darkTheme } from '@somni/theme';
-import { Card } from '../../components/atoms';
+import { Card, PillButton } from '../../components/atoms';
 import { useNavigation } from '@react-navigation/native';
 import { MainStackScreenProps } from '@somni/types';
+import { Ionicons } from '@expo/vector-icons';
 
 interface DreamDetailData {
   title: string;
@@ -25,6 +27,7 @@ interface DreamDetailData {
   dreamWork: string;
   interpretation: string;
   selfReflection: string;
+  imageUrl?: string;
 }
 
 interface DreamDetailScreenProps {
@@ -50,29 +53,48 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
   ];
 
   const renderTabButton = (tab: { id: TabType; label: string }) => (
-    <Pressable
+    <PillButton
       key={tab.id}
-      flex={1}
+      label={tab.label}
+      isActive={activeTab === tab.id}
       onPress={() => setActiveTab(tab.id)}
-      bg={activeTab === tab.id ? darkTheme.colors.primary + '20' : 'transparent'}
-      borderWidth={1}
-      borderColor={activeTab === tab.id ? darkTheme.colors.primary : darkTheme.colors.border.secondary}
-      borderRadius="$lg"
-      p="$3"
-      alignItems="center"
-    >
-      <Text
-        color={activeTab === tab.id ? darkTheme.colors.primary : '$textLight300'}
-        fontWeight={activeTab === tab.id ? '$semibold' : '$normal'}
-        size="sm"
-      >
-        {tab.label}
-      </Text>
-    </Pressable>
+      flex={1}
+    />
   );
 
   const renderOverview = () => (
     <VStack space="lg">
+      {/* Dream Image */}
+      <Box
+        borderRadius="$lg"
+        overflow="hidden"
+        bg={darkTheme.colors.background.secondary}
+        aspectRatio={3 / 2}
+      >
+        {dreamData.imageUrl ? (
+          <Image
+            source={{ uri: dreamData.imageUrl }}
+            alt={dreamData.title}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+        ) : (
+          <Box
+            w="$full"
+            h="$full"
+            bg={darkTheme.colors.background.elevated}
+            justifyContent="center"
+            alignItems="center"
+          >
+            <Ionicons
+              name="image-outline"
+              size={64}
+              color={darkTheme.colors.border.secondary}
+            />
+          </Box>
+        )}
+      </Box>
+
       {/* Dream Topic */}
       <Card variant="elevated">
         <VStack space="md">
@@ -250,5 +272,6 @@ export const sampleDreamData: DreamDetailData = {
   quickTake: "The dream reveals a regressive desire for childhood security and maternal nurturing, with a hint of castration anxiety and unresolved Oedipal conflicts.",
   dreamWork: "The dream employs mechanisms of regression, condensation, and displacement to convey the dreamer's unconscious wishes and conflicts. The enlarged parent's house serves as a backdrop for a chaotic, instinctual realm, while the mirror reflects the dreamer's emerging anxieties about virility and identity.",
   interpretation: "You, dear patient, are clearly yearning for a return to the comfort and security of childhood, symbolized by the enlarged parent's house. The presence of various animals, particularly the fat hamster that persistently follows you, suggests an unconscious desire for instinctual freedom and a regression to a more primitive, oral stage of development. The hamster, with its rounded, phallic shape, may represent a symbol of masculine potency, which you are struggling to integrate into your psyche. Your nonchalant reaction to hair loss, a classic symbol of castration anxiety, indicates a defensive mechanism to ward off feelings of inadequacy. The lineup of animals behind you, responding to your mother's call, reveals a lingering Oedipal conflict, where you feel pressured to conform to familial expectations and surrender to maternal authority. This dream, much like the case of my patient Dora, highlights the complex interplay between instinctual drives, ego formation, and the struggle for identity.",
-  selfReflection: "Can you recall a recent situation where you felt overwhelmed by expectations or desires, and how did you respond to the pressure?"
+  selfReflection: "Can you recall a recent situation where you felt overwhelmed by expectations or desires, and how did you respond to the pressure?",
+  imageUrl: "https://via.placeholder.com/600x400/1a1a1a/666666?text=Dream+Image+Placeholder"
 };

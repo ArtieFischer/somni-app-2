@@ -5,17 +5,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import { Text, Button, Input, RadioButton } from '../../../components/atoms';
+import { Text, LegacyButton as Button, Input, RadioButton } from '../../../components/atoms';
 import { LanguageSelector } from '../../../components/molecules/LanguageSelector';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { OnboardingData } from '../OnboardingScreen';
 
 const PersonalInfoSchema = z.object({
-  display_name: z.string().min(1, 'Display name is required').max(50, 'Display name is too long'),
-  sex: z.enum(['male', 'female', 'other', 'prefer_not_to_say']),
-  date_of_birth: z.string(),
-  language: z.string(),
+  username: z.string().min(1, 'Display name is required').max(50, 'Display name is too long'),
+  sex: z.enum(['male', 'female', 'other', 'unspecified']),
+  birth_date: z.string(),
+  locale: z.string(),
 });
 
 type PersonalInfoData = z.infer<typeof PersonalInfoSchema>;
@@ -35,9 +35,23 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
 }) => {
   const theme = useTheme();
   const { t } = useTranslation('onboarding');
+
+  // DEBUG: Show what data we received
+  React.useEffect(() => {
+    console.log('=== DEBUG: StepPersonalInfo - Received Data ===');
+    console.log(JSON.stringify({
+      username: data.username,
+      sex: data.sex,
+      birth_date: data.birth_date,
+      locale: data.locale,
+      avatar_url: data.avatar_url,
+      has_avatarFile: !!data.avatarFile
+    }, null, 2));
+    console.log('==============================================');
+  }, []);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(
-    data.date_of_birth ? new Date(data.date_of_birth) : new Date(2000, 0, 1)
+    data.birth_date ? new Date(data.birth_date) : new Date(2000, 0, 1)
   );
   const [avatarUri, setAvatarUri] = useState<string | undefined>(data.avatar_url);
   const [avatarFile, setAvatarFile] = useState<any>(data.avatarFile);
@@ -50,10 +64,10 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
   } = useForm<PersonalInfoData>({
     resolver: zodResolver(PersonalInfoSchema),
     defaultValues: {
-      display_name: data.display_name || '',
+      username: data.username || '',
       sex: data.sex || undefined,
-      date_of_birth: data.date_of_birth || '',
-      language: 'en',
+      birth_date: data.birth_date || '',
+      locale: data.locale || 'en',
     },
   });
 
@@ -80,7 +94,7 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
 
   const onSubmit = (formData: PersonalInfoData) => {
     // Check age (must be 13+)
-    const birthDate = new Date(formData.date_of_birth);
+    const birthDate = new Date(formData.birth_date);
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
     
@@ -89,11 +103,25 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
       return;
     }
 
-    onUpdate({
+    const dataToSend = {
       ...formData,
       avatarFile,
       avatar_url: avatarUri,
-    });
+    };
+
+    // DEBUG: Show what data is being sent
+    console.log('=== DEBUG: StepPersonalInfo - Sending Data ===');
+    console.log(JSON.stringify({
+      username: dataToSend.username,
+      sex: dataToSend.sex,
+      birth_date: dataToSend.birth_date,
+      locale: dataToSend.locale,
+      has_avatar: !!dataToSend.avatarFile,
+      avatar_url: dataToSend.avatar_url
+    }, null, 2));
+    console.log('==============================================');
+
+    onUpdate(dataToSend);
     onNext();
   };
 
@@ -101,7 +129,7 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
     { value: 'male', label: String(t('personalInfo.sexOptions.male')) + ' ♂️' },
     { value: 'female', label: String(t('personalInfo.sexOptions.female')) + ' ♀️' },
     { value: 'other', label: String(t('personalInfo.sexOptions.other')) + ' ⚧' },
-    { value: 'prefer_not_to_say', label: String(t('personalInfo.sexOptions.preferNotToSay')) + ' 🤐' },
+    { value: 'unspecified', label: String(t('personalInfo.sexOptions.preferNotToSay')) + ' 🤐' },
   ];
 
   const styles: Record<string, ViewStyle> = {
@@ -194,14 +222,14 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
       <View style={styles.form}>
         <Controller
           control={control}
-          name="display_name"
+          name="username"
           render={({ field: { onChange, onBlur, value } }) => (
             <Input
               label={String(t('personalInfo.displayName'))}
               placeholder={String(t('personalInfo.displayNamePlaceholder'))}
               value={value}
               onChangeText={onChange}
-              error={errors.display_name?.message}
+              error={errors.username?.message}
             />
           )}
         />
@@ -234,7 +262,7 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
           </Text>
           <Controller
             control={control}
-            name="date_of_birth"
+            name="birth_date"
             render={({ field: { onChange, value } }) => (
               <>
                 <TouchableOpacity
@@ -322,16 +350,16 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
               </>
             )}
           />
-          {errors.date_of_birth && (
+          {errors.birth_date && (
             <Text variant="caption" color="error" style={{ marginTop: theme.spacing.xs }}>
-              {errors.date_of_birth.message}
+              {errors.birth_date.message}
             </Text>
           )}
         </View>
 
         <Controller
           control={control}
-          name="language"
+          name="locale"
           render={({ field: { onChange, value } }) => (
             <LanguageSelector
               currentLanguage={value || 'en'}
@@ -344,10 +372,8 @@ export const StepPersonalInfo: React.FC<StepPersonalInfoProps> = ({
 
       <View style={styles.buttonContainer}>
         <Button
-          variant="outline"
-          action="secondary"
+          variant="ghost"
           onPress={onPrevious}
-          style={{ flex: 1 }}
         >
           {String(t('personalInfo.back'))}
         </Button>

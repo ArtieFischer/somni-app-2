@@ -27,14 +27,14 @@ export const lightTheme: Theme = {
         border: colors.purple[500],
       },
       secondary: {
-        background: colors.white,
-        text: colors.purple[500],
-        border: colors.purple[500],
+        background: colors.transparent,
+        text: colors.green[500],
+        border: colors.green[500],
       },
       ghost: {
         background: colors.transparent,
-        text: colors.purple[500],
-        border: colors.purple[500],
+        text: colors.green[500],
+        border: colors.green[500],
       },
     },
     status: {

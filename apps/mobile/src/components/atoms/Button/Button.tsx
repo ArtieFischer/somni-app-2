@@ -3,7 +3,7 @@ import { Pressable, PressableProps, StyleSheet } from 'react-native';
 import { Text } from '../Text';
 import { useTheme } from '../../../hooks/useTheme';
 
-export interface ButtonProps extends Omit<PressableProps, 'style'> {
+export interface ButtonProps extends PressableProps {
   variant?: 'primary' | 'secondary' | 'ghost';
   size?: 'small' | 'medium' | 'large';
   children: React.ReactNode;
@@ -16,6 +16,7 @@ export const Button: React.FC<ButtonProps> = ({
   children,
   loading = false,
   disabled,
+  style,
   ...pressableProps
 }) => {
   const theme = useTheme();
@@ -39,6 +40,8 @@ export const Button: React.FC<ButtonProps> = ({
         borderWidth: variant === 'ghost' || variant === 'secondary' ? 1 : 0,
         borderRadius: theme.borderRadius.large, // More rounded for oniric feel
         height: buttonHeight[size],
+        minHeight: buttonHeight[size],
+        maxHeight: buttonHeight[size],
         paddingHorizontal:
           theme.spacing[
             size === 'small' ? 'medium' : size === 'large' ? 'xl' : 'large'
@@ -47,7 +50,7 @@ export const Button: React.FC<ButtonProps> = ({
         justifyContent: 'center',
         opacity: isDisabled ? 0.6 : 1,
         // Subtle shadow for depth
-        ...theme.shadows.small,
+        ...(variant === 'primary' ? theme.shadows.small : {}),
       },
       text: {
         color: buttonConfig.text,
@@ -62,7 +65,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.container, pressed && { opacity: 0.8 }]}
+      style={({ pressed }) => [styles.container, pressed && { opacity: 0.8 }, style]}
       disabled={isDisabled}
       {...pressableProps}
     >

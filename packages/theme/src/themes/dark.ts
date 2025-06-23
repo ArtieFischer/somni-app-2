@@ -27,14 +27,14 @@ export const darkTheme: Theme = {
         border: '#8B5CF6',
       },
       secondary: {
-        background: 'rgba(139, 92, 246, 0.1)', // Aurora purple with opacity
-        text: '#A78BFA', // Mystic lavender
-        border: '#6B46C1', // Deep purple
+        background: 'transparent',
+        text: '#10B981', // Ethereal teal
+        border: '#10B981', // Ethereal teal
       },
       ghost: {
         background: 'transparent',
-        text: '#A78BFA', // Mystic lavender
-        border: '#6B46C1', // Deep purple
+        text: '#10B981', // Ethereal teal (green)
+        border: '#10B981', // Ethereal teal (green)
       },
     },
     status: {

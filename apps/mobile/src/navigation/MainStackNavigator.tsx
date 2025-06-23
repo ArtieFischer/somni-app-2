@@ -4,6 +4,7 @@ import { MainStackParamList } from '@somni/types';
 import { useTheme } from '../hooks/useTheme';
 import MainNavigator from './MainNavigator';
 import { DreamDetailScreen } from '../screens/dream/DreamDetailScreen';
+import { DebugScreen } from '../screens/settings/DebugScreen';
 import { Dream } from '@somni/types';
 import { useDreamStore } from '@somni/stores';
 
@@ -70,11 +71,20 @@ export default function MainStackNavigator() {
             dreamWork: 'Analysis pending...', // This would come from AI analysis
             interpretation: 'Analysis pending...', // This would come from AI analysis
             selfReflection: 'What aspects of this dream resonate with your current life situation?',
+            imageUrl: dream.image_url,
           };
 
           return <DreamDetailScreen dreamData={dreamData} />;
         }}
       </Stack.Screen>
+      <Stack.Screen
+        name="Debug"
+        component={DebugScreen}
+        options={{ 
+          title: 'Debug Settings',
+          presentation: 'modal',
+        }}
+      />
     </Stack.Navigator>
   );
 }

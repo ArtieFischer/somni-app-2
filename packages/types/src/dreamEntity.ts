@@ -26,6 +26,8 @@ export class DreamEntity {
       fileSize: dto.fileSize ? Math.max(0, dto.fileSize) : undefined,
       tags: dto.tags ? [...new Set(dto.tags.filter(Boolean))] : [], // Remove duplicates and empty strings
       emotions: dto.emotions ? [...new Set(dto.emotions.filter(Boolean))] : [],
+      image_url: dto.image_url,
+      image_prompt: dto.image_prompt,
       updatedAt: dto.updatedAt || now,
       version: dto.version || 1,
       metadata: dto.metadata || {}
@@ -58,6 +60,8 @@ export class DreamEntity {
       fileSize: dream.fileSize,
       tags: dream.tags,
       emotions: dream.emotions,
+      image_url: dream.image_url,
+      image_prompt: dream.image_prompt,
       updatedAt: dream.updatedAt,
       version: dream.version,
       metadata: dream.metadata

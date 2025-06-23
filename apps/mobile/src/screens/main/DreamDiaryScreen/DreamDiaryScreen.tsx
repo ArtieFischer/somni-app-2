@@ -14,7 +14,7 @@ import {
   Center,
 } from '../../../components/ui';
 import { SimpleInput } from '../../../components/ui/SimpleInput';
-import { Button } from '../../../components/atoms';
+import { Button, PillButton } from '../../../components/atoms';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamStore } from '@somni/stores';
@@ -126,6 +126,9 @@ export const DreamDiaryScreen: React.FC = () => {
             hasTranscript: !!mappedDream.rawTranscript,
             hasTitle: !!mappedDream.title,
             title: mappedDream.title,
+            hasImageUrl: !!mappedDream.image_url,
+            imageUrl: mappedDream.image_url,
+            rawPayload: dreamData,
           });
           
           updateDream(existingDream.id, {
@@ -199,8 +202,19 @@ export const DreamDiaryScreen: React.FC = () => {
               id: dbDreams[0].id,
               hasTitle: 'title' in dbDreams[0],
               title: dbDreams[0].title,
+              hasImageUrl: 'image_url' in dbDreams[0],
+              image_url: dbDreams[0].image_url,
               columns: Object.keys(dbDreams[0])
             });
+          }
+          
+          // Log dreams with images
+          const dreamsWithImages = dbDreams.filter(d => d.image_url);
+          if (dreamsWithImages.length > 0) {
+            console.log('🖼️ Dreams with images:', dreamsWithImages.map(d => ({
+              id: d.id,
+              image_url: d.image_url
+            })));
           }
           
           // Update local store with database dreams
@@ -244,8 +258,7 @@ export const DreamDiaryScreen: React.FC = () => {
   };
 
   const handleAnalyzePress = (dream: Dream) => {
-    // Navigate to analysis screen or trigger analysis
-    console.log('Analyze dream:', dream.id);
+    navigation.navigate('DreamDetail', { dreamId: dream.id });
   };
 
   const handleDeletePress = (dream: Dream) => {
@@ -473,29 +486,14 @@ export const DreamDiaryScreen: React.FC = () => {
         showsHorizontalScrollIndicator={false}
       >
         <HStack space="sm">
-          {(['all', 'recent', 'lucid'] as const).map((filter) => {
-            const isActive = selectedFilter === filter;
-            return (
-              <Pressable
-                key={filter}
-                onPress={() => setSelectedFilter(filter)}
-                bg={isActive ? darkTheme.colors.primary + '20' : darkTheme.colors.background.elevated}
-                borderWidth={1}
-                borderColor={isActive ? darkTheme.colors.primary : 'transparent'}
-                borderRadius="$full"
-                px="$4"
-                py="$2"
-              >
-                <Text 
-                  size="sm" 
-                  fontWeight={isActive ? '$semibold' : '$normal'}
-                  color={isActive ? darkTheme.colors.primary : darkTheme.colors.text.primary}
-                >
-                  {t(`journal.filters.${filter}`)}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {(['all', 'recent', 'lucid'] as const).map((filter) => (
+            <PillButton
+              key={filter}
+              label={String(t(`journal.filters.${filter}`))}
+              isActive={selectedFilter === filter}
+              onPress={() => setSelectedFilter(filter)}
+            />
+          ))}
         </HStack>
       </ScrollView>
 

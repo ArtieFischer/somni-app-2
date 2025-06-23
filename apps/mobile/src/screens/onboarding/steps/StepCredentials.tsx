@@ -54,8 +54,8 @@ export const StepCredentials: React.FC<StepCredentialsProps> = ({
   const checkUsernameAvailability = async (username: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase
-        .from('users_profile')
-        .select('id')
+        .from('profiles')
+        .select('user_id')
         .eq('username', username)
         .single();
 
@@ -81,6 +81,12 @@ export const StepCredentials: React.FC<StepCredentialsProps> = ({
     }
 
     setIsCheckingUsername(false);
+    
+    // DEBUG: Show what credentials data is being sent
+    console.log('=== DEBUG: StepCredentials - Sending Data ===');
+    console.log(JSON.stringify(formData, null, 2));
+    console.log('============================================');
+    
     onUpdate(formData);
     onNext();
   };
@@ -165,17 +171,16 @@ export const StepCredentials: React.FC<StepCredentialsProps> = ({
       <View style={[styles.buttonContainer, { flexDirection: 'row', gap: theme.spacing.medium }]}>
         {navigation && (
           <Button
-            variant="outline"
-            action="secondary"
+            variant="secondary"
             onPress={() => navigation.goBack()}
             style={{ flex: 1 }}
           >
-            Back
+            {t('common.back')}
           </Button>
         )}
         <Button
           onPress={handleSubmit(onSubmit)}
-          isLoading={isCheckingUsername}
+          loading={isCheckingUsername}
           style={{ flex: navigation ? 1 : undefined }}
         >
           {String(t('credentials.continue'))}

@@ -20,6 +20,8 @@ export function mapDatabaseDreamToFrontend(dbDream: any): Partial<Dream> {
     fileSize: dbDream.file_size || undefined,
     tags: dbDream.tags || [],
     emotions: dbDream.emotions || [],
+    image_url: dbDream.image_url || undefined,
+    image_prompt: dbDream.image_prompt || undefined,
     updatedAt: dbDream.updated_at || undefined,
     version: dbDream.version || undefined,
     metadata: dbDream.metadata || undefined,

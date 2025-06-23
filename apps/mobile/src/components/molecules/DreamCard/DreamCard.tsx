@@ -8,6 +8,7 @@ import {
   Badge,
   BadgeText,
   Spinner,
+  Image,
 } from '../../ui';
 import { Dream } from '@somni/types';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -65,6 +66,8 @@ export const DreamCard: React.FC<DreamCardProps> = ({
       dreamId: dream.id,
       hasTitle: !!dream.title,
       title: dream.title,
+      hasImageUrl: !!dream.image_url,
+      imageUrl: dream.image_url,
       dreamKeys: Object.keys(dream)
     });
     
@@ -113,20 +116,22 @@ export const DreamCard: React.FC<DreamCardProps> = ({
             </Text>
           </HStack>
           <HStack space="md" alignItems="center">
-            <HStack space="xs" alignItems="center">
-              <Ionicons
-                name="mic"
-                size={16}
-                color={darkTheme.colors.text.secondary}
-              />
-              <Text
-                size="sm"
-                color={darkTheme.colors.text.primary}
-                opacity={0.7}
-              >
-                {formatDuration(dream.duration)}
-              </Text>
-            </HStack>
+            {dream.status !== 'completed' && (
+              <HStack space="xs" alignItems="center">
+                <Ionicons
+                  name="mic"
+                  size={16}
+                  color={darkTheme.colors.text.secondary}
+                />
+                <Text
+                  size="sm"
+                  color={darkTheme.colors.text.primary}
+                  opacity={0.7}
+                >
+                  {formatDuration(dream.duration)}
+                </Text>
+              </HStack>
+            )}
             <Pressable
               onPress={() => {
                 Alert.alert(
@@ -164,10 +169,42 @@ export const DreamCard: React.FC<DreamCardProps> = ({
           {getDreamTitle()}
         </Text>
 
+        {/* Dream Image */}
+        <Box
+          borderRadius={8}
+          overflow="hidden"
+          bg={darkTheme.colors.background.secondary}
+          aspectRatio={3 / 2}
+        >
+          {console.log('🖼️ DreamCard - Image check:', { dreamId: dream.id, image_url: dream.image_url, hasImage: !!dream.image_url })}
+          {dream.image_url ? (
+            <Image
+              source={{ uri: dream.image_url }}
+              alt={getDreamTitle()}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Box
+              w="100%"
+              h="100%"
+              bg={darkTheme.colors.background.elevated}
+              justifyContent="center"
+              alignItems="center"
+            >
+              <Ionicons
+                name="image-outline"
+                size={48}
+                color={darkTheme.colors.border.secondary}
+              />
+            </Box>
+          )}
+        </Box>
+
         {/* Content */}
         <Text
           size="sm"
-          numberOfLines={2}
+          numberOfLines={3}
           ellipsizeMode="tail"
           lineHeight="$sm"
           color={
@@ -208,12 +245,8 @@ export const DreamCard: React.FC<DreamCardProps> = ({
         )}
 
         {/* Footer */}
-        <HStack justifyContent="space-between" alignItems="center">
-          <Text size="sm" color={darkTheme.colors.text.primary} opacity={0.6}>
-            {dream.confidence
-              ? `${Math.round(dream.confidence * 100)}% ${t('analysis.confidence')}`
-              : ''}
-          </Text>
+        <HStack justifyContent="flex-end" alignItems="center">
+          <Box />
           {dream.status === 'completed' ? (
             <Pressable onPress={() => onAnalyzePress?.(dream)}>
               <Text

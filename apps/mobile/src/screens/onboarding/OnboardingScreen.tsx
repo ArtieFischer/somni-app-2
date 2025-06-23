@@ -31,10 +31,9 @@ export interface OnboardingData {
   password: string;
   username: string;
   // Step 2: Personal Info
-  display_name: string;
-  sex: 'male' | 'female' | 'other' | 'prefer_not_to_say';
-  date_of_birth: string;
-  language: string;
+  sex: 'male' | 'female' | 'other' | 'unspecified';
+  birth_date: string;
+  locale: string;
   avatar_url?: string;
   avatarFile?: any; // For local file before upload
   // Step 3: Dream Interpreter
@@ -42,6 +41,10 @@ export interface OnboardingData {
   // Step 4: Preferences
   improve_sleep_quality: 'yes' | 'no' | 'not_sure';
   interested_in_lucid_dreaming: 'yes' | 'no' | 'dont_know_yet';
+  // Backward compatibility fields (deprecated, use above)
+  display_name?: string;
+  date_of_birth?: string;
+  language?: string;
 }
 
 interface OnboardingScreenProps {
@@ -54,12 +57,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
   const theme = useTheme();
   const { t } = useTranslation('auth');
   const scrollViewRef = useRef<ScrollView>(null);
-  const { setUser } = useAuthStore();
+  const { setSession } = useAuthStore();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<OnboardingData>>({
-    language: 'en', // Default language
+    locale: 'en', // Default locale
   });
 
   const updateFormData = (data: Partial<OnboardingData>) => {
@@ -114,82 +117,116 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
   };
 
   const handleSubmit = async () => {
+    console.log('=== DEBUG: handleSubmit called ===');
+    console.log('Checking required fields...');
+    console.log('Email:', formData.email);
+    console.log('Password:', formData.password ? '[SET]' : '[NOT SET]');
+    console.log('Username:', formData.username);
+    
     if (!formData.email || !formData.password || !formData.username) {
+      console.log('ERROR: Missing required fields!');
       Alert.alert('Error', 'Please complete all required fields');
       return;
     }
 
+    console.log('All required fields present, proceeding with signup...');
     setIsSubmitting(true);
     try {
       // 1. Create auth user
-      const authData = await signUpWithEmail({
+      console.log('Calling signUpWithEmail...');
+      // We'll pass additional data that the trigger can use
+      const { data: authData, error: signupError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        username: formData.username,
+        options: {
+          data: {
+            username: formData.username,
+            display_name: formData.username,
+            handle: formData.username,
+            sex: formData.sex,
+            birth_date: formData.birth_date,
+            locale: formData.locale,
+            dream_interpreter: formData.dream_interpreter,
+            improve_sleep_quality: formData.improve_sleep_quality === 'yes',
+            interested_in_lucid_dreaming: formData.interested_in_lucid_dreaming === 'yes',
+          },
+          emailRedirectTo: process.env.EXPO_PUBLIC_SUPABASE_REDIRECT_URL,
+        },
       });
+      
+      if (signupError) throw signupError;
+      
+      console.log('Auth data received:', JSON.stringify({
+        user: authData?.user?.id,
+        session: !!authData?.session,
+        email: authData?.user?.email
+      }, null, 2));
 
       if (!authData) throw new Error('No authentication data returned');
       
-      // Handle unconfirmed user case (email confirmation required)
+      if (!authData.user) throw new Error('No user data returned');
+      
+      // We have a user, proceed with profile update regardless of session status
+      console.log('User created, updating profile...');
+
+      // DEBUG: Show formData to see what we're working with
+      console.log('=== DEBUG: OnboardingScreen - Final FormData ===');
+      console.log(JSON.stringify({
+        sex: formData.sex,
+        birth_date: formData.birth_date,
+        locale: formData.locale,
+        dream_interpreter: formData.dream_interpreter,
+        username: formData.username,
+        has_avatar: !!formData.avatarFile
+      }, null, 2));
+      console.log('Full formData:', JSON.stringify(formData, null, 2));
+      console.log('===============================================');
+
+      // 2. Avatar upload will be handled after email confirmation
+      // The profile has been created by the trigger with all the data we passed
+      console.log('Profile created by trigger with signup metadata');
+      
+      // TODO: Avatar upload needs to be done after email confirmation
+      // when the user has a valid session
+
+      // 4. Update auth store
+      if (authData.session) {
+        setSession(authData.session);
+      }
+
+      // 5. Check if email confirmation is required
       if (!authData.session && authData.user) {
+        console.log('Email confirmation required, showing alert...');
         Alert.alert(
           t('auth:emailConfirmation.title'),
           t('auth:emailConfirmation.message'),
           [{ text: 'OK', onPress: () => navigation.navigate('SignIn') }]
         );
-        return;
+      } else {
+        // Account created successfully - AppNavigator will handle navigation
+        Alert.alert(
+          'Welcome!',
+          'Your account has been created successfully.',
+          [
+            {
+              text: 'OK',
+            },
+          ]
+        );
       }
-      
-      if (!authData.user) throw new Error('No user data returned');
-
-      // 2. Upload avatar if provided
-      let avatarUrl = null;
-      if (formData.avatarFile) {
-        avatarUrl = await uploadAvatar(authData.user.id, formData.avatarFile);
-      }
-
-      // 3. Update user profile with all the new fields
-      const { error: profileError } = await supabase
-        .from('users_profile')
-        .update({
-          display_name: formData.display_name,
-          sex: formData.sex,
-          date_of_birth: formData.date_of_birth,
-          language: formData.language,
-          avatar_url: avatarUrl,
-          dream_interpreter: formData.dream_interpreter,
-          improve_sleep_quality: formData.improve_sleep_quality,
-          interested_in_lucid_dreaming: formData.interested_in_lucid_dreaming,
-          onboarding_completed: true,
-        })
-        .eq('id', authData.user.id);
-
-      if (profileError) throw profileError;
-
-      // 4. Update auth store
-      setUser(authData.user);
-
-      // 5. Navigate to main app
-      Alert.alert(
-        'Welcome!',
-        'Your account has been created successfully.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.reset({
-              index: 0,
-              routes: [{ name: 'Main' }],
-            }),
-          },
-        ]
-      );
     } catch (error) {
+      console.log('=== DEBUG: Signup error caught ===');
       console.error('Signup error:', error);
+      console.log('Error type:', typeof error);
+      console.log('Error details:', JSON.stringify(error, null, 2));
+      console.log('================================');
+      
       Alert.alert(
         'Sign Up Error',
         error instanceof Error ? error.message : 'An error occurred during sign up'
       );
     } finally {
+      console.log('=== DEBUG: Finally block, setting isSubmitting to false ===');
       setIsSubmitting(false);
     }
   };

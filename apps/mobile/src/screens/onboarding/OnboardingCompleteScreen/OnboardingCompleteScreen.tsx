@@ -32,23 +32,59 @@ export const OnboardingCompleteScreen = () => {
     try {
       setIsLoading(true);
 
-      // Prepare the data to be saved
-      const updates = {
-        onboarding_completed: true,
-        sleep_schedule: onboardingData.sleepSchedule
-          ? {
-              bedtime: onboardingData.sleepSchedule.bedtime,
-              wake_time: onboardingData.sleepSchedule.wakeTime,
-            }
-          : undefined,
-        lucid_dream_settings: {
-          goals: onboardingData.dreamGoals,
-          experience: onboardingData.lucidityExperience,
-          privacy: onboardingData.privacy,
+      // Prepare the data to be saved - updated for new database structure
+      const updates: any = {
+        onboarding_complete: true,
+        settings: {
+          location_sharing: onboardingData.locationAccuracy || 'none',
+          sleep_schedule: onboardingData.sleepSchedule
+            ? {
+                bed: onboardingData.sleepSchedule.bedtime,
+                wake: onboardingData.sleepSchedule.wakeTime,
+                tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              }
+            : null,
+          improve_sleep_quality: onboardingData.improve_sleep_quality ? 
+            (onboardingData.improve_sleep_quality === 'yes' ? true : 
+             onboardingData.improve_sleep_quality === 'no' ? false : null) : null,
+          interested_in_lucid_dreaming: onboardingData.interested_in_lucid_dreaming ? 
+            (onboardingData.interested_in_lucid_dreaming === 'yes' ? true : 
+             onboardingData.interested_in_lucid_dreaming === 'no' ? false : null) : null,
         },
+        // Location fields - convert to PostGIS Point format
+        location: onboardingData.location ? 
+          `POINT(${onboardingData.location.lng} ${onboardingData.location.lat})` : null,
+        location_accuracy: onboardingData.locationAccuracy || 'none',
+        location_country: onboardingData.locationCountry || null,
+        location_city: onboardingData.locationCity || null,
       };
 
+      // Add personal info fields if they exist in onboarding data
+      if (onboardingData.username || onboardingData.display_name) {
+        updates.username = onboardingData.username || onboardingData.display_name;
+      }
+      if (onboardingData.sex) {
+        updates.sex = onboardingData.sex;
+      }
+      if (onboardingData.birth_date || onboardingData.date_of_birth) {
+        const birthDate = onboardingData.birth_date || onboardingData.date_of_birth;
+        // Only set birth_date if it's not an empty string
+        if (birthDate && birthDate.trim() !== '') {
+          updates.birth_date = birthDate;
+        }
+      }
+      if (onboardingData.locale || onboardingData.language) {
+        updates.locale = onboardingData.locale || onboardingData.language;
+      }
+      if (onboardingData.dream_interpreter) {
+        updates.dream_interpreter = onboardingData.dream_interpreter;
+      }
+      if (onboardingData.avatar_url) {
+        updates.avatar_url = onboardingData.avatar_url;
+      }
+
       // Call the repository to update the user's profile in Supabase
+      // Note: user.id is now user_id in the new schema
       const updatedProfile = await userRepository.update(user.id, updates);
 
       // Update the local state in the authStore to trigger navigation
@@ -118,6 +154,18 @@ export const OnboardingCompleteScreen = () => {
               </Text>
             </View>
           )}
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Location Sharing:</Text>
+            <Text style={styles.summaryValue}>
+              {!onboardingData.locationAccuracy || onboardingData.locationAccuracy === 'none' ? 
+                'Not sharing location' :
+                onboardingData.locationAccuracy === 'exact' ? 'Sharing precise location' :
+                onboardingData.locationAccuracy === 'city' ? `${onboardingData.locationCity}, ${onboardingData.locationCountry}` :
+                onboardingData.locationAccuracy === 'country' ? onboardingData.locationCountry :
+                'Not shared'}
+            </Text>
+          </View>
         </View>
       </View>
     </OnboardingScreenLayout>

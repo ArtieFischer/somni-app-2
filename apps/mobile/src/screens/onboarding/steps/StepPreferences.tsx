@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ViewStyle, TouchableOpacity, ScrollView } from 'react-native';
-import { Text, Button } from '../../../components/atoms';
+import { Text, LegacyButton as Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { OnboardingData } from '../OnboardingScreen';
@@ -26,6 +26,14 @@ export const StepPreferences: React.FC<StepPreferencesProps> = ({
 
   const handleContinue = () => {
     if (sleepQuality && lucidDreaming) {
+      // DEBUG: Show what preferences data is being sent
+      console.log('=== DEBUG: StepPreferences - Sending Data ===');
+      console.log(JSON.stringify({
+        improve_sleep_quality: sleepQuality,
+        interested_in_lucid_dreaming: lucidDreaming,
+      }, null, 2));
+      console.log('============================================');
+      
       onUpdate({
         improve_sleep_quality: sleepQuality,
         interested_in_lucid_dreaming: lucidDreaming,
@@ -149,19 +157,18 @@ export const StepPreferences: React.FC<StepPreferencesProps> = ({
 
       <View style={styles.buttonContainer}>
         <Button
-          variant="outline"
-          action="secondary"
+          variant="ghost"
           onPress={onPrevious}
           style={{ flex: 1 }}
         >
-          Back
+          {t('common.back')}
         </Button>
         <Button
           onPress={handleContinue}
-          isDisabled={!sleepQuality || !lucidDreaming}
+          disabled={!sleepQuality || !lucidDreaming}
           style={{ flex: 1 }}
         >
-          Continue
+          {t('common.continue')}
         </Button>
       </View>
     </ScrollView>

@@ -7,6 +7,11 @@ import { initI18n } from './src/shared/locales/i18n';
 import { useTheme } from './src/hooks/useTheme';
 import { GluestackProvider } from './src/providers/GluestackProvider';
 
+// Import debug helpers in development
+if (__DEV__) {
+  import('./src/utils/debugHelpers');
+}
+
 export default function App() {
   const [isI18nInitialized, setIsI18nInitialized] = useState(false);
   const theme = useTheme();

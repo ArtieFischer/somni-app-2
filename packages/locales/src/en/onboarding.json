@@ -1,9 +1,13 @@
 {
+  "profileSetup": {
+    "title": "Complete Your Profile"
+  },
   "steps": {
     "credentials": "Account",
     "personal": "Profile",
     "interpreter": "Guide",
     "preferences": "Goals",
+    "location": "Location",
     "review": "Review"
   },
   "credentials": {
@@ -69,6 +73,17 @@
       "experienced": "I'm an experienced lucid dreamer"
     }
   },
+  "lucidExperience": {
+    "title": "Lucid Dreaming Experience",
+    "description": "Tell us about your experience with lucid dreaming",
+    "levels": {
+      "never": "Never had a lucid dream",
+      "accidental": "Had a few accidental lucid dreams",
+      "occasional": "Occasionally have lucid dreams",
+      "regular": "Regularly practice lucid dreaming",
+      "expert": "Expert lucid dreamer"
+    }
+  },
   "privacy": {
     "title": "Dream Privacy",
     "description": "How would you like to share your dream experiences? You can change this anytime.",
@@ -76,6 +91,29 @@
       "private": "Private - Only you can see your dreams",
       "anonymous": "Anonymous - Share dreams anonymously for insights"
     }
+  },
+  "location": {
+    "title": "Your Location",
+    "description": "Share your location to contribute to global dreams heatmap. We won't share your location with anyone. All the data – and themes of dreams – will be shared anonymously.",
+    "useCurrentLocation": "Use current location",
+    "enterManually": "Enter location manually",
+    "skipForNow": "Skip for now",
+    "gettingLocation": "Getting location...",
+    "manualPlaceholder": "City, Country",
+    "options": {
+      "shareLocation": "Share location",
+      "setManually": "Set location manually",
+      "dontShare": "Don't share location"
+    },
+    "countryLabel": "Country",
+    "cityLabel": "City",
+    "selectCountry": "Select your country",
+    "selectCity": "Select your city",
+    "locationPermission": {
+      "title": "Location Permission",
+      "message": "Somni would like to access your location to contribute to the global dreams heatmap. Your location data will remain anonymous."
+    },
+    "next": "Continue"
   },
   "complete": {
     "title": "Welcome to Somni!",
@@ -95,6 +133,28 @@
     "next": "Continue",
     "skip": "Skip",
     "back": "Back",
-    "finish": "Complete Setup"
+    "finish": "Complete Setup",
+    "continue": "Continue"
+  },
+  "review": {
+    "title": "Review Your Information",
+    "subtitle": "Make sure everything looks good",
+    "accountInfo": "Account Information",
+    "email": "Email",
+    "handle": "Handle",
+    "personalDetails": "Personal Details",
+    "sex": "Sex",
+    "birthDate": "Date of Birth",
+    "language": "Language",
+    "dreamSettings": "Dream Settings",
+    "interpreter": "Dream Interpreter",
+    "improveSleep": "Improve Sleep Quality",
+    "lucidDreaming": "Interested in Lucid Dreaming",
+    "sleepSchedule": "Sleep Schedule",
+    "bedTime": "Bed Time",
+    "wakeTime": "Wake Time",
+    "lucidExperience": "Lucid Dreaming Experience",
+    "location": "Location",
+    "complete": "Complete Setup"
   }
 } 

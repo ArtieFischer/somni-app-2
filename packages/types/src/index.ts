@@ -140,39 +140,57 @@ export interface NetworkStatus {
   connectionQuality: 'poor' | 'good' | 'excellent' | 'unknown';
 }
 
-// Corresponds to the 'users_profile' table - Primary UserProfile interface
-export interface UserProfile {
-  id: string; // UUID from auth.users
-  username?: string;
-  display_name?: string;
-  avatar_url?: string;
-  sex?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
-  date_of_birth?: string; // ISO date string
-  language: 'en'; // Start with English, will extend later
-  dream_interpreter?: 'carl' | 'sigmund' | 'lakshmi' | 'mary';
-  improve_sleep_quality?: 'yes' | 'no' | 'not_sure';
-  interested_in_lucid_dreaming?: 'yes' | 'no' | 'dont_know_yet';
-  is_premium: boolean;
-  onboarding_completed: boolean;
+// Location accuracy levels
+export type LocationAccuracy = 'none' | 'country' | 'region' | 'city' | 'exact';
+
+// Sex enum
+export type Sex = 'male' | 'female' | 'other' | 'unspecified' | 'prefer_not_to_say';
+
+// Settings JSONB structure
+export interface ProfileSettings {
+  location_sharing: LocationAccuracy;
   sleep_schedule?: {
-    bedtime: string; // e.g., "22:30"
-    wake_time: string; // e.g., "06:30"
+    bed: string; // e.g., "23:30"
+    wake: string; // e.g., "07:00"
+    tz: string; // e.g., "Europe/Warsaw"
+  } | null;
+  improve_sleep_quality?: boolean | null;
+  interested_in_lucid_dreaming?: boolean | null;
+}
+
+// Corresponds to the 'profiles' table - Primary UserProfile interface
+export interface UserProfile {
+  user_id: string; // UUID from auth.users (renamed from id)
+  handle: string; // Unique @username identifier
+  username?: string; // Display name (not unique)
+  sex: Sex;
+  birth_date?: string; // ISO date string
+  avatar_url?: string;
+  locale: string; // Language code, e.g., 'en', 'pl'
+  dream_interpreter?: 'carl' | 'sigmund' | 'lakshmi' | 'mary';
+  is_premium: boolean;
+  onboarding_complete: boolean;
+  
+  // Location fields
+  location?: { lat: number; lng: number }; // PostGIS point
+  location_accuracy: LocationAccuracy;
+  location_country?: string;
+  location_city?: string;
+  
+  // Settings JSONB
+  settings: ProfileSettings;
+  
+  created_at: string;
+  updated_at: string;
+  
+  // Backward compatibility fields (deprecated)
+  id?: string; // Use user_id instead
+  onboarding_completed?: boolean; // Use onboarding_complete
+  language?: string; // Use locale
+  sleep_schedule?: { // Use settings.sleep_schedule
+    bedtime: string;
+    wake_time: string;
   };
-  lucid_dream_settings?: {
-    // Define settings later
-  };
-  // Additional fields for extended user profile
-  userId?: string; // For backward compatibility
-  displayName?: string; // Alternative to display_name
-  avatar?: string; // Alternative to avatar_url
-  preferences?: {
-    theme: 'dark' | 'light';
-    language: string;
-    notifications: boolean;
-    autoBackup: boolean;
-  };
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 // Dream Interpreter type
@@ -263,6 +281,46 @@ export interface Theme {
     medium: object;
     large: object;
   };
+}
+
+// Dream Images table
+export interface DreamImage {
+  id: string;
+  dream_id: string;
+  storage_path: string;
+  is_primary: boolean;
+  generated_at: string;
+}
+
+// Themes table
+export interface Theme {
+  code: string; // e.g., 'falling', 'flying'
+  label: string;
+  description?: string;
+  embedding?: number[]; // MiniLM 384-dim
+  created_at?: string;
+}
+
+// Dream Themes join table
+export interface DreamTheme {
+  dream_id: string;
+  theme_code: string;
+  rank?: number; // 1-10, order of relevance
+  score?: number; // Cosine similarity or LLM score
+  explanation?: string; // Why this theme was detected
+}
+
+// Interpretations table
+export interface Interpretation {
+  id: string;
+  dream_id: string;
+  interpreter_id: 'carl' | 'sigmund' | 'lakshmi' | 'mary';
+  interpretation: string;
+  key_symbols?: Record<string, any>;
+  advice?: string;
+  mood_analysis?: Record<string, any>;
+  created_at: string;
+  version?: number;
 }
 
 export * from './offlineQueue';

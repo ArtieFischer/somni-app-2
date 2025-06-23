@@ -14,7 +14,12 @@ export default function AppNavigator() {
   console.log('🔍 AppNavigator state:', {
     isAuthenticated,
     isLoading,
-    profile: profile ? { id: profile.id, onboarding_completed: profile.onboarding_completed } : null
+    profile: profile ? { 
+      id: profile.id || profile.user_id,
+      onboarding_completed: profile.onboarding_completed,
+      onboarding_complete: profile.onboarding_complete,
+      full_profile: profile 
+    } : null
   });
 
   if (isLoading) {
@@ -28,7 +33,9 @@ export default function AppNavigator() {
 
   if (isAuthenticated) {
     // If the profile is loaded and onboarding is NOT complete, show the onboarding flow.
-    if (profile && !profile.onboarding_completed) {
+    // Check both old and new field names for backward compatibility
+    const isOnboardingComplete = profile?.onboarding_completed || profile?.onboarding_complete;
+    if (profile && !isOnboardingComplete) {
       console.log('🎯 Showing onboarding flow');
       return <OnboardingNavigator />;
     }

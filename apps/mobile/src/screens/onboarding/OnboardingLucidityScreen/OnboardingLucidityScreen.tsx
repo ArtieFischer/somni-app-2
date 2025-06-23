@@ -31,8 +31,8 @@ export const OnboardingLucidityScreen = () => {
 
   const handleNext = () => {
     updateData({ lucidityExperience: selectedExperience });
-    // Skip privacy screen and go directly to complete
-    navigation.navigate('OnboardingCompleteScreen');
+    // Navigate to location screen
+    navigation.navigate('OnboardingLocationScreen');
   };
   
   const handleBack = () => {

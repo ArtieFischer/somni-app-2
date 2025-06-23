@@ -3,173 +3,60 @@ import { useTheme } from '../../../hooks/useTheme';
 
 export const useStyles = () => {
   const theme = useTheme();
-
+  
   return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.background.primary,
+    },
     container: {
       flex: 1,
       backgroundColor: theme.colors.background.primary,
     },
     content: {
-      paddingBottom: theme.spacing.xxl,
-    },
-    
-    // Profile section
-    profileSection: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.xl,
-      paddingHorizontal: theme.spacing.large,
-      backgroundColor: theme.colors.background.elevated,
-      borderBottomLeftRadius: theme.borderRadius.large,
-      borderBottomRightRadius: theme.borderRadius.large,
-      ...theme.shadows.medium,
-    },
-    avatar: {
-      width: 100,
-      height: 100,
-      borderRadius: 50,
-      backgroundColor: theme.colors.primary + '20',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: theme.spacing.medium,
-      borderWidth: 3,
-      borderColor: theme.colors.primary,
-    },
-    username: {
-      marginBottom: theme.spacing.xs,
-      textAlign: 'center',
-    },
-    premiumBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.colors.accent + '20',
-      paddingHorizontal: theme.spacing.medium,
-      paddingVertical: theme.spacing.small,
-      borderRadius: theme.borderRadius.round,
-      marginTop: theme.spacing.medium,
-    },
-    premiumIcon: {
-      fontSize: 16,
-      marginRight: theme.spacing.xs,
-    },
-    premiumText: {
-      color: theme.colors.accent,
-      fontWeight: '600',
-    },
-    
-    // Stats section
-    statsSection: {
       padding: theme.spacing.large,
+      paddingBottom: theme.spacing.xl,
     },
-    statsGrid: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: theme.spacing.medium,
-    },
-    statCard: {
-      flex: 1,
-      backgroundColor: theme.colors.background.elevated,
-      padding: theme.spacing.medium,
-      borderRadius: theme.borderRadius.medium,
-      alignItems: 'center',
-      marginHorizontal: theme.spacing.xs,
-      ...theme.shadows.small,
-    },
-    statValue: {
-      color: theme.colors.primary,
-      marginBottom: theme.spacing.xs,
-    },
-    
-    // Settings section
-    section: {
-      paddingHorizontal: theme.spacing.large,
-      marginBottom: theme.spacing.xl,
-    },
-    sectionTitle: {
-      marginBottom: theme.spacing.medium,
-      color: theme.colors.text.primary,
-    },
-    settingRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: theme.colors.background.elevated,
-      padding: theme.spacing.medium,
-      borderRadius: theme.borderRadius.medium,
-      marginBottom: theme.spacing.small,
-      ...theme.shadows.small,
-    },
-    settingLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flex: 1,
-    },
-    settingIcon: {
-      fontSize: 20,
-      marginRight: theme.spacing.medium,
-    },
-    settingLabel: {
-      flex: 1,
-    },
-    settingRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    settingValue: {
-      marginRight: theme.spacing.small,
-    },
-    chevron: {
-      fontSize: 20,
-      color: theme.colors.text.secondary,
-      marginLeft: theme.spacing.xs,
-    },
-    switchTrack: {
-      color: theme.colors.primary,
-    },
-    switchThumb: {
-      color: theme.colors.accent,
-    },
-    
-    // Danger zone
-    dangerButton: {
-      marginTop: theme.spacing.medium,
-      alignItems: 'center',
-      padding: theme.spacing.medium,
-    },
-    dangerButtonText: {
-      color: theme.colors.status.error,
-    },
-    
-    // Version info
-    versionInfo: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.xl,
-      paddingHorizontal: theme.spacing.large,
-    },
-    
-    // Modal styles
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    modalContent: {
-      backgroundColor: theme.colors.background.elevated,
+    actionsSection: {
+      backgroundColor: theme.colors.background.secondary,
       borderRadius: theme.borderRadius.large,
       padding: theme.spacing.large,
-      width: '80%',
-      maxWidth: 400,
-      ...theme.shadows.large,
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
       marginBottom: theme.spacing.medium,
+      ...theme.shadows.small,
     },
-    modalLoading: {
-      alignItems: 'center',
+    signOutButton: {
+      borderColor: theme.colors.secondary,
+      borderWidth: 1,
+    },
+    signOutButtonText: {
+      color: theme.colors.secondary,
+      fontSize: theme.typography.body.fontSize,
+      fontWeight: '500' as any,
+    },
+    deleteButton: {
       paddingVertical: theme.spacing.medium,
+      alignItems: 'center',
+    },
+    deleteButtonText: {
+      color: theme.colors.status.error,
+      fontSize: theme.typography.body.fontSize,
+      fontWeight: '500' as any,
+      textDecorationLine: 'underline',
+    },
+    versionSection: {
+      marginTop: theme.spacing.large,
+      paddingVertical: theme.spacing.large,
+    },
+    versionText: {
+      fontSize: theme.typography.caption.fontSize,
+      color: theme.colors.text.secondary,
+      textAlign: 'center' as any,
+    },
+    taglineText: {
+      fontSize: theme.typography.caption.fontSize,
+      color: theme.colors.text.secondary,
+      textAlign: 'center' as any,
+      fontStyle: 'italic',
     },
   });
 };

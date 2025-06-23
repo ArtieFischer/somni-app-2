@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, ViewStyle, TouchableOpacity, ScrollView, Image, Dimensions, Animated } from 'react-native';
-import { Text, Button } from '../../../components/atoms';
+import { Text, LegacyButton as Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { supabase } from '../../../lib/supabase';
@@ -64,7 +64,7 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
   const fetchInterpreters = async () => {
     try {
       const { data: interpreterData, error } = await supabase
-        .from('dream_interpreters')
+        .from('interpreters')
         .select('*')
         .order('id');
 
@@ -137,6 +137,11 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
 
   const handleContinue = () => {
     if (selectedInterpreter) {
+      // DEBUG: Show what interpreter data is being sent
+      console.log('=== DEBUG: StepDreamInterpreter - Sending Data ===');
+      console.log(JSON.stringify({ dream_interpreter: selectedInterpreter }, null, 2));
+      console.log('=================================================');
+      
       onUpdate({ dream_interpreter: selectedInterpreter as any });
       onNext();
     }
@@ -302,19 +307,18 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
 
       <View style={styles.buttonContainer}>
         <Button
-          variant="outline"
-          action="secondary"
+          variant="ghost"
           onPress={onPrevious}
           style={{ flex: 1 }}
         >
-          Back
+          {t('common.back')}
         </Button>
         <Button
           onPress={handleContinue}
-          isDisabled={!selectedInterpreter}
+          disabled={!selectedInterpreter}
           style={{ flex: 1 }}
         >
-          Continue
+          {t('common.continue')}
         </Button>
       </View>
     </View>

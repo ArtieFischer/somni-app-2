@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, ViewStyle, ScrollView, Image } from 'react-native';
-import { Text, Button } from '../../../components/atoms';
+import { Text, LegacyButton as Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
-import type { OnboardingData } from '../OnboardingScreen';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface StepReviewProps {
-  data: Partial<OnboardingData>;
-  onUpdate: (data: Partial<OnboardingData>) => void;
+  data: any;
+  onUpdate: (data: any) => void;
   onSubmit: () => void;
   onPrevious: () => void;
   isSubmitting: boolean;
@@ -20,6 +20,7 @@ export const StepReview: React.FC<StepReviewProps> = ({
   isSubmitting,
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation('onboarding');
 
   const getInterpreterName = (id?: string) => {
     switch (id) {
@@ -36,7 +37,7 @@ export const StepReview: React.FC<StepReviewProps> = ({
       case 'male': return 'Male';
       case 'female': return 'Female';
       case 'other': return 'Other';
-      case 'prefer_not_to_say': return 'Prefer not to say';
+      case 'unspecified': return 'Prefer not to say';
       default: return 'Not specified';
     }
   };
@@ -48,6 +49,54 @@ export const StepReview: React.FC<StepReviewProps> = ({
       case 'not_sure': return 'Not sure';
       case 'dont_know_yet': return "Don't know yet";
       default: return 'Not specified';
+    }
+  };
+
+  const getLucidExperienceLabel = (value?: string) => {
+    switch (value) {
+      case 'never': return 'Never had a lucid dream';
+      case 'accidental': return 'Had a few accidental lucid dreams';
+      case 'occasional': return 'Occasionally have lucid dreams';
+      case 'regular': return 'Regularly practice lucid dreaming';
+      case 'expert': return 'Expert lucid dreamer';
+      default: return 'Not specified';
+    }
+  };
+
+  const getLocationLabel = () => {
+    if (data.locationMethod === 'skip') return 'Not sharing location';
+    if (data.locationDisplay) return data.locationDisplay;
+    if (data.manualLocation) return data.manualLocation;
+    return 'Not specified';
+  };
+
+  const formatTime = (timeString?: string) => {
+    if (!timeString) return 'Not set';
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return 'Not set';
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Not specified';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    } catch {
+      return 'Not specified';
+    }
+  };
+
+  const getLanguageLabel = (locale?: string) => {
+    switch (locale) {
+      case 'en': return 'English';
+      case 'pl': return 'Polish';
+      case 'es': return 'Spanish';
+      case 'fr': return 'French';
+      default: return locale || 'English';
     }
   };
 
@@ -71,6 +120,7 @@ export const StepReview: React.FC<StepReviewProps> = ({
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginBottom: theme.spacing.small,
+      alignItems: 'center',
     },
     avatarSection: {
       alignItems: 'center',
@@ -89,95 +139,153 @@ export const StepReview: React.FC<StepReviewProps> = ({
       gap: theme.spacing.medium,
       paddingVertical: theme.spacing.large,
     },
+    label: {
+      flex: 1,
+      marginRight: theme.spacing.small,
+    },
+    value: {
+      flex: 1,
+      textAlign: 'right' as const,
+    },
   };
 
   return (
     <View style={styles.container}>
       <Text variant="h2" style={{ marginBottom: theme.spacing.small }}>
-        Review Your Information
+        {t('review.title')}
       </Text>
       <Text variant="body" color="secondary" style={{ marginBottom: theme.spacing.medium }}>
-        Make sure everything looks good
+        {t('review.subtitle')}
       </Text>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {data.avatar_url && (
+        {data.avatarFile && (
           <View style={styles.avatarSection}>
-            <Image source={{ uri: data.avatar_url }} style={styles.avatar} />
+            <Image source={{ uri: data.avatarFile.uri }} style={styles.avatar} />
           </View>
         )}
 
         <View style={styles.section}>
           <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
-            Account Information
+            {t('review.accountInfo')}
           </Text>
           <View style={styles.row}>
-            <Text variant="caption" color="secondary">Email</Text>
-            <Text variant="caption">{data.email}</Text>
+            <Text variant="caption" color="secondary" style={styles.label}>
+              {t('review.email')}
+            </Text>
+            <Text variant="caption" style={styles.value} numberOfLines={1} ellipsizeMode="tail">{data.email}</Text>
           </View>
           <View style={styles.row}>
-            <Text variant="caption" color="secondary">Username</Text>
-            <Text variant="caption">@{data.username}</Text>
+            <Text variant="caption" color="secondary" style={styles.label}>
+              {t('review.handle')}
+            </Text>
+            <Text variant="caption" style={styles.value}>@{data.handle}</Text>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
-            Personal Details
+            {t('review.personalDetails')}
           </Text>
           <View style={styles.row}>
-            <Text variant="caption" color="secondary">Display Name</Text>
-            <Text variant="caption">{data.display_name}</Text>
+            <Text variant="caption" color="secondary" style={styles.label}>
+              {t('review.sex')}
+            </Text>
+            <Text variant="caption" style={styles.value}>{getSexLabel(data.sex)}</Text>
           </View>
           <View style={styles.row}>
-            <Text variant="caption" color="secondary">Sex</Text>
-            <Text variant="caption">{getSexLabel(data.sex)}</Text>
+            <Text variant="caption" color="secondary" style={styles.label}>
+              {t('review.birthDate')}
+            </Text>
+            <Text variant="caption" style={styles.value}>{formatDate(data.birth_date)}</Text>
           </View>
           <View style={styles.row}>
-            <Text variant="caption" color="secondary">Date of Birth</Text>
-            <Text variant="caption">{data.date_of_birth}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text variant="caption" color="secondary">Language</Text>
-            <Text variant="caption">English</Text>
+            <Text variant="caption" color="secondary" style={styles.label}>
+              {t('review.language')}
+            </Text>
+            <Text variant="caption" style={styles.value}>{getLanguageLabel(data.locale)}</Text>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
-            Dream Settings
+            {t('review.dreamSettings')}
           </Text>
           <View style={styles.row}>
-            <Text variant="caption" color="secondary">Dream Interpreter</Text>
-            <Text variant="caption">{getInterpreterName(data.dream_interpreter)}</Text>
+            <Text variant="caption" color="secondary" style={styles.label}>
+              {t('review.interpreter')}
+            </Text>
+            <Text variant="caption" style={styles.value}>{getInterpreterName(data.dream_interpreter)}</Text>
           </View>
           <View style={styles.row}>
-            <Text variant="caption" color="secondary">Improve Sleep Quality?</Text>
-            <Text variant="caption">{getPreferenceLabel(data.improve_sleep_quality)}</Text>
+            <Text variant="caption" color="secondary" style={styles.label}>
+              {t('review.improveSleep')}
+            </Text>
+            <Text variant="caption" style={styles.value}>{getPreferenceLabel(data.improve_sleep_quality)}</Text>
           </View>
           <View style={styles.row}>
-            <Text variant="caption" color="secondary">Interested in Lucid Dreaming?</Text>
-            <Text variant="caption">{getPreferenceLabel(data.interested_in_lucid_dreaming)}</Text>
+            <Text variant="caption" color="secondary" style={styles.label}>
+              {t('review.lucidDreaming')}
+            </Text>
+            <Text variant="caption" style={styles.value}>{getPreferenceLabel(data.interested_in_lucid_dreaming)}</Text>
           </View>
+        </View>
+
+        {/* Sleep Schedule (if provided) */}
+        {(data.bedTime || data.wakeTime) && (
+          <View style={styles.section}>
+            <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
+              {t('review.sleepSchedule')}
+            </Text>
+            <View style={styles.row}>
+              <Text variant="caption" color="secondary" style={styles.label}>
+                {t('review.bedTime')}
+              </Text>
+              <Text variant="caption" style={styles.value}>{formatTime(data.bedTime)}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text variant="caption" color="secondary" style={styles.label}>
+                {t('review.wakeTime')}
+              </Text>
+              <Text variant="caption" style={styles.value}>{formatTime(data.wakeTime)}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Lucid Experience (if provided) */}
+        {data.lucidDreamingExperience && (
+          <View style={styles.section}>
+            <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
+              {t('review.lucidExperience')}
+            </Text>
+            <Text variant="caption">{getLucidExperienceLabel(data.lucidDreamingExperience)}</Text>
+          </View>
+        )}
+
+        {/* Location */}
+        <View style={styles.section}>
+          <Text variant="label" style={{ marginBottom: theme.spacing.small }}>
+            {t('review.location')}
+          </Text>
+          <Text variant="caption">{getLocationLabel()}</Text>
         </View>
       </ScrollView>
 
       <View style={styles.buttonContainer}>
         <Button
-          variant="outline"
-          action="secondary"
+          variant="ghost"
           onPress={onPrevious}
           style={{ flex: 1 }}
-          isDisabled={isSubmitting}
+          disabled={isSubmitting}
         >
-          Back
+          {t('common.back')}
         </Button>
         <Button
           onPress={onSubmit}
-          isLoading={isSubmitting}
+          loading={isSubmitting}
           style={{ flex: 1 }}
         >
-          Create Account
+          {t('review.complete')}
         </Button>
       </View>
     </View>

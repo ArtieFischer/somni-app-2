@@ -31,24 +31,12 @@ export const OnboardingWelcomeScreen: React.FC<
         );
       }
       
-      // Check if user wants to improve sleep quality
-      if (profile?.improve_sleep_quality === 'yes' || profile?.improve_sleep_quality === 'not_sure') {
-        navigation.navigate('OnboardingSleepSchedule');
-      } else if (profile?.interested_in_lucid_dreaming === 'yes' || profile?.interested_in_lucid_dreaming === 'dont_know_yet') {
-        navigation.navigate('OnboardingLucidityScreen');
-      } else {
-        navigation.navigate('OnboardingCompleteScreen');
-      }
+      // For new onboarding flow, always start with sleep schedule
+      navigation.navigate('OnboardingSleepSchedule');
     } catch (error) {
       console.error('Failed to request notification permissions:', error);
-      // Same navigation logic as above
-      if (profile?.improve_sleep_quality === 'yes' || profile?.improve_sleep_quality === 'not_sure') {
-        navigation.navigate('OnboardingSleepSchedule');
-      } else if (profile?.interested_in_lucid_dreaming === 'yes' || profile?.interested_in_lucid_dreaming === 'dont_know_yet') {
-        navigation.navigate('OnboardingLucidityScreen');
-      } else {
-        navigation.navigate('OnboardingCompleteScreen');
-      }
+      // Continue with onboarding even if notification permission fails
+      navigation.navigate('OnboardingSleepSchedule');
     }
   };
 

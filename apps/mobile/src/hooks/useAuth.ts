@@ -17,6 +17,7 @@ export const useAuth = () => {
       if (session?.user?.id) {
         try {
           const profile = await userRepository.findById(session.user.id);
+          console.log('🔍 Fetched profile from database:', profile);
           authStore.setProfile(profile);
         } catch (error) {
           console.error('Failed to fetch user profile:', error);
@@ -36,6 +37,7 @@ export const useAuth = () => {
         if (session?.user?.id) {
           try {
             const profile = await userRepository.findById(session.user.id);
+            console.log('🔍 Fetched profile from database (auth state change):', profile);
             authStore.setProfile(profile);
           } catch (error) {
             console.error('Failed to fetch user profile:', error);

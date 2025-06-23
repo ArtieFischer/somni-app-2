@@ -23,7 +23,11 @@
       "Bash(npm run tsx:*)",
       "mcp__ide__getDiagnostics",
       "Bash(npm run type-check:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm run:*)",
+      "Bash(for file in StepReview.tsx StepLucidExperience.tsx StepPreferences.tsx StepDreamInterpreter.tsx)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)"
     ],
     "deny": []
   }

@@ -7,9 +7,10 @@ import { useTranslation } from '../../../hooks/useTranslation';
 interface StepIndicatorProps {
   currentStep: number;
   totalSteps: number;
+  currentStepKey?: string;
 }
 
-export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, totalSteps }) => {
+export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, totalSteps, currentStepKey }) => {
   const theme = useTheme();
   const { t } = useTranslation('onboarding');
   
@@ -17,8 +18,12 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, total
   const progressAnimation = React.useRef(new Animated.Value(0)).current;
   
   React.useEffect(() => {
+    // Ensure currentStep is valid
+    const validStep = Math.max(1, Math.min(currentStep, totalSteps));
+    const progress = totalSteps > 1 ? (validStep - 1) / (totalSteps - 1) : 0;
+    
     Animated.timing(progressAnimation, {
-      toValue: (currentStep - 1) / (totalSteps - 1),
+      toValue: progress,
       duration: 300,
       useNativeDriver: false,
     }).start();
@@ -70,7 +75,23 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, total
     },
   };
 
-  const stepKeys = ['credentials', 'personal', 'interpreter', 'preferences', 'review'];
+  // Define the main steps to show in the indicator
+  const stepKeys = ['profile', 'guide', 'goals', 'location', 'review'];
+  
+  // Map step keys to their display names
+  const getStepLabel = (key: string) => {
+    // Map internal keys to translation keys
+    const translationKeyMap: Record<string, string> = {
+      'profile': 'personal',
+      'guide': 'interpreter', 
+      'goals': 'preferences',
+      'location': 'location',
+      'review': 'review'
+    };
+    
+    const translationKey = translationKeyMap[key] || key;
+    return t(`steps.${translationKey}`);
+  };
 
   return (
     <View style={styles.container}>
@@ -120,7 +141,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, total
                   },
                 ]}
               >
-                {String(t(`steps.${key}`))}
+                {getStepLabel(key)}
               </Text>
             </View>
           );
