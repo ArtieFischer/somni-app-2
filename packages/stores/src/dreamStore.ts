@@ -176,7 +176,13 @@ export const useDreamStore = create<DreamStore>()(
       },
 
       getDreamsByStatus: (status) => {
-        return get().dreams.filter(dream => dream.status === status);
+        // Map old status to new transcription_status
+        const transcriptionStatus = 
+          status === 'completed' ? 'done' :
+          status === 'failed' ? 'error' :
+          status === 'transcribing' ? 'processing' :
+          'pending';
+        return get().dreams.filter(dream => dream.transcription_status === transcriptionStatus);
       },
 
       // Enhanced search with full query support
@@ -188,57 +194,61 @@ export const useDreamStore = create<DreamStore>()(
         if (query.text) {
           const searchTerm = query.text.toLowerCase();
           filteredDreams = filteredDreams.filter(dream => 
-            dream.rawTranscript.toLowerCase().includes(searchTerm) ||
-            dream.tags?.some(tag => tag.toLowerCase().includes(searchTerm)) ||
-            dream.emotions?.some(emotion => emotion.toLowerCase().includes(searchTerm))
+            (dream.raw_transcript || '').toLowerCase().includes(searchTerm) ||
+            (dream.title || '').toLowerCase().includes(searchTerm)
           );
         }
 
-        // Status filter
+        // Status filter (map old status to transcription_status)
         if (query.status && query.status.length > 0) {
+          const mappedStatuses = query.status.map(status => 
+            status === 'completed' ? 'done' :
+            status === 'failed' ? 'error' :
+            status === 'transcribing' ? 'processing' :
+            'pending'
+          );
           filteredDreams = filteredDreams.filter(dream => 
-            query.status!.includes(dream.status)
+            mappedStatuses.includes(dream.transcription_status)
           );
         }
 
         // Date range filter
         if (query.dateFrom || query.dateTo) {
           filteredDreams = filteredDreams.filter(dream => {
-            const dreamDate = new Date(dream.recordedAt);
+            const dreamDate = new Date(dream.created_at);
             const fromDate = query.dateFrom ? new Date(query.dateFrom) : new Date(0);
             const toDate = query.dateTo ? new Date(query.dateTo) : new Date();
             return dreamDate >= fromDate && dreamDate <= toDate;
           });
         }
 
-        // Duration filter
+        // Duration filter (using legacy field)
         if (query.minDuration !== undefined || query.maxDuration !== undefined) {
           filteredDreams = filteredDreams.filter(dream => {
             const minDur = query.minDuration ?? 0;
             const maxDur = query.maxDuration ?? Infinity;
-            return dream.duration >= minDur && dream.duration <= maxDur;
+            const duration = dream.duration || 0;
+            return duration >= minDur && duration <= maxDur;
           });
         }
 
-        // Confidence filter
+        // Confidence filter - map to clarity
         if (query.minConfidence !== undefined) {
-          filteredDreams = filteredDreams.filter(dream => 
-            dream.confidence >= query.minConfidence!
-          );
+          filteredDreams = filteredDreams.filter(dream => {
+            const clarity = (dream.clarity || 50) / 100; // Convert 1-100 to 0-1
+            return clarity >= query.minConfidence!;
+          });
         }
 
-        // Tags filter
+        // Tags filter - deprecated, always return empty
         if (query.tags && query.tags.length > 0) {
-          filteredDreams = filteredDreams.filter(dream =>
-            dream.tags?.some(tag => query.tags!.includes(tag))
-          );
+          filteredDreams = [];
         }
 
-        // Emotions filter
+        // Emotions filter - deprecated, filter by mood instead
         if (query.emotions && query.emotions.length > 0) {
-          filteredDreams = filteredDreams.filter(dream =>
-            dream.emotions?.some(emotion => query.emotions!.includes(emotion))
-          );
+          // For now, just ignore emotions filter
+          // In future, could map emotions to mood ranges
         }
 
         return {
@@ -254,7 +264,7 @@ export const useDreamStore = create<DreamStore>()(
         const end = new Date(endDate);
         
         return get().dreams.filter(dream => {
-          const dreamDate = new Date(dream.recordedAt);
+          const dreamDate = new Date(dream.created_at);
           return dreamDate >= start && dreamDate <= end;
         });
       },
@@ -262,8 +272,8 @@ export const useDreamStore = create<DreamStore>()(
       // Enhanced statistics
       updateStats: () => {
         const dreams = get().dreams;
-        const totalDuration = dreams.reduce((sum, dream) => sum + dream.duration, 0);
-        const lastRecording = dreams.length > 0 ? dreams[0].recordedAt : null;
+        const totalDuration = dreams.reduce((sum, dream) => sum + (dream.duration || 0), 0);
+        const lastRecording = dreams.length > 0 ? dreams[0].created_at : null;
         
         set({
           totalDreams: dreams.length,
@@ -274,49 +284,49 @@ export const useDreamStore = create<DreamStore>()(
 
       getDreamStats: () => {
         const dreams = get().dreams;
-        const completedDreams = dreams.filter(d => d.status === 'completed');
-        const pendingDreams = dreams.filter(d => d.status === 'pending');
-        const transcribingDreams = dreams.filter(d => d.status === 'transcribing');
-        const failedDreams = dreams.filter(d => d.status === 'failed');
+        const completedDreams = dreams.filter(d => d.transcription_status === 'done');
+        const pendingDreams = dreams.filter(d => d.transcription_status === 'pending');
+        const transcribingDreams = dreams.filter(d => d.transcription_status === 'processing');
+        const failedDreams = dreams.filter(d => d.transcription_status === 'error');
         
-        const totalDuration = dreams.reduce((sum, dream) => sum + dream.duration, 0);
-        const totalConfidence = dreams.reduce((sum, dream) => sum + dream.confidence, 0);
+        const totalDuration = dreams.reduce((sum, dream) => sum + (dream.duration || 0), 0);
+        const totalMood = dreams.reduce((sum, dream) => sum + (dream.mood || 0), 0);
+        const totalClarity = dreams.reduce((sum, dream) => sum + (dream.clarity || 0), 0);
         
         // Time-based stats
         const now = new Date();
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         
-        const dreamsThisWeek = dreams.filter(d => new Date(d.recordedAt) >= weekAgo).length;
-        const dreamsThisMonth = dreams.filter(d => new Date(d.recordedAt) >= monthAgo).length;
+        const dreamsThisWeek = dreams.filter(d => new Date(d.created_at) >= weekAgo).length;
+        const dreamsThisMonth = dreams.filter(d => new Date(d.created_at) >= monthAgo).length;
         
-        // Quality stats
-        const highConfidenceDreams = dreams.filter(d => d.confidence > 0.9).length;
-        const editedDreams = dreams.filter(d => d.wasEdited).length;
+        // Quality stats based on clarity
+        const highClarityDreams = dreams.filter(d => (d.clarity || 0) > 90).length;
+        const lucidDreams = dreams.filter(d => d.is_lucid).length;
         
-        // Content stats
-        const allTags = dreams.flatMap(d => d.tags || []);
-        const allEmotions = dreams.flatMap(d => d.emotions || []);
+        // Mood stats
+        const dreamsWithMood = dreams.filter(d => d.mood !== undefined);
+        const averageMood = dreamsWithMood.length > 0 
+          ? dreamsWithMood.reduce((sum, d) => sum + (d.mood || 0), 0) / dreamsWithMood.length 
+          : 0;
         
-        const tagCounts = allTags.reduce((acc, tag) => {
-          acc[tag] = (acc[tag] || 0) + 1;
+        // Location stats
+        const dreamsWithLocation = dreams.filter(d => d.location_metadata !== null && d.location_metadata !== undefined);
+        const locationCounts = dreamsWithLocation.reduce((acc, dream) => {
+          const country = dream.location_metadata?.country || 'Unknown';
+          acc[country] = (acc[country] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
         
-        const emotionCounts = allEmotions.reduce((acc, emotion) => {
-          acc[emotion] = (acc[emotion] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
+        const mostCommonLocations = Object.entries(locationCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 10)
+          .map(([country, count]) => ({ country, count }));
         
-        const mostCommonTags = Object.entries(tagCounts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 10)
-          .map(([tag, count]) => ({ tag, count }));
-          
-        const mostCommonEmotions = Object.entries(emotionCounts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 10)
-          .map(([emotion, count]) => ({ emotion, count }));
+        // Empty arrays for deprecated fields
+        const mostCommonTags: Array<{ tag: string; count: number }> = [];
+        const mostCommonEmotions: Array<{ emotion: string; count: number }> = [];
 
         return {
           totalDreams: dreams.length,
@@ -331,18 +341,18 @@ export const useDreamStore = create<DreamStore>()(
           dreamsThisWeek,
           dreamsThisMonth,
           longestDream: dreams.reduce((longest, dream) => 
-            !longest || dream.duration > longest.duration ? dream : longest, 
+            !longest || (dream.duration || 0) > (longest.duration || 0) ? dream : longest, 
             null as Dream | null
           ),
           shortestDream: dreams.reduce((shortest, dream) => 
-            !shortest || dream.duration < shortest.duration ? dream : shortest, 
+            !shortest || (dream.duration || 0) < (shortest.duration || 0) ? dream : shortest, 
             null as Dream | null
           ),
           
           // Quality stats
-          averageConfidence: dreams.length > 0 ? totalConfidence / dreams.length : 0,
-          highConfidenceDreams,
-          editedDreams,
+          averageConfidence: totalClarity > 0 ? (totalClarity / dreams.length) / 100 : 0, // Convert back to 0-1
+          highConfidenceDreams: highClarityDreams,
+          editedDreams: 0, // Deprecated
           
           // Content stats
           mostCommonTags,

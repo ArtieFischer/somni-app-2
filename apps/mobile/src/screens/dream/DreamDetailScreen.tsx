@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   VStack,
@@ -14,43 +14,75 @@ import {
 } from '@gluestack-ui/themed';
 import { darkTheme } from '@somni/theme';
 import { Card, PillButton } from '../../components/atoms';
-import { useNavigation } from '@react-navigation/native';
-import { MainStackScreenProps } from '@somni/types';
-import { Ionicons } from '@expo/vector-icons';
-
-interface DreamDetailData {
-  title: string;
-  date: string;
-  dreamTopic: string;
-  symbols: string[];
-  quickTake: string;
-  dreamWork: string;
-  interpretation: string;
-  selfReflection: string;
-  imageUrl?: string;
-}
-
-interface DreamDetailScreenProps {
-  dreamData: DreamDetailData;
-  onBack?: () => void;
-}
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { MainStackScreenProps, Dream } from '@somni/types';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useDreamStore } from '@somni/stores';
+import { format } from 'date-fns';
 
 type NavigationProps = MainStackScreenProps<'DreamDetail'>['navigation'];
+type RouteProps = MainStackScreenProps<'DreamDetail'>['route'];
 
 type TabType = 'overview' | 'analysis' | 'reflection';
 
-export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
-  dreamData,
-  onBack,
-}) => {
+interface MetricBoxProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  iconColor?: string;
+}
+
+const MetricBox: React.FC<MetricBoxProps> = ({ icon, label, value, iconColor = darkTheme.colors.secondary }) => (
+  <Card variant="elevated" marginHorizontal={0} flex={1}>
+    <VStack space="sm" alignItems="center" py="$2">
+      {icon}
+      <Text size="xs" color="$textLight400" fontWeight="$medium">
+        {label}
+      </Text>
+      <Text size="lg" color="$textLight100" fontWeight="$bold">
+        {value}
+      </Text>
+    </VStack>
+  </Card>
+);
+
+export const DreamDetailScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const navigation = useNavigation<NavigationProps>();
+  const route = useRoute<RouteProps>();
+  const dreamStore = useDreamStore();
+  
+  const dreamId = route.params?.dreamId;
+  const dream = dreamId ? dreamStore.getDreamById(dreamId) : null;
+
+  useEffect(() => {
+    if (!dream) {
+      navigation.goBack();
+    }
+  }, [dream, navigation]);
+
+  if (!dream) {
+    return null;
+  }
 
   const tabs = [
     { id: 'overview' as TabType, label: 'Overview' },
     { id: 'analysis' as TabType, label: 'Analysis' },
     { id: 'reflection' as TabType, label: 'Reflection' },
   ];
+  
+  const getMoodIcon = (mood?: number) => {
+    if (!mood) return 'help-circle-outline';
+    if (mood <= 2) return 'sad-outline';
+    if (mood === 3) return 'happy-outline';
+    return 'heart-outline';
+  };
+  
+  const getMoodLabel = (mood?: number) => {
+    if (!mood) return 'Not set';
+    const labels = ['Very Bad', 'Bad', 'Neutral', 'Good', 'Excellent'];
+    return labels[mood - 1];
+  };
 
   const renderTabButton = (tab: { id: TabType; label: string }) => (
     <PillButton
@@ -64,21 +96,66 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
 
   const renderOverview = () => (
     <VStack space="lg">
+      {/* Dream Metrics */}
+      <HStack space="md">
+        <MetricBox
+          icon={<Ionicons name={getMoodIcon(dream.mood)} size={24} />}
+          label="Mood"
+          value={getMoodLabel(dream.mood)}
+          iconColor={dream.mood && dream.mood >= 4 ? darkTheme.colors.success : darkTheme.colors.secondary}
+        />
+        <MetricBox
+          icon={<MaterialCommunityIcons name="eye-outline" size={24} />}
+          label="Clarity"
+          value={dream.clarity ? `${dream.clarity}%` : 'Not set'}
+          iconColor={dream.clarity && dream.clarity >= 70 ? darkTheme.colors.primary : darkTheme.colors.secondary}
+        />
+      </HStack>
+      
+      {/* Lucid Dream Badge */}
+      {dream.is_lucid && (
+        <Card variant="filled" bg={darkTheme.colors.primary + '20'} marginHorizontal={0}>
+          <HStack space="sm" alignItems="center">
+            <Ionicons name="sparkles" size={20} color={darkTheme.colors.primary} />
+            <Text size="md" color={darkTheme.colors.primary} fontWeight="$medium">
+              Lucid Dream
+            </Text>
+          </HStack>
+        </Card>
+      )}
+      
+      {/* Location */}
+      {dream.location_metadata && (
+        <Card variant="elevated" marginHorizontal={0}>
+          <HStack space="sm" alignItems="center">
+            <Ionicons name="location-outline" size={20} color={darkTheme.colors.secondary} />
+            <VStack flex={1} space="xs">
+              <Text size="sm" color="$textLight400" fontWeight="$medium">
+                LOCATION
+              </Text>
+              <Text size="md" color="$textLight100">
+                {[dream.location_metadata.city, dream.location_metadata.country]
+                  .filter(Boolean)
+                  .join(', ') || 'Unknown'}
+              </Text>
+              {dream.location_metadata.method && (
+                <Text size="xs" color="$textLight500">
+                  {dream.location_metadata.method === 'gps' ? 'GPS Location' : 'Manual Entry'}
+                </Text>
+              )}
+            </VStack>
+          </HStack>
+        </Card>
+      )}
+
       {/* Dream Image */}
-      <Box
-        borderRadius="$lg"
-        overflow="hidden"
-        bg={darkTheme.colors.background.secondary}
-        aspectRatio={3 / 2}
-      >
-        {dreamData.imageUrl ? (
-          <Image
-            source={{ uri: dreamData.imageUrl }}
-            alt={dreamData.title}
-            style={{ width: '100%', height: '100%' }}
-            resizeMode="cover"
-          />
-        ) : (
+      {dream.image_prompt && (
+        <Box
+          borderRadius="$lg"
+          overflow="hidden"
+          bg={darkTheme.colors.background.secondary}
+          aspectRatio={3 / 2}
+        >
           <Box
             w="$full"
             h="$full"
@@ -86,87 +163,75 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
             justifyContent="center"
             alignItems="center"
           >
-            <Ionicons
-              name="image-outline"
+            <MaterialCommunityIcons
+              name="image-filter-drama"
               size={64}
               color={darkTheme.colors.border.secondary}
             />
+            <Text size="sm" color="$textLight500" mt="$2">
+              Image coming soon
+            </Text>
           </Box>
-        )}
-      </Box>
+        </Box>
+      )}
 
-      {/* Dream Topic */}
+      {/* Transcript */}
       <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
-          <Text size="sm" color="$textLight400" fontWeight="$medium">
-            DREAM TOPIC
-          </Text>
-          <Text size="lg" color="$textLight50" lineHeight="$lg">
-            {dreamData.dreamTopic}
-          </Text>
-        </VStack>
-      </Card>
-
-      {/* Symbols */}
-      <Card variant="elevated" marginHorizontal={0}>
-        <VStack space="md">
-          <Text size="sm" color="$textLight400" fontWeight="$medium">
-            KEY SYMBOLS
-          </Text>
-          <HStack space="sm" flexWrap="wrap">
-            {dreamData.symbols.map((symbol, index) => (
-              <Badge
-                key={index}
-                variant="outline"
-                bg={darkTheme.colors.background.secondary}
-                borderColor={darkTheme.colors.secondary + '40'}
-                mb="$2"
-              >
-                <BadgeText color="$textLight200" size="sm">
-                  {symbol}
-                </BadgeText>
-              </Badge>
-            ))}
+          <HStack space="sm" alignItems="center">
+            <MaterialCommunityIcons name="script-text-outline" size={20} color={darkTheme.colors.secondary} />
+            <Text size="sm" color="$textLight400" fontWeight="$medium">
+              DREAM TRANSCRIPT
+            </Text>
           </HStack>
+          <Text size="md" color="$textLight100" lineHeight="$lg">
+            {dream.raw_transcript || 'No transcript available'}
+          </Text>
         </VStack>
       </Card>
 
-      {/* Quick Take */}
-      <Card variant="elevated" marginHorizontal={0}>
-        <VStack space="md">
-          <Text size="sm" color="$textLight400" fontWeight="$medium">
-            QUICK TAKE
-          </Text>
-          <Text size="md" color="$textLight100" lineHeight="$md">
-            {dreamData.quickTake}
-          </Text>
-        </VStack>
-      </Card>
+      {/* Recording Info */}
+      {dream.duration && (
+        <Card variant="elevated" marginHorizontal={0}>
+          <HStack space="md" alignItems="center">
+            <HStack space="sm" alignItems="center" flex={1}>
+              <Ionicons name="time-outline" size={20} color={darkTheme.colors.secondary} />
+              <VStack>
+                <Text size="xs" color="$textLight500">
+                  Duration
+                </Text>
+                <Text size="sm" color="$textLight200">
+                  {Math.floor(dream.duration / 60)}:{String(dream.duration % 60).padStart(2, '0')}
+                </Text>
+              </VStack>
+            </HStack>
+            <HStack space="sm" alignItems="center" flex={1}>
+              <MaterialCommunityIcons name="calendar-clock" size={20} color={darkTheme.colors.secondary} />
+              <VStack>
+                <Text size="xs" color="$textLight500">
+                  Recorded
+                </Text>
+                <Text size="sm" color="$textLight200">
+                  {format(new Date(dream.created_at), 'h:mm a')}
+                </Text>
+              </VStack>
+            </HStack>
+          </HStack>
+        </Card>
+      )}
     </VStack>
   );
 
   const renderAnalysis = () => (
     <VStack space="lg">
-      {/* Dream Work */}
       <Card variant="elevated" marginHorizontal={0}>
-        <VStack space="md">
-          <Text size="sm" color="$textLight400" fontWeight="$medium">
-            DREAM WORK
+        <VStack space="md" alignItems="center" py="$4">
+          <MaterialCommunityIcons name="telescope" size={48} color={darkTheme.colors.border.secondary} />
+          <Text size="lg" color="$textLight400" textAlign="center">
+            Analysis Coming Soon
           </Text>
-          <Text size="md" color="$textLight100" lineHeight="$lg">
-            {dreamData.dreamWork}
-          </Text>
-        </VStack>
-      </Card>
-
-      {/* Interpretation */}
-      <Card variant="elevated" marginHorizontal={0}>
-        <VStack space="md">
-          <Text size="sm" color="$textLight400" fontWeight="$medium">
-            DETAILED INTERPRETATION
-          </Text>
-          <Text size="md" color="$textLight100" lineHeight="$lg">
-            {dreamData.interpretation}
+          <Text size="sm" color="$textLight500" textAlign="center">
+            Dream analysis will be available once your dream guide has reviewed your dream.
           </Text>
         </VStack>
       </Card>
@@ -176,24 +241,13 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
   const renderReflection = () => (
     <VStack space="lg">
       <Card variant="elevated" marginHorizontal={0}>
-        <VStack space="md">
-          <Text size="sm" color="$textLight400" fontWeight="$medium">
-            SELF-REFLECTION QUESTION
+        <VStack space="md" alignItems="center" py="$4">
+          <MaterialCommunityIcons name="meditation" size={48} color={darkTheme.colors.border.secondary} />
+          <Text size="lg" color="$textLight400" textAlign="center">
+            Reflection Coming Soon
           </Text>
-          <Text size="md" color="$textLight100" lineHeight="$lg">
-            {dreamData.selfReflection}
-          </Text>
-        </VStack>
-      </Card>
-
-      {/* Journal Prompt */}
-      <Card variant="filled" bg={darkTheme.colors.primary + '10'}>
-        <VStack space="md">
-          <Text size="sm" color={darkTheme.colors.primary} fontWeight="$medium">
-            JOURNAL PROMPT
-          </Text>
-          <Text size="md" color="$textLight200" lineHeight="$lg">
-            Take a moment to reflect on the question above. Consider writing your thoughts in your dream journal to deepen your understanding of this dream's personal meaning.
+          <Text size="sm" color="$textLight500" textAlign="center">
+            Personal reflection prompts will be available after dream analysis.
           </Text>
         </VStack>
       </Card>
@@ -220,18 +274,21 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
         <Box px="$5" py="$4" borderBottomWidth={1} borderBottomColor={darkTheme.colors.border.primary}>
           <VStack space="sm">
             <HStack justifyContent="space-between" alignItems="center">
-              <Pressable onPress={() => onBack ? onBack() : navigation.goBack()}>
-                <Text color={darkTheme.colors.primary} fontWeight="$medium">
-                  ← Back
-                </Text>
+              <Pressable onPress={() => navigation.goBack()}>
+                <HStack space="xs" alignItems="center">
+                  <Ionicons name="chevron-back" size={20} color={darkTheme.colors.primary} />
+                  <Text color={darkTheme.colors.primary} fontWeight="$medium">
+                    Back
+                  </Text>
+                </HStack>
               </Pressable>
               <Text size="xs" color="$textLight400">
-                {dreamData.date}
+                {format(new Date(dream.created_at), 'MMM d, h:mm a')}
               </Text>
             </HStack>
             
             <Heading size="xl" color="$textLight50" numberOfLines={2}>
-              {dreamData.title}
+              {dream.title || 'Untitled Dream'}
             </Heading>
           </VStack>
         </Box>
@@ -256,22 +313,3 @@ export const DreamDetailScreen: React.FC<DreamDetailScreenProps> = ({
   );
 };
 
-// Example usage with sample data
-export const sampleDreamData: DreamDetailData = {
-  title: "Flying Over Purple Mountains",
-  date: "Today, 3:42 AM",
-  dreamTopic: "Regressive longing for childhood and maternal comfort",
-  symbols: [
-    "parent's house",
-    "animals",
-    "fat hamster",
-    "hair loss",
-    "mirror",
-    "mother's call"
-  ],
-  quickTake: "The dream reveals a regressive desire for childhood security and maternal nurturing, with a hint of castration anxiety and unresolved Oedipal conflicts.",
-  dreamWork: "The dream employs mechanisms of regression, condensation, and displacement to convey the dreamer's unconscious wishes and conflicts. The enlarged parent's house serves as a backdrop for a chaotic, instinctual realm, while the mirror reflects the dreamer's emerging anxieties about virility and identity.",
-  interpretation: "You, dear patient, are clearly yearning for a return to the comfort and security of childhood, symbolized by the enlarged parent's house. The presence of various animals, particularly the fat hamster that persistently follows you, suggests an unconscious desire for instinctual freedom and a regression to a more primitive, oral stage of development. The hamster, with its rounded, phallic shape, may represent a symbol of masculine potency, which you are struggling to integrate into your psyche. Your nonchalant reaction to hair loss, a classic symbol of castration anxiety, indicates a defensive mechanism to ward off feelings of inadequacy. The lineup of animals behind you, responding to your mother's call, reveals a lingering Oedipal conflict, where you feel pressured to conform to familial expectations and surrender to maternal authority. This dream, much like the case of my patient Dora, highlights the complex interplay between instinctual drives, ego formation, and the struggle for identity.",
-  selfReflection: "Can you recall a recent situation where you felt overwhelmed by expectations or desires, and how did you respond to the pressure?",
-  imageUrl: "https://via.placeholder.com/600x400/1a1a1a/666666?text=Dream+Image+Placeholder"
-};

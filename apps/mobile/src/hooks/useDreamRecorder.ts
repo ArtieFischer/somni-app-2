@@ -152,16 +152,16 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       // Create placeholder dream entry with actual user ID and audio URI
       dreamStore.addDream({
         id: `temp_${currentSession.id}`,
-        userId: user?.id || 'anonymous',
-        rawTranscript: 'Waiting for transcription...',
-        duration: audioResult.duration,
-        confidence: 0,
-        wasEdited: false,
-        recordedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        status: 'pending',
+        user_id: user?.id || 'anonymous',
+        raw_transcript: 'Waiting for transcription...',
+        is_lucid: false,
+        transcription_status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        // Legacy fields for compatibility
         audioUri: audioResult.uri,
-        fileSize: audioResult.fileSize
+        fileSize: audioResult.fileSize,
+        duration: audioResult.duration
       });
 
       dreamStore.updateRecordingSession({ 

@@ -379,3 +379,215 @@ sleep_schedule: {
 2. **Theme Support**: Icons adapt to app theme colors
 3. **Better Scaling**: Vector icons maintain quality at any size
 4. **Platform Consistency**: Looks the same across iOS and Android
+
+## Dreams Table Schema Overhaul - 2025-01-25
+
+### Overview
+Major restructuring of the dreams table to support new features including semantic search, public sharing, and improved user experience. This involves removing unused fields, adding new ones, and creating related tables for future functionality.
+
+### Database Changes Required
+
+#### 1. Dreams Table Modifications
+
+**Fields to REMOVE:**
+- `refined_narrative` - text (unused field)
+- `sleep_phase` - sleep_phase_enum (not collected during recording)
+- `mood_before` - smallint (simplified to single mood rating)
+- `mood_after` - smallint (simplified to single mood rating)
+- `location` - geography(Point,4326) (privacy concerns, replaced with metadata)
+- `location_accuracy` - loc_accuracy_enum (moved to metadata)
+- `embedding` - vector(384) (moved to fragments table for better scalability)
+
+**Fields to ADD:**
+- `mood` - smallint CHECK (mood >= 1 AND mood <= 5) - Single mood rating
+- `clarity` - smallint CHECK (clarity >= 1 AND clarity <= 100) - Dream vividness/clarity
+- `location_metadata` - jsonb - City/country without exact coordinates
+
+**Migration SQL:** See `supabase/migrations/20250125_dreams_table_overhaul.sql`
+
+#### 2. Frontend Type Updates Required
+
+**DreamDTO interface changes:**
+```typescript
+// Remove these fields:
+- refinedNarrative?: string;
+- sleepPhase?: SleepPhase;
+- moodBefore?: number;
+- moodAfter?: number;
+- location?: Location;
+- locationAccuracy?: LocationAccuracy;
+- embedding?: number[];
+
+// Add these fields:
++ mood?: number; // 1-5
++ clarity?: number; // 1-100
++ locationMetadata?: {
++   city?: string;
++   country?: string;
++   countryCode?: string;
++   method?: 'manual' | 'gps';
++ };
+```
+
+**Files that need updates:**
+- `packages/types/src/dream.ts` - Update Dream and DreamDTO interfaces
+- `packages/types/src/dreamEntity.ts` - Update entity creation/validation
+- `packages/stores/src/dreamStore.ts` - Update store types and methods
+- `apps/mobile/src/hooks/useRecordingHandler.ts` - Update dream creation payload
+- `apps/mobile/src/screens/main/DreamDetailScreen/*` - Update UI to use new fields
+- `apps/mobile/src/components/molecules/DreamCard/*` - Update card display
+
+### New Tables (Future Implementation)
+
+#### 1. Dream Fragments Table
+**Purpose:** Store dream segments with embeddings for semantic search
+**Status:** To be implemented later
+**Details:** See specification in database design document
+
+#### 2. Dream Shares Table  
+**Purpose:** Control public/anonymous sharing of dreams
+**Status:** To be implemented later
+**Details:** Will enable community feed feature
+
+#### 3. Dream Likes Table
+**Purpose:** Track user engagement with shared dreams
+**Status:** To be implemented later
+**Details:** Will enable trending/popular dreams
+
+#### 4. Public Dreams Feed (Materialized View)
+**Purpose:** Pre-computed feed for performance
+**Status:** To be implemented later
+**Details:** Will power the discover/explore section
+
+### Implementation Steps
+
+1. **Database Migration** (Backend team):
+   - Run migration SQL to modify dreams table
+   - Update database types generation
+   - Update edge functions to handle new schema
+
+2. **Frontend Updates** (Current task):
+   - Update TypeScript types
+   - Fix dream creation flow
+   - Update dream display components
+   - Remove references to deleted fields
+
+3. **Testing**:
+   - Verify dream recording still works
+   - Ensure existing dreams display correctly
+   - Test location metadata collection
+   - Verify mood/clarity fields work
+
+### Breaking Changes
+
+1. **Location Data**: 
+   - No longer storing exact coordinates
+   - Only city/country metadata saved
+   - Privacy-first approach
+
+2. **Mood Tracking**:
+   - Single mood rating instead of before/after
+   - Simplified 1-5 scale
+
+3. **Embeddings**:
+   - Moved to separate fragments table
+   - Will require backend processing changes
+
+### Rollback Plan
+
+If issues arise:
+1. Frontend can be reverted to previous commit
+2. Database changes are backwards compatible (only additions after removals)
+3. Old fields can be restored from backup if needed
+
+### RLS Policies Required
+
+**Issue:** "permission denied for table dreams" error when trying to insert dreams
+**Solution:** Run `supabase/migrations/20250125_dreams_rls_policies.sql`
+
+This migration adds the following policies:
+- Users can view their own dreams
+- Users can insert their own dreams
+- Users can update their own dreams
+- Users can delete their own dreams
+- Service role bypass for backend operations
+
+### Edge Function Update Required
+
+**Issue:** "Dream not found or unauthorized" error from edge function
+**Cause:** Edge function tries to update non-existent `duration` column
+**Solution:** Update the `dreams-transcribe-init` edge function to remove duration field
+
+Changes needed in edge function:
+1. Remove `duration: duration` from the dreams update query
+2. Change `transcription_status: 'completed'` to `'done'`
+3. Change `transcription_status: 'failed'` to `'error'`
+
+See `/supabase/functions/dreams-transcribe-init-fixed.ts` for the updated version.
+
+### Transcription Request Format (Frontend to Backend)
+
+**Endpoint:** `${SUPABASE_URL}/functions/v1/dreams-transcribe-init`
+**Method:** POST
+**Headers:**
+- `Authorization: Bearer ${session.access_token}`
+- `Content-Type: application/json`
+
+**Request Body:**
+```typescript
+{
+  dreamId: string;           // Created dream ID from database
+  audioBase64: string;       // Base64 encoded audio file
+  duration: number;          // Recording duration in seconds
+  language: string;          // 3-letter ISO 639-3 code (e.g., 'eng', 'pol')
+}
+```
+
+**Location Metadata Collection:**
+When creating the dream record before transcription, location metadata is added based on user preferences:
+- If `profile.settings.location_sharing === 'exact'`: Uses GPS to get current location and reverse geocodes to city/country
+- If `profile.settings.location_sharing === 'manual'`: Uses profile's stored city/country
+- If `profile.settings.location_sharing === 'none'`: No location metadata added
+
+**Dream Creation Payload:**
+```typescript
+{
+  user_id: string;
+  raw_transcript: '';        // Empty initially
+  title: null;
+  is_lucid: false;
+  mood: null;                // Will be set after transcription
+  clarity: null;             // Will be set after transcription
+  location_metadata: {       // Optional, based on user settings
+    city?: string;
+    country?: string;
+    countryCode?: string;
+    method: 'manual' | 'gps';
+  } | null;
+  image_prompt: null;
+  transcription_status: 'pending';
+  transcription_metadata: null;
+  transcription_job_id: null;
+}
+```
+
+### TypeScript Updates Completed ✅
+
+1. **Dream and DreamDTO interfaces** - Updated in `packages/types/src/dream.ts`
+   - Removed: refinedNarrative, sleepPhase, moodBefore, moodAfter, location, locationAccuracy, embedding
+   - Added: mood (1-5), clarity (1-100), locationMetadata
+
+2. **DreamEntity validation** - Updated in `packages/types/src/dreamEntity.ts`
+   - Updated validation for new fields
+   - Modified helper methods to use transcription_status
+   - Updated create() and toDTO() methods
+
+3. **Dream store** - Updated in `packages/stores/src/dreamStore.ts`
+   - Updated all methods to use new field names
+   - Modified getDreamsByStatus() to map old status to transcription_status
+   - Updated searchDreams() and getDreamStats() for new schema
+
+4. **Recording handler** - Updated in `apps/mobile/src/hooks/useRecordingHandler.ts`
+   - Updated dream creation payload to match new schema
+   - Added location metadata collection based on user preferences
+   - Properly handles GPS permissions and reverse geocoding

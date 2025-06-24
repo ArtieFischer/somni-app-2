@@ -13,24 +13,36 @@ export class DreamEntity {
     
     const dream: Dream = {
       id: dto.id || DreamEntity.generateId(),
-      userId: dto.userId,
-      rawTranscript: dto.rawTranscript?.trim() || '',
+      user_id: dto.user_id,
+      raw_transcript: dto.raw_transcript?.trim() || '',
       title: dto.title,
-      duration: Math.max(0, dto.duration || 0),
-      confidence: Math.min(1, Math.max(0, dto.confidence || 0)),
-      wasEdited: dto.wasEdited || false,
-      recordedAt: dto.recordedAt || now,
-      createdAt: dto.createdAt || now,
-      status: dto.status || 'pending',
-      audioUri: dto.audioUri,
-      fileSize: dto.fileSize ? Math.max(0, dto.fileSize) : undefined,
-      tags: dto.tags ? [...new Set(dto.tags.filter(Boolean))] : [], // Remove duplicates and empty strings
-      emotions: dto.emotions ? [...new Set(dto.emotions.filter(Boolean))] : [],
-      image_url: dto.image_url,
+      is_lucid: dto.is_lucid || false,
+      mood: dto.mood,
+      clarity: dto.clarity,
+      location_metadata: dto.location_metadata,
+      transcription_status: dto.transcription_status || 'pending',
+      transcription_metadata: dto.transcription_metadata,
+      transcription_job_id: dto.transcription_job_id,
       image_prompt: dto.image_prompt,
-      updatedAt: dto.updatedAt || now,
-      version: dto.version || 1,
-      metadata: dto.metadata || {}
+      created_at: dto.created_at || now,
+      updated_at: dto.updated_at || now,
+      
+      // Legacy fields for backward compatibility
+      userId: dto.user_id,
+      rawTranscript: dto.raw_transcript?.trim() || '',
+      createdAt: dto.created_at || now,
+      updatedAt: dto.updated_at || now,
+      recordedAt: dto.created_at || now,
+      duration: 0, // Deprecated
+      confidence: 1, // Deprecated
+      wasEdited: false, // Deprecated
+      status: dto.transcription_status === 'done' ? 'completed' : 
+              dto.transcription_status === 'error' ? 'failed' :
+              dto.transcription_status === 'processing' ? 'transcribing' : 'pending',
+      audioUri: undefined, // Deprecated
+      fileSize: undefined, // Deprecated
+      tags: [], // Deprecated
+      emotions: [] // Deprecated
     };
 
     const validation = DreamEntity.validate(dream);
@@ -47,24 +59,19 @@ export class DreamEntity {
   static toDTO(dream: Dream): DreamDTO {
     return {
       id: dream.id,
-      userId: dream.userId,
-      rawTranscript: dream.rawTranscript,
+      user_id: dream.user_id,
+      raw_transcript: dream.raw_transcript,
       title: dream.title,
-      duration: dream.duration,
-      confidence: dream.confidence,
-      wasEdited: dream.wasEdited,
-      recordedAt: dream.recordedAt,
-      createdAt: dream.createdAt,
-      status: dream.status,
-      audioUri: dream.audioUri,
-      fileSize: dream.fileSize,
-      tags: dream.tags,
-      emotions: dream.emotions,
-      image_url: dream.image_url,
+      is_lucid: dream.is_lucid,
+      mood: dream.mood,
+      clarity: dream.clarity,
+      location_metadata: dream.location_metadata,
+      transcription_status: dream.transcription_status,
+      transcription_metadata: dream.transcription_metadata,
+      transcription_job_id: dream.transcription_job_id,
       image_prompt: dream.image_prompt,
-      updatedAt: dream.updatedAt,
-      version: dream.version,
-      metadata: dream.metadata
+      created_at: dream.created_at,
+      updated_at: dream.updated_at
     };
   }
 
@@ -98,89 +105,79 @@ export class DreamEntity {
     const errors: DreamValidationError[] = [];
 
     // Required fields
-    if (!dream.userId?.trim()) {
+    if (!dream.user_id?.trim()) {
       errors.push({
-        field: 'userId',
+        field: 'user_id' as keyof Dream,
         message: 'User ID is required',
         code: 'REQUIRED'
       });
     }
 
-    if (!dream.rawTranscript?.trim()) {
+    // Allow empty transcript for pending/processing dreams
+    if (!dream.raw_transcript?.trim() && 
+        dream.transcription_status !== 'pending' && 
+        dream.transcription_status !== 'processing') {
       errors.push({
-        field: 'rawTranscript',
+        field: 'raw_transcript' as keyof Dream,
         message: 'Transcript cannot be empty',
         code: 'REQUIRED'
       });
     }
 
-    // Duration validation
-    if (typeof dream.duration !== 'number' || dream.duration < 0) {
+    // Mood validation (1-5)
+    if (dream.mood !== undefined && (dream.mood < 1 || dream.mood > 5)) {
       errors.push({
-        field: 'duration',
-        message: 'Duration must be a positive number',
+        field: 'mood' as keyof Dream,
+        message: 'Mood must be between 1 and 5',
         code: 'INVALID_RANGE'
       });
     }
 
-    if (dream.duration && dream.duration > 3600) { // 1 hour max
+    // Clarity validation (1-100)
+    if (dream.clarity !== undefined && (dream.clarity < 1 || dream.clarity > 100)) {
       errors.push({
-        field: 'duration',
-        message: 'Duration cannot exceed 1 hour',
-        code: 'INVALID_RANGE'
-      });
-    }
-
-    // Confidence validation
-    if (typeof dream.confidence !== 'number' || dream.confidence < 0 || dream.confidence > 1) {
-      errors.push({
-        field: 'confidence',
-        message: 'Confidence must be between 0 and 1',
+        field: 'clarity' as keyof Dream,
+        message: 'Clarity must be between 1 and 100',
         code: 'INVALID_RANGE'
       });
     }
 
     // Date validation
-    if (dream.recordedAt && isNaN(new Date(dream.recordedAt).getTime())) {
+    if (dream.created_at && isNaN(new Date(dream.created_at).getTime())) {
       errors.push({
-        field: 'recordedAt',
-        message: 'Invalid recorded date',
-        code: 'INVALID_FORMAT'
-      });
-    }
-
-    if (dream.createdAt && isNaN(new Date(dream.createdAt).getTime())) {
-      errors.push({
-        field: 'createdAt',
+        field: 'created_at' as keyof Dream,
         message: 'Invalid created date',
         code: 'INVALID_FORMAT'
       });
     }
 
-    // File size validation
-    if (dream.fileSize && (dream.fileSize < 0 || dream.fileSize > 100 * 1024 * 1024)) { // 100MB max
+    if (dream.updated_at && isNaN(new Date(dream.updated_at).getTime())) {
       errors.push({
-        field: 'fileSize',
-        message: 'File size must be between 0 and 100MB',
-        code: 'INVALID_RANGE'
+        field: 'updated_at' as keyof Dream,
+        message: 'Invalid updated date',
+        code: 'INVALID_FORMAT'
       });
     }
 
-    // Tags validation
-    if (dream.tags && dream.tags.length > 20) {
-      errors.push({
-        field: 'tags',
-        message: 'Cannot have more than 20 tags',
-        code: 'INVALID_RANGE'
-      });
+    // Location metadata validation
+    if (dream.location_metadata) {
+      if (dream.location_metadata.method && 
+          !['manual', 'gps'].includes(dream.location_metadata.method)) {
+        errors.push({
+          field: 'location_metadata' as keyof Dream,
+          message: 'Location method must be either "manual" or "gps"',
+          code: 'INVALID_VALUE'
+        });
+      }
     }
 
-    // Emotions validation
-    if (dream.emotions && dream.emotions.length > 10) {
+    // Transcription status validation
+    if (dream.transcription_status && 
+        !['pending', 'processing', 'done', 'error'].includes(dream.transcription_status)) {
       errors.push({
-        field: 'emotions',
-        message: 'Cannot have more than 10 emotions',
-        code: 'INVALID_RANGE'
+        field: 'transcription_status' as keyof Dream,
+        message: 'Invalid transcription status',
+        code: 'INVALID_VALUE'
       });
     }
 
@@ -194,14 +191,14 @@ export class DreamEntity {
    * Check if dream is editable
    */
   static isEditable(dream: Dream): boolean {
-    return dream.status === 'completed' || dream.status === 'failed';
+    return dream.transcription_status === 'done' || dream.transcription_status === 'error';
   }
 
   /**
    * Check if dream is in progress
    */
   static isInProgress(dream: Dream): boolean {
-    return dream.status === 'transcribing' || dream.status === 'pending';
+    return dream.transcription_status === 'processing' || dream.transcription_status === 'pending';
   }
 
   /**
@@ -209,8 +206,8 @@ export class DreamEntity {
    */
   static getAgeInDays(dream: Dream): number {
     const now = new Date();
-    const recordedDate = new Date(dream.recordedAt);
-    const diffTime = Math.abs(now.getTime() - recordedDate.getTime());
+    const createdDate = new Date(dream.created_at);
+    const diffTime = Math.abs(now.getTime() - createdDate.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
@@ -232,15 +229,15 @@ export class DreamEntity {
   }
 
   /**
-   * Get dream quality rating based on confidence and duration
+   * Get dream quality rating based on mood and clarity
    */
   static getQualityRating(dream: Dream): 'excellent' | 'good' | 'fair' | 'poor' {
-    const confidence = dream.confidence;
-    const duration = dream.duration;
+    const mood = dream.mood || 3;
+    const clarity = dream.clarity || 50;
     
-    if (confidence >= 0.9 && duration >= 30) return 'excellent';
-    if (confidence >= 0.7 && duration >= 15) return 'good';
-    if (confidence >= 0.5 && duration >= 5) return 'fair';
+    if (mood >= 4 && clarity >= 80) return 'excellent';
+    if (mood >= 3 && clarity >= 60) return 'good';
+    if (mood >= 2 && clarity >= 40) return 'fair';
     return 'poor';
   }
 
@@ -248,7 +245,7 @@ export class DreamEntity {
    * Extract keywords from transcript (simple implementation)
    */
   static extractKeywords(dream: Dream): string[] {
-    const words = dream.rawTranscript
+    const words = (dream.raw_transcript || '')
       .toLowerCase()
       .replace(/[^\w\s]/g, '')
       .split(/\s+/)

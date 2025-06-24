@@ -4,8 +4,13 @@ export type SleepPhase = 'unknown' | 'n1' | 'n2' | 'n3' | 'rem';
 // Transcription status enum
 export type TranscriptionStatus = 'pending' | 'processing' | 'done' | 'error';
 
-// Location accuracy for dreams
-export type DreamLocationAccuracy = 'none' | 'country' | 'region' | 'city' | 'exact';
+// Location metadata for dreams
+export interface DreamLocationMetadata {
+  city?: string;
+  country?: string;
+  countryCode?: string;
+  method?: 'manual' | 'gps';
+}
 
 export interface Dream {
   id: string;
@@ -14,20 +19,14 @@ export interface Dream {
   // Content
   title?: string; // AI-generated title
   raw_transcript?: string; // Changed from rawTranscript
-  refined_narrative?: string; // New field
   
   // Sleep data
-  sleep_phase: SleepPhase;
   is_lucid: boolean;
-  mood_before?: number; // -5 to 5 scale
-  mood_after?: number; // -5 to 5 scale
+  mood?: number; // Single mood rating 1-5
+  clarity?: number; // Dream vividness 1-100
   
-  // Location
-  location?: { lat: number; lng: number };
-  location_accuracy: DreamLocationAccuracy;
-  
-  // Embedding - MiniLM 384 dimensions
-  embedding?: number[];
+  // Location metadata (no coordinates)
+  location_metadata?: DreamLocationMetadata;
   
   // Transcription
   transcription_status: TranscriptionStatus;
@@ -65,20 +64,14 @@ export interface DreamDTO {
   // Content
   title?: string;
   raw_transcript?: string;
-  refined_narrative?: string;
   
   // Sleep data
-  sleep_phase?: SleepPhase;
   is_lucid?: boolean;
-  mood_before?: number;
-  mood_after?: number;
+  mood?: number; // 1-5
+  clarity?: number; // 1-100
   
-  // Location
-  location?: { lat: number; lng: number };
-  location_accuracy?: DreamLocationAccuracy;
-  
-  // Embedding
-  embedding?: number[];
+  // Location metadata
+  location_metadata?: DreamLocationMetadata;
   
   // Transcription
   transcription_status?: TranscriptionStatus;
@@ -87,6 +80,9 @@ export interface DreamDTO {
   
   // Image generation
   image_prompt?: string;
+  
+  // Frontend-only fields (not stored in database)
+  duration?: number; // Recording duration in seconds for display
   
   // Timestamps
   created_at?: string;

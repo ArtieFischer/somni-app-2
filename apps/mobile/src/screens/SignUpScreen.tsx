@@ -56,6 +56,12 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
       Alert.alert(
         'Success',
         'Please check your email to confirm your account.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('SignIn'),
+          },
+        ],
       );
     } catch (error) {
       if (error instanceof Error) {

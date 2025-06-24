@@ -164,13 +164,13 @@ export const RecordScreen: React.FC = () => {
             hasTranscript: !!dream.raw_transcript
           });
           
-          if (dream.transcription_status === 'completed' && dream.raw_transcript) {
+          if (dream.transcription_status === 'done' && dream.raw_transcript) {
             console.log('✅ Transcription completed for dream:', dream.id);
             
             // Update the dream in the store
             dreamStore.updateDream(dream.id, {
-              rawTranscript: dream.raw_transcript,
-              status: 'completed',
+              raw_transcript: dream.raw_transcript,
+              transcription_status: 'done',
             });
             
             // Check if this dream exists in the store
@@ -179,12 +179,14 @@ export const RecordScreen: React.FC = () => {
               console.log('⚠️ Dream not found in store, adding it');
               dreamStore.addDream({
                 id: dream.id,
-                userId: dream.user_id,
-                rawTranscript: dream.raw_transcript,
-                status: 'completed',
-                duration: dream.duration || 0,
-                recordedAt: dream.created_at,
-                confidence: 1.0,
+                user_id: dream.user_id,
+                raw_transcript: dream.raw_transcript,
+                transcription_status: 'done',
+                is_lucid: dream.is_lucid || false,
+                mood: dream.mood,
+                clarity: dream.clarity,
+                created_at: dream.created_at,
+                updated_at: dream.updated_at,
               });
             }
             
@@ -195,12 +197,12 @@ export const RecordScreen: React.FC = () => {
           } else if (dream.transcription_status === 'failed') {
             console.log('❌ Transcription failed for dream:', dream.id);
             dreamStore.updateDream(dream.id, {
-              status: 'failed',
+              transcription_status: 'error',
             });
           } else if (dream.transcription_status === 'processing') {
             console.log('⏳ Transcription processing for dream:', dream.id);
             dreamStore.updateDream(dream.id, {
-              status: 'transcribing',
+              transcription_status: 'processing',
             });
           }
         }
