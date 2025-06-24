@@ -42,6 +42,7 @@ export const darkTheme: Theme = {
       warning: '#FBBF24', // Warm amber
       success: '#10B981', // Ethereal teal
       info: '#60A5FA', // Dream blue
+      recording: '#DC2626', // Recording red
     },
     border: {
       primary: '#374151', // Soft border

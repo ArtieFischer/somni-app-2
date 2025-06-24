@@ -18,14 +18,17 @@ export const useStyles = () => {
     },
     content: {
       flex: 1,
-      paddingVertical: theme.spacing.large,
+      paddingTop: theme.spacing.medium,
+      paddingBottom: theme.spacing.small,
       paddingHorizontal: theme.spacing.medium,
+      justifyContent: 'space-between',
     },
     header: {
       alignItems: 'center',
       paddingHorizontal: theme.spacing.large,
-      marginBottom: theme.spacing.large,
-      paddingTop: theme.spacing.large,
+      marginBottom: theme.spacing.medium,
+      marginTop: theme.spacing.xl, // Add top margin
+      minHeight: 80, // Changed to minHeight for flexibility
     },
     title: {
       textAlign: 'center',
@@ -38,10 +41,9 @@ export const useStyles = () => {
       color: 'rgba(255, 255, 255, 0.7)',
     },
     centerButtonSection: {
-      flex: 1,
+      flex: 1, // Take remaining space
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: 300,
     },
     actionsWrapper: {
       alignItems: 'center',
@@ -63,12 +65,17 @@ export const useStyles = () => {
     },
     timerSection: {
       alignItems: 'center',
-      paddingVertical: theme.spacing.medium,
+      paddingVertical: theme.spacing.small,
+      height: 80, // Fixed height
+      marginTop: -theme.spacing.large, // Negative margin to move up
+      marginBottom: theme.spacing.large, // Reduced space below timer
     },
     statusSection: {
       alignItems: 'center',
       paddingHorizontal: theme.spacing.large,
-      paddingBottom: theme.spacing.large,
+      marginTop: theme.spacing.small, // Small positive margin
+      paddingBottom: theme.spacing.xxl,
+      minHeight: 80, // Increased height
     },
     buttonSection: {
       alignItems: 'center',
@@ -123,6 +130,37 @@ export const useStyles = () => {
     },
     cancelButton: {
       width: 150,
+    },
+    moonContainer: {
+      position: 'relative',
+      width: 280,
+      height: 280,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    moonButton: {
+      width: 180,
+      height: 180,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2,
+    },
+    moonButtonPressed: {
+      opacity: 0.7,
+      transform: [{ scale: 0.95 }],
+    },
+    moonIcon: {
+      // Icon styling if needed
+    },
+    silverCircle: {
+      position: 'absolute',
+      width: 240,
+      height: 240,
+      borderRadius: 120, // Half of width/height to make it a perfect circle
+      backgroundColor: 'rgba(203, 213, 225, 0.25)', // Silver with 25% opacity
+      borderWidth: 1,
+      borderColor: 'rgba(248, 250, 252, 0.2)', // Subtle light border
+      zIndex: 1,
     },
   });
 };

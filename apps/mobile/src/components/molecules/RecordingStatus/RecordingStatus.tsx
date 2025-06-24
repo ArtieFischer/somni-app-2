@@ -40,7 +40,7 @@ export const RecordingStatus: React.FC<RecordingStatusProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text variant="body" color="secondary" style={styles.instruction}>
+      <Text variant="body" style={{ color: '#FFFFFF', fontSize: 16 }}>
         {getStatusText()}
       </Text>
       

@@ -234,10 +234,11 @@ export const ProfileOnboardingScreen: React.FC<ProfileOnboardingScreenProps> = (
           location_city: formData.locationCity,
           location_country: formData.locationCountry,
         };
-      } else if (formData.locationMethod === 'manual' && formData.manualLocation) {
+      } else if (formData.locationMethod === 'manual') {
         locationData = {
-          location_city: formData.manualLocation,
-          location_accuracy: 'city',
+          location_city: formData.locationCity || '',
+          location_country: formData.locationCountry || '',
+          location_accuracy: 'manual',
         };
       }
 

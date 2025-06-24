@@ -8,7 +8,6 @@ export const useStyles = () => {
     container: {
       alignItems: 'center',
       paddingHorizontal: theme.spacing.large,
-      marginTop: theme.spacing.large,
     },
     instruction: {
       textAlign: 'center',

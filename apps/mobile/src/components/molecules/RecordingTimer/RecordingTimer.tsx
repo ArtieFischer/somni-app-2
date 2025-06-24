@@ -50,11 +50,11 @@ export const RecordingTimer: React.FC<RecordingTimerProps> = ({
     >
       <View style={styles.timer}>
         <View style={styles.dot} />
-        <Text variant="h2" style={styles.time}>
+        <Text variant="h2" style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 'bold' }}>
           {formatTime(duration)}
         </Text>
       </View>
-      <Text variant="caption" style={styles.label}>
+      <Text variant="caption" color="secondary" style={styles.label}>
         {String(t('record.button.recording', { duration }))}
       </Text>
     </Animated.View>

@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Animated, SafeAreaView, Alert } from 'react-native';
+import { View, Animated, SafeAreaView, Alert, StyleSheet, Pressable } from 'react-native';
 import { Text } from '../../../components/atoms';
-import { DreamyBackground } from '../../../components/atoms/DreamyBackground';
-import { SkiaRecordButton } from '../../../components/atoms/SkiaRecordButton';
+import SomniLogoMoon from '../../../../../../assets/logo_somni_moon.svg';
+import { DreamyBackground } from '../../../components/DreamyRecordKit';
+import Reanimated, { 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withRepeat, 
+  withTiming,
+  withSequence,
+  interpolate,
+  Easing
+} from 'react-native-reanimated';
 import { RecordingTimer } from '../../../components/molecules/RecordingTimer';
 import { RecordingActions } from '../../../components/molecules/RecordingActions';
 import { RecordingStatus } from '../../../components/molecules/RecordingStatus';
@@ -63,12 +72,38 @@ export const RecordScreen: React.FC = () => {
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+  const pulseAnim = useRef(new Animated.Value(0.3)).current;
   
   // Simulated amplitude for demo
   const [amplitude, setAmplitude] = useState(0);
   
   // Prevent double clicks
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+  const [buttonPressed, setButtonPressed] = useState(false);
+  
+  // Reanimated values for warping effect
+  const warpAnimation = useSharedValue(0);
+  const scaleAnimation = useSharedValue(1);
+
+  // Animated style for the silver circle with opacity animation
+  const animatedCircleStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      warpAnimation.value,
+      [0, 1],
+      [0.25, 0.4] // Animates between 25% and 40% opacity
+    );
+    
+    const scale = interpolate(
+      scaleAnimation.value,
+      [1, 1.1],
+      [1, 1.1]
+    );
+    
+    return {
+      opacity,
+      transform: [{ scale }],
+    };
+  });
 
   const handleRecordPress = useCallback(async () => {
     if (isButtonDisabled || isProcessing) {
@@ -224,14 +259,52 @@ export const RecordScreen: React.FC = () => {
       interval = setInterval(() => {
         setAmplitude(Math.random() * 0.8 + 0.2);
       }, 200);
+      
+      // Pulse animation for recording glow
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 0.5,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 0.3,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+      
+      // Start Reanimated warping effect
+      warpAnimation.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1
+      );
+      
+      scaleAnimation.value = withRepeat(
+        withSequence(
+          withTiming(1.1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1
+      );
     } else {
       setAmplitude(0);
+      pulseAnim.setValue(0.3);
+      
+      // Reset Reanimated values
+      warpAnimation.value = withTiming(0, { duration: 500 });
+      scaleAnimation.value = withTiming(1, { duration: 500 });
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRecording]);
+  }, [isRecording, pulseAnim, warpAnimation, scaleAnimation]);
 
   // Show error alerts
   useEffect(() => {
@@ -244,8 +317,10 @@ export const RecordScreen: React.FC = () => {
 
   return (
     <View style={styles.fullScreenContainer}>
-      {/* Dreamy animated background - full screen */}
-      <DreamyBackground active={isRecording} />
+      {/* Dreamy animated background - full screen absolute positioned */}
+      <View style={StyleSheet.absoluteFill}>
+        <DreamyBackground active={isRecording} />
+      </View>
       
       <SafeAreaView style={styles.container}>
         <View style={styles.innerContainer}>
@@ -260,27 +335,45 @@ export const RecordScreen: React.FC = () => {
             },
           ]}
         >
-          {/* Title section - only show when not recording for cleaner look */}
-          {!isRecording && (
-            <View style={styles.header}>
-              <Text variant="h1" style={styles.title}>
-                {pendingRecording ? String(t('record.dreamRecorded')) : String(t('record.title'))}
-              </Text>
-              <Text variant="body" color="secondary" style={styles.subtitle}>
-                {pendingRecording ? String(t('record.acceptToTranscribe')) : String(t('record.subtitle'))}
-              </Text>
-            </View>
-          )}
+          {/* Title section - always render but with visibility control to maintain layout */}
+          <View style={[styles.header, { opacity: !isRecording ? 1 : 0 }]}>
+            <Text variant="h1" style={styles.title}>
+              {pendingRecording ? String(t('record.dreamRecorded')) : String(t('record.title'))}
+            </Text>
+            <Text variant="body" color="secondary" style={styles.subtitle}>
+              {pendingRecording ? String(t('record.acceptToTranscribe')) : String(t('record.subtitle'))}
+            </Text>
+          </View>
 
           {/* Main recording button section - centered */}
           <View style={styles.centerButtonSection}>
             {!pendingRecording ? (
-              <SkiaRecordButton
-                isRecording={isRecording}
-                onPress={handleRecordPress}
-                amplitude={amplitude}
-                size={300}
-              />
+              <View style={styles.moonContainer}>
+                {/* Single silver circle with opacity animation */}
+                <Reanimated.View 
+                  style={[
+                    styles.silverCircle,
+                    isRecording ? animatedCircleStyle : {}
+                  ]}
+                />
+                
+                <Pressable
+                  onPress={handleRecordPress}
+                  onPressIn={() => setButtonPressed(true)}
+                  onPressOut={() => setButtonPressed(false)}
+                  style={({ pressed }) => [
+                    styles.moonButton,
+                    pressed && styles.moonButtonPressed
+                  ]}
+                >
+                  <SomniLogoMoon 
+                    width={180} 
+                    height={180} 
+                    fill={isRecording ? "#10B981" : "#f0efe6"}
+                    style={styles.moonIcon}
+                  />
+                </Pressable>
+              </View>
             ) : (
               <View style={styles.actionsWrapper}>
                 {/* Show title above actions when there's a pending recording */}
@@ -308,15 +401,13 @@ export const RecordScreen: React.FC = () => {
             )}
           </View>
 
-          {/* Recording timer - positioned below button */}
-          {isRecording && (
-            <View style={styles.timerSection}>
-              <RecordingTimer
-                isRecording={isRecording}
-                duration={recordingDuration}
-              />
-            </View>
-          )}
+          {/* Recording timer - always render to prevent layout shift */}
+          <View style={styles.timerSection}>
+            <RecordingTimer
+              isRecording={isRecording}
+              duration={recordingDuration}
+            />
+          </View>
 
           {/* Instructions or status - at bottom */}
           <View style={styles.statusSection}>

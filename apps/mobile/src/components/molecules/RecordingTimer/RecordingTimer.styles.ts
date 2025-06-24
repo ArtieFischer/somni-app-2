@@ -18,15 +18,15 @@ export const useStyles = () => {
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: '#FF0000',
+      backgroundColor: theme.colors.status.recording,
       marginRight: theme.spacing.small,
     },
     time: {
-      color: theme.colors.text.primary,
       fontWeight: '600',
+      fontSize: 24,
     },
     label: {
-      color: theme.colors.text.secondary,
+      // Color handled by Text component color prop
     },
   });
 };

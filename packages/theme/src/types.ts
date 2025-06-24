@@ -25,6 +25,7 @@ export interface Theme {
       warning: string;
       success: string;
       info: string;
+      recording: string;
     };
     border: {
       primary: string;
@@ -39,6 +40,7 @@ export interface Theme {
     large: number;
     xl: number;
     xxl: number;
+    xxxl: number;
   };
   typography: {
     h1: { fontSize: number; fontWeight: string; lineHeight: number };
