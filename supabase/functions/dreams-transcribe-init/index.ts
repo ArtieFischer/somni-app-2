@@ -81,12 +81,42 @@ serve(async (req) => {
       )
     }
 
+    // Check minimum duration (5 seconds)
+    if (duration < 5) {
+      console.log('Recording too short:', { dreamId, duration });
+      
+      // Update dream status to 'error' with specific error message
+      await supabase
+        .from('dreams')
+        .update({ 
+          transcription_status: 'error',
+          transcription_metadata: {
+            error: 'Recording too short',
+            message: 'Recordings must be at least 5 seconds long',
+            duration: duration
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', dreamId)
+        .eq('user_id', user.id)
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'Recording too short', 
+          message: 'Please record for at least 5 seconds to capture your dream' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     // Verify dream ownership and update status
     const { data: dream, error: dreamError } = await supabase
       .from('dreams')
       .update({ 
-        transcription_status: 'processing',
-        duration: duration
+        transcription_status: 'processing'
       })
       .eq('id', dreamId)
       .eq('user_id', user.id)
@@ -166,7 +196,7 @@ serve(async (req) => {
         await supabase
           .from('dreams')
           .update({
-            transcription_status: 'failed',
+            transcription_status: 'error',
             transcription_metadata: {
               error: `Backend error: ${backendResponse.status}`,
               failed_at: new Date().toISOString(),
@@ -219,7 +249,7 @@ serve(async (req) => {
         .from('dreams')
         .update({
           raw_transcript: transcriptionResult.transcription.text,
-          transcription_status: 'completed',
+          transcription_status: 'done',
           transcription_metadata: {
             characterCount: transcriptionResult.transcription.characterCount,
             wordCount: transcriptionResult.transcription.wordCount,
@@ -246,8 +276,23 @@ serve(async (req) => {
 
       console.log('✅ Dream updated with transcription:', {
         dreamId,
-        status: 'completed'
+        status: 'done'
       });
+
+      // Record transcription usage
+      console.log('📊 Recording transcription usage...', { dreamId, duration, userId: user.id });
+      const { error: usageError } = await supabase
+        .from('transcription_usage')
+        .insert({
+          user_id: user.id,
+          dream_id: dreamId,
+          duration_seconds: duration,
+          provider: 'elevenlabs'
+        })
+      
+      if (usageError) {
+        console.warn('Failed to record transcription usage:', usageError);
+      }
 
       return new Response(
         JSON.stringify({ 

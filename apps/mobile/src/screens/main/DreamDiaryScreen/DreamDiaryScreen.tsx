@@ -32,6 +32,7 @@ import { mapDatabaseDreamToFrontend } from '../../../utils/dreamMappers';
 import { testRealtimeConnection } from '../../../utils/testRealtimeConnection';
 import { testDatabaseRealtime } from '../../../utils/testDatabaseRealtime';
 import { useIsFocused } from '@react-navigation/native';
+import { useDreamDurations } from '../../../hooks/useDreamDurations';
 
 type DreamDiaryScreenProps = MainTabScreenProps<'DreamDiary'>;
 
@@ -431,9 +432,14 @@ export const DreamDiaryScreen: React.FC = () => {
     }
   };
 
+  // Get durations for all filtered dreams
+  const dreamIds = filteredDreams.map(d => d.id);
+  const { durations } = useDreamDurations(dreamIds);
+
   const renderDreamItem = ({ item }: { item: Dream }) => (
     <DreamCard 
       dream={item}
+      duration={durations[item.id]}
       onPress={handleDreamPress}
       onAnalyzePress={handleAnalyzePress}
       onDeletePress={handleDeletePress}

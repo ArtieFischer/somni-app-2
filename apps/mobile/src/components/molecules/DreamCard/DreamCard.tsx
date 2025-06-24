@@ -19,6 +19,7 @@ import { Alert } from 'react-native';
 
 interface DreamCardProps {
   dream: Dream;
+  duration?: number; // Duration from transcription_usage
   onPress?: (dream: Dream) => void;
   onAnalyzePress?: (dream: Dream) => void;
   onDeletePress?: (dream: Dream) => void;
@@ -27,6 +28,7 @@ interface DreamCardProps {
 
 export const DreamCard: React.FC<DreamCardProps> = ({
   dream,
+  duration,
   onPress,
   onAnalyzePress,
   onDeletePress,
@@ -119,7 +121,7 @@ export const DreamCard: React.FC<DreamCardProps> = ({
                   color={darkTheme.colors.text.primary}
                   opacity={0.7}
                 >
-                  {formatDuration(dream.duration)}
+                  {formatDuration(duration || dream.duration || 0)}
                 </Text>
               </HStack>
             )}
@@ -235,6 +237,23 @@ export const DreamCard: React.FC<DreamCardProps> = ({
           </HStack>
         )}
 
+        {/* Check if dream was too short */}
+        {dream.transcription_status === 'failed' && 
+         dream.transcription_metadata?.error === 'Recording too short' && (
+          <HStack space="sm" alignItems="center" 
+            bg={darkTheme.colors.status.error + '20'}
+            p="$2" borderRadius="$md">
+            <Ionicons 
+              name="alert-circle" 
+              size={16} 
+              color={darkTheme.colors.status.error} 
+            />
+            <Text size="sm" color={darkTheme.colors.status.error}>
+              Recording too short (min 5 seconds)
+            </Text>
+          </HStack>
+        )}
+
         {/* Footer */}
         <HStack justifyContent="flex-end" alignItems="center">
           <Box />
@@ -267,6 +286,24 @@ export const DreamCard: React.FC<DreamCardProps> = ({
                 />
               </Box>
             </Pressable>
+          ) : dream.transcription_status === 'failed' && 
+              dream.transcription_metadata?.error === 'Recording too short' ? (
+            <Box p="$2">
+              <Box 
+                bg={darkTheme.colors.status.error + '20'}
+                borderRadius="$full"
+                w={32}
+                h={32}
+                justifyContent="center"
+                alignItems="center"
+              >
+                <Ionicons
+                  name="close"
+                  size={20}
+                  color={darkTheme.colors.status.error}
+                />
+              </Box>
+            </Box>
           ) : (
             <Pressable onPress={() => onRetryPress?.(dream)}>
               <HStack space="xs" alignItems="center">
