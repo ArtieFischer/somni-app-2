@@ -24,6 +24,7 @@ export class DreamEntity {
       transcription_metadata: dto.transcription_metadata,
       transcription_job_id: dto.transcription_job_id,
       image_prompt: dto.image_prompt,
+      image_url: dto.image_url,
       created_at: dto.created_at || now,
       updated_at: dto.updated_at || now,
       
@@ -70,6 +71,7 @@ export class DreamEntity {
       transcription_metadata: dream.transcription_metadata,
       transcription_job_id: dream.transcription_job_id,
       image_prompt: dream.image_prompt,
+      image_url: dream.image_url,
       created_at: dream.created_at,
       updated_at: dream.updated_at
     };

@@ -142,18 +142,32 @@ export const useDreamStore = create<DreamStore>()(
 
       updateDream: (dreamId, updates) => {
         try {
-          set(state => ({
-            dreams: state.dreams.map(dream => 
-              dream.id === dreamId 
-                ? DreamEntity.update(dream, updates)
-                : dream
-            )
-          }));
+          set(state => {
+            const updatedDreams = state.dreams.map(dream => {
+              if (dream.id === dreamId) {
+                const updatedDream = DreamEntity.update(dream, updates);
+                console.log('📝 Updating dream in store:', {
+                  dreamId,
+                  oldImageUrl: dream.image_url,
+                  newImageUrl: updatedDream.image_url,
+                  updates
+                });
+                return updatedDream;
+              }
+              return dream;
+            });
+            
+            return { dreams: updatedDreams };
+          });
           
           // Update stats
           get().updateStats();
           
-          console.log('📝 Updated dream:', dreamId, updates);
+          const updatedDream = get().getDreamById(dreamId);
+          console.log('📝 Updated dream:', dreamId, {
+            hasImageUrl: !!updatedDream?.image_url,
+            imageUrl: updatedDream?.image_url
+          });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Failed to update dream';
           get().setError(errorMessage);

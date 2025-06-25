@@ -165,21 +165,24 @@ export const DreamDiaryScreen: React.FC = () => {
       
       // Refresh the dream to get the updated image
       if (dreamId && user?.id) {
-        // Fetch the updated dream with its images
+        // Fetch the updated dream
         supabase
           .from('dreams')
-          .select(`
-            *,
-            dream_images (
-              id,
-              storage_path,
-              is_primary
-            )
-          `)
+          .select('*')
           .eq('id', dreamId)
           .single()
-          .then(({ data: updatedDream, error }) => {
+          .then(async ({ data: updatedDream, error }) => {
             if (!error && updatedDream) {
+              // Fetch images for this dream
+              const { data: dreamImages } = await supabase
+                .from('dream_images')
+                .select('*')
+                .eq('dream_id', dreamId);
+                
+              if (dreamImages) {
+                updatedDream.dream_images = dreamImages;
+              }
+              
               console.log('🖼️ Fetched updated dream with image:', updatedDream);
               const mappedDream = mapDatabaseDreamToFrontend(updatedDream);
               updateDream(dreamId, mappedDream);
@@ -212,20 +215,70 @@ export const DreamDiaryScreen: React.FC = () => {
     
     if (user?.id) {
       try {
-        // Fetch dreams from database with their images
+        // Also check the session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        console.log('🔐 Current user:', {
+          userId: user.id,
+          email: user.email,
+          sessionUserId: session?.user?.id,
+          hasSession: !!session,
+          sessionMatches: session?.user?.id === user.id
+        });
+        
+        // Fetch dreams from database
         const { data: dbDreams, error } = await supabase
           .from('dreams')
-          .select(`
-            *,
-            dream_images (
-              id,
-              storage_path,
-              is_primary
-            )
-          `)
+          .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(50);
+          
+        // Fetch dream images separately
+        if (dbDreams && dbDreams.length > 0) {
+          const dreamIds = dbDreams.map(d => d.id);
+          console.log('🔍 Fetching images for dreams:', dreamIds);
+          
+          // List which dreams should have images
+          const dreamsWithImagesIds = ['603ac37a-d2c9-418b-9d14-4d6c0b39fc57', '4d800e6f-fc48-43f1-8055-25585fa1e345', '64f09c8a-9613-41a6-9e43-750e3a763e74', '30393f96-3b33-46b2-93b4-d89d76b28691'];
+          const dreamsWithImagesInCurrentList = dreamIds.filter(id => dreamsWithImagesIds.includes(id));
+          
+          console.log('📋 Dreams that should have images:', {
+            totalDreamsInList: dreamIds.length,
+            expectedDreamsWithImages: dreamsWithImagesIds,
+            foundInCurrentList: dreamsWithImagesInCurrentList,
+            foundCount: dreamsWithImagesInCurrentList.length
+          });
+          
+          const { data: dreamImages, error: imagesError } = await supabase
+            .from('dream_images')
+            .select('*')
+            .in('dream_id', dreamIds);
+            
+          if (dreamImages && !imagesError) {
+            console.log('🖼️ Fetched dream images separately:', {
+              count: dreamImages.length,
+              images: dreamImages,
+              dreamIds: dreamIds
+            });
+            
+            // Attach images to dreams
+            dbDreams.forEach(dream => {
+              const imagesForDream = dreamImages.filter(img => img.dream_id === dream.id);
+              dream.dream_images = imagesForDream;
+              
+              if (imagesForDream.length > 0) {
+                console.log('📎 Attached images to dream:', {
+                  dreamId: dream.id,
+                  imageCount: imagesForDream.length,
+                  images: imagesForDream
+                });
+              }
+            });
+          } else if (imagesError) {
+            console.error('❌ Error fetching dream images:', imagesError);
+          }
+        }
         
         if (!error && dbDreams) {
           console.log('🔄 Fetched dreams from database:', dbDreams.length);
@@ -240,6 +293,9 @@ export const DreamDiaryScreen: React.FC = () => {
               dream_images: dbDreams[0].dream_images,
               columns: Object.keys(dbDreams[0])
             });
+            
+            // Log the raw response to see the exact structure
+            console.log('🔍 Raw first dream from DB:', JSON.stringify(dbDreams[0], null, 2));
           }
           
           // Log dreams with images
@@ -256,6 +312,12 @@ export const DreamDiaryScreen: React.FC = () => {
           
           // Update local store with database dreams
           dbDreams.forEach(dbDream => {
+            console.log('🔍 Processing dream:', {
+              id: dbDream.id,
+              hasDreamImages: !!dbDream.dream_images,
+              dreamImagesCount: dbDream.dream_images?.length || 0,
+              dreamImages: dbDream.dream_images
+            });
             const existingDream = dreams.find(d => 
               d.id === dbDream.id || 
               d.id === `temp_${dbDream.id}` ||
@@ -263,11 +325,19 @@ export const DreamDiaryScreen: React.FC = () => {
             );
             
             if (existingDream) {
-              // Update existing dream if status/content has changed
+              // Update existing dream if status/content/image has changed
               const mappedDream = mapDatabaseDreamToFrontend(dbDream);
+              const hasImageUpdate = !!mappedDream.image_url && mappedDream.image_url !== existingDream.image_url;
+              
               if (existingDream.transcription_status !== dbDream.transcription_status ||
-                  existingDream.raw_transcript !== dbDream.raw_transcript) {
-                console.log('🔄 Updating existing dream:', dbDream.id);
+                  existingDream.raw_transcript !== dbDream.raw_transcript ||
+                  hasImageUpdate) {
+                console.log('🔄 Updating existing dream:', {
+                  id: dbDream.id,
+                  hasImageUpdate,
+                  oldImageUrl: existingDream.image_url,
+                  newImageUrl: mappedDream.image_url
+                });
                 updateDream(existingDream.id, {
                   ...mappedDream,
                   id: dbDream.id, // Ensure we keep the correct ID

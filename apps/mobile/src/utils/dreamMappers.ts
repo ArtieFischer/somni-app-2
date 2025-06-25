@@ -5,6 +5,14 @@ import { Dream } from '@somni/types';
  * Handles snake_case to camelCase conversion and provides defaults
  */
 export function mapDatabaseDreamToFrontend(dbDream: any): Partial<Dream> {
+  console.log('🗺️ Mapping dream:', {
+    dreamId: dbDream.id,
+    hasDreamImages: !!dbDream.dream_images,
+    dreamImagesType: typeof dbDream.dream_images,
+    dreamImagesLength: dbDream.dream_images?.length,
+    dreamImages: dbDream.dream_images
+  });
+  
   // Log transcription metadata mapping
   if (dbDream.transcription_metadata) {
     // console.log('📊 Mapping dream with transcription_metadata:', {

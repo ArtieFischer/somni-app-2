@@ -15,7 +15,7 @@ import { Dream } from '@somni/types';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { darkTheme } from '@somni/theme';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Alert } from 'react-native';
+import { Alert, Image as RNImage } from 'react-native';
 
 interface DreamCardProps {
   dream: Dream;
@@ -186,6 +186,13 @@ export const DreamCard: React.FC<DreamCardProps> = ({
           </Text>
 
           {/* Dream Image */}
+          {console.log('🎨 DreamCard rendering:', {
+            dreamId: dream.id,
+            hasImageUrl: !!dream.image_url,
+            imageUrl: dream.image_url,
+            dreamTitle: getDreamTitle(),
+            dreamObject: dream
+          })}
           <Box
             borderRadius={8}
             overflow="hidden"
@@ -193,11 +200,20 @@ export const DreamCard: React.FC<DreamCardProps> = ({
             aspectRatio={3 / 2}
           >
             {dream.image_url ? (
-              <Image
+              <RNImage
                 source={{ uri: dream.image_url }}
-                alt={getDreamTitle()}
                 style={{ width: '100%', height: '100%' }}
                 resizeMode="cover"
+                onError={(error) => {
+                  console.error('🚨 Image failed to load:', {
+                    dreamId: dream.id,
+                    imageUrl: dream.image_url,
+                    error
+                  });
+                }}
+                onLoad={() => {
+                  console.log('✅ Image loaded successfully:', dream.image_url);
+                }}
               />
             ) : (
               <Box

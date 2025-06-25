@@ -83,6 +83,7 @@ export interface DreamDTO {
   
   // Image generation
   image_prompt?: string;
+  image_url?: string; // URL of generated dream image
   
   // Frontend-only fields (not stored in database)
   duration?: number; // Recording duration in seconds for display
