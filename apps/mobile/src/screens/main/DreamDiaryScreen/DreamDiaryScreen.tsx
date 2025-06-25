@@ -1,8 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { 
-  FlatList, 
-  RefreshControl,
-} from 'react-native';
+import { FlatList, RefreshControl } from 'react-native';
 import {
   Box,
   VStack,
@@ -38,12 +35,15 @@ type DreamDiaryScreenProps = MainTabScreenProps<'DreamDiary'>;
 export const DreamDiaryScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
   const navigation = useNavigation<DreamDiaryScreenProps['navigation']>();
-  const { dreams, searchDreams, updateDream, addDream, clearAllData } = useDreamStore();
+  const { dreams, searchDreams, updateDream, addDream, clearAllData } =
+    useDreamStore();
   const { session, user } = useAuth();
   const isFocused = useIsFocused();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'lucid' | 'recent'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<
+    'all' | 'lucid'
+  >('all');
   const [refreshing, setRefreshing] = useState(false);
   const [, setRetryingDreams] = useState<Set<string>>(new Set());
 
@@ -61,21 +61,14 @@ export const DreamDiaryScreen: React.FC = () => {
     switch (selectedFilter) {
       case 'lucid':
         // Filter for lucid dreams (when we have that data)
-        result = result.filter(dream => dream.tags?.includes('lucid'));
-        break;
-      case 'recent':
-        // Get dreams from last 7 days
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        result = result.filter(dream => 
-          new Date(dream.recordedAt) >= weekAgo
-        );
+        result = result.filter((dream) => dream.tags?.includes('lucid'));
         break;
     }
 
     // Sort by most recent first
-    return result.sort((a, b) => 
-      new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
+    return result.sort(
+      (a, b) =>
+        new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime(),
     );
   }, [dreams, searchQuery, selectedFilter, searchDreams]);
 
@@ -89,7 +82,8 @@ export const DreamDiaryScreen: React.FC = () => {
   }, [user?.id]); // Re-run when user ID changes
 
   // Memoize the real-time event handler
-  const handleRealtimeEvent = useCallback((payload: any) => {
+  const handleRealtimeEvent = useCallback(
+    (payload: any) => {
       console.log('🎯 DreamDiary: Realtime event:', {
         type: payload.eventType,
         dreamId: payload.new?.id || payload.old?.id,
@@ -104,19 +98,20 @@ export const DreamDiaryScreen: React.FC = () => {
           id: dreamData.id,
           hasTitle: 'title' in dreamData,
           title: dreamData.title,
-          columns: Object.keys(dreamData)
+          columns: Object.keys(dreamData),
         });
-        
+
         // Find existing dream in store
-        const existingDream = dreams.find(d => 
-          d.id === dreamData.id || 
-          d.id === `temp_${dreamData.id}` ||
-          d.id.replace('temp_', '') === dreamData.id
+        const existingDream = dreams.find(
+          (d) =>
+            d.id === dreamData.id ||
+            d.id === `temp_${dreamData.id}` ||
+            d.id.replace('temp_', '') === dreamData.id,
         );
 
         if (existingDream) {
           const mappedDream = mapDatabaseDreamToFrontend(dreamData);
-          
+
           console.log('📝 Updating existing dream:', {
             dreamId: existingDream.id,
             oldStatus: existingDream.status,
@@ -128,69 +123,79 @@ export const DreamDiaryScreen: React.FC = () => {
             imageUrl: mappedDream.image_url,
             rawPayload: dreamData,
           });
-          
+
           updateDream(existingDream.id, {
             ...mappedDream,
             id: dreamData.id, // Ensure we keep the correct ID
           });
-          
         }
       } else if (payload.eventType === 'INSERT' && payload.new) {
         // Skip INSERT events - RecordScreen handles new dreams from current session
         // Database sync handles dreams from other devices/sessions
-        console.log('🔇 Skipping INSERT event (handled by RecordScreen or sync):', payload.new.id);
+        console.log(
+          '🔇 Skipping INSERT event (handled by RecordScreen or sync):',
+          payload.new.id,
+        );
       }
-  }, [dreams, updateDream, addDream, user?.id, isFocused]);
+    },
+    [dreams, updateDream, addDream, user?.id, isFocused],
+  );
 
   // Add a small delay before subscribing to avoid connection errors on app startup
   const [shouldSubscribe, setShouldSubscribe] = useState(false);
-  
+
   useEffect(() => {
     if (user?.id) {
       const timer = setTimeout(() => {
         setShouldSubscribe(true);
       }, 1000); // 1 second delay
-      
+
       return () => clearTimeout(timer);
     }
   }, [user?.id]);
 
   // Handle real-time dream_images events
-  const handleDreamImagesEvent = useCallback((payload: any) => {
-    console.log('🖼️ Dream images realtime event:', payload);
-    
-    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-      const dreamId = payload.new.dream_id;
-      console.log('🖼️ Image added/updated for dream:', dreamId);
-      
-      // Refresh the dream to get the updated image
-      if (dreamId && user?.id) {
-        // Fetch the updated dream
-        supabase
-          .from('dreams')
-          .select('*')
-          .eq('id', dreamId)
-          .single()
-          .then(async ({ data: updatedDream, error }) => {
-            if (!error && updatedDream) {
-              // Fetch images for this dream
-              const { data: dreamImages } = await supabase
-                .from('dream_images')
-                .select('*')
-                .eq('dream_id', dreamId);
-                
-              if (dreamImages) {
-                updatedDream.dream_images = dreamImages;
+  const handleDreamImagesEvent = useCallback(
+    (payload: any) => {
+      console.log('🖼️ Dream images realtime event:', payload);
+
+      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+        const dreamId = payload.new.dream_id;
+        console.log('🖼️ Image added/updated for dream:', dreamId);
+
+        // Refresh the dream to get the updated image
+        if (dreamId && user?.id) {
+          // Fetch the updated dream
+          supabase
+            .from('dreams')
+            .select('*')
+            .eq('id', dreamId)
+            .single()
+            .then(async ({ data: updatedDream, error }) => {
+              if (!error && updatedDream) {
+                // Fetch images for this dream
+                const { data: dreamImages } = await supabase
+                  .from('dream_images')
+                  .select('*')
+                  .eq('dream_id', dreamId);
+
+                if (dreamImages) {
+                  updatedDream.dream_images = dreamImages;
+                }
+
+                console.log(
+                  '🖼️ Fetched updated dream with image:',
+                  updatedDream,
+                );
+                const mappedDream = mapDatabaseDreamToFrontend(updatedDream);
+                updateDream(dreamId, mappedDream);
               }
-              
-              console.log('🖼️ Fetched updated dream with image:', updatedDream);
-              const mappedDream = mapDatabaseDreamToFrontend(updatedDream);
-              updateDream(dreamId, mappedDream);
-            }
-          });
+            });
+        }
       }
-    }
-  }, [user?.id, updateDream]);
+    },
+    [user?.id, updateDream],
+  );
 
   // Subscribe to real-time dream updates
   useRealtimeSubscription({
@@ -212,20 +217,22 @@ export const DreamDiaryScreen: React.FC = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    
+
     if (user?.id) {
       try {
         // Also check the session
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
         console.log('🔐 Current user:', {
           userId: user.id,
           email: user.email,
           sessionUserId: session?.user?.id,
           hasSession: !!session,
-          sessionMatches: session?.user?.id === user.id
+          sessionMatches: session?.user?.id === user.id,
         });
-        
+
         // Fetch dreams from database
         const { data: dbDreams, error } = await supabase
           .from('dreams')
@@ -233,45 +240,54 @@ export const DreamDiaryScreen: React.FC = () => {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(50);
-          
+
         // Fetch dream images separately
         if (dbDreams && dbDreams.length > 0) {
-          const dreamIds = dbDreams.map(d => d.id);
+          const dreamIds = dbDreams.map((d) => d.id);
           console.log('🔍 Fetching images for dreams:', dreamIds);
-          
+
           // List which dreams should have images
-          const dreamsWithImagesIds = ['603ac37a-d2c9-418b-9d14-4d6c0b39fc57', '4d800e6f-fc48-43f1-8055-25585fa1e345', '64f09c8a-9613-41a6-9e43-750e3a763e74', '30393f96-3b33-46b2-93b4-d89d76b28691'];
-          const dreamsWithImagesInCurrentList = dreamIds.filter(id => dreamsWithImagesIds.includes(id));
-          
+          const dreamsWithImagesIds = [
+            '603ac37a-d2c9-418b-9d14-4d6c0b39fc57',
+            '4d800e6f-fc48-43f1-8055-25585fa1e345',
+            '64f09c8a-9613-41a6-9e43-750e3a763e74',
+            '30393f96-3b33-46b2-93b4-d89d76b28691',
+          ];
+          const dreamsWithImagesInCurrentList = dreamIds.filter((id) =>
+            dreamsWithImagesIds.includes(id),
+          );
+
           console.log('📋 Dreams that should have images:', {
             totalDreamsInList: dreamIds.length,
             expectedDreamsWithImages: dreamsWithImagesIds,
             foundInCurrentList: dreamsWithImagesInCurrentList,
-            foundCount: dreamsWithImagesInCurrentList.length
+            foundCount: dreamsWithImagesInCurrentList.length,
           });
-          
+
           const { data: dreamImages, error: imagesError } = await supabase
             .from('dream_images')
             .select('*')
             .in('dream_id', dreamIds);
-            
+
           if (dreamImages && !imagesError) {
             console.log('🖼️ Fetched dream images separately:', {
               count: dreamImages.length,
               images: dreamImages,
-              dreamIds: dreamIds
+              dreamIds: dreamIds,
             });
-            
+
             // Attach images to dreams
-            dbDreams.forEach(dream => {
-              const imagesForDream = dreamImages.filter(img => img.dream_id === dream.id);
+            dbDreams.forEach((dream) => {
+              const imagesForDream = dreamImages.filter(
+                (img) => img.dream_id === dream.id,
+              );
               dream.dream_images = imagesForDream;
-              
+
               if (imagesForDream.length > 0) {
                 console.log('📎 Attached images to dream:', {
                   dreamId: dream.id,
                   imageCount: imagesForDream.length,
-                  images: imagesForDream
+                  images: imagesForDream,
                 });
               }
             });
@@ -279,7 +295,7 @@ export const DreamDiaryScreen: React.FC = () => {
             console.error('❌ Error fetching dream images:', imagesError);
           }
         }
-        
+
         if (!error && dbDreams) {
           console.log('🔄 Fetched dreams from database:', dbDreams.length);
           if (dbDreams.length > 0) {
@@ -291,52 +307,64 @@ export const DreamDiaryScreen: React.FC = () => {
               image_url: dbDreams[0].image_url,
               hasDreamImages: 'dream_images' in dbDreams[0],
               dream_images: dbDreams[0].dream_images,
-              columns: Object.keys(dbDreams[0])
+              columns: Object.keys(dbDreams[0]),
             });
-            
+
             // Log the raw response to see the exact structure
-            console.log('🔍 Raw first dream from DB:', JSON.stringify(dbDreams[0], null, 2));
+            console.log(
+              '🔍 Raw first dream from DB:',
+              JSON.stringify(dbDreams[0], null, 2),
+            );
           }
-          
+
           // Log dreams with images
-          const dreamsWithImages = dbDreams.filter(d => 
-            d.image_url || (d.dream_images && d.dream_images.length > 0)
+          const dreamsWithImages = dbDreams.filter(
+            (d) => d.image_url || (d.dream_images && d.dream_images.length > 0),
           );
           if (dreamsWithImages.length > 0) {
-            console.log('🖼️ Dreams with images:', dreamsWithImages.map(d => ({
-              id: d.id,
-              image_url: d.image_url,
-              dream_images: d.dream_images
-            })));
-          }
-          
-          // Update local store with database dreams
-          dbDreams.forEach(dbDream => {
-            console.log('🔍 Processing dream:', {
-              id: dbDream.id,
-              hasDreamImages: !!dbDream.dream_images,
-              dreamImagesCount: dbDream.dream_images?.length || 0,
-              dreamImages: dbDream.dream_images
-            });
-            const existingDream = dreams.find(d => 
-              d.id === dbDream.id || 
-              d.id === `temp_${dbDream.id}` ||
-              d.id.replace('temp_', '') === dbDream.id
+            console.log(
+              '🖼️ Dreams with images:',
+              dreamsWithImages.map((d) => ({
+                id: d.id,
+                image_url: d.image_url,
+                dream_images: d.dream_images,
+              })),
             );
-            
+          }
+
+          // Update local store with database dreams
+          dbDreams.forEach((dbDream) => {
+            // console.log('🔍 Processing dream:', {
+            //   id: dbDream.id,
+            //   hasDreamImages: !!dbDream.dream_images,
+            //   dreamImagesCount: dbDream.dream_images?.length || 0,
+            //   dreamImages: dbDream.dream_images
+            // });
+            const existingDream = dreams.find(
+              (d) =>
+                d.id === dbDream.id ||
+                d.id === `temp_${dbDream.id}` ||
+                d.id.replace('temp_', '') === dbDream.id,
+            );
+
             if (existingDream) {
               // Update existing dream if status/content/image has changed
               const mappedDream = mapDatabaseDreamToFrontend(dbDream);
-              const hasImageUpdate = !!mappedDream.image_url && mappedDream.image_url !== existingDream.image_url;
-              
-              if (existingDream.transcription_status !== dbDream.transcription_status ||
-                  existingDream.raw_transcript !== dbDream.raw_transcript ||
-                  hasImageUpdate) {
+              const hasImageUpdate =
+                !!mappedDream.image_url &&
+                mappedDream.image_url !== existingDream.image_url;
+
+              if (
+                existingDream.transcription_status !==
+                  dbDream.transcription_status ||
+                existingDream.raw_transcript !== dbDream.raw_transcript ||
+                hasImageUpdate
+              ) {
                 console.log('🔄 Updating existing dream:', {
                   id: dbDream.id,
                   hasImageUpdate,
                   oldImageUrl: existingDream.image_url,
-                  newImageUrl: mappedDream.image_url
+                  newImageUrl: mappedDream.image_url,
                 });
                 updateDream(existingDream.id, {
                   ...mappedDream,
@@ -345,30 +373,35 @@ export const DreamDiaryScreen: React.FC = () => {
               }
             } else {
               // Check if there's a temporary dream that should be replaced
-              const tempDream = dreams.find(d => 
-                d.id.startsWith('temp_') && 
-                d.transcription_status === 'pending' &&
-                Math.abs(new Date(d.created_at).getTime() - new Date(dbDream.created_at).getTime()) < 60000 // Within 1 minute
+              const tempDream = dreams.find(
+                (d) =>
+                  d.id.startsWith('temp_') &&
+                  d.transcription_status === 'pending' &&
+                  Math.abs(
+                    new Date(d.created_at).getTime() -
+                      new Date(dbDream.created_at).getTime(),
+                  ) < 60000, // Within 1 minute
               );
-              
+
               if (tempDream) {
                 console.log('🔄 Replacing temp dream with database dream:', {
                   tempId: tempDream.id,
-                  realId: dbDream.id
+                  realId: dbDream.id,
                 });
                 // Delete temp dream first
                 const { deleteDream } = useDreamStore.getState();
                 deleteDream(tempDream.id);
               }
-              
+
               // Always add new dreams from database (they might be from other devices)
               console.log('➕ Adding dream from database:', dbDream.id);
               const mappedDream = mapDatabaseDreamToFrontend(dbDream);
-              
+
               addDream({
                 ...mappedDream,
                 userId: dbDream.user_id || user.id, // Ensure userId is set
-                description: mappedDream.rawTranscript?.substring(0, 100) + '...' || '',
+                description:
+                  mappedDream.rawTranscript?.substring(0, 100) + '...' || '',
               } as any);
             }
           });
@@ -377,12 +410,22 @@ export const DreamDiaryScreen: React.FC = () => {
         console.error('Error fetching dreams:', error);
       }
     }
-    
+
     setTimeout(() => setRefreshing(false), 500);
   };
 
   const handleDreamPress = (dream: Dream) => {
-    navigation.navigate('DreamDetail', { dreamId: dream.id });
+    // Only navigate to dream details if transcription is complete
+    const isTranscriptionReady = 
+      dream.transcription_status === 'completed' || 
+      dream.status === 'completed' ||
+      (dream.raw_transcript && 
+       dream.raw_transcript !== 'Waiting for transcription...' &&
+       dream.raw_transcript !== '');
+    
+    if (isTranscriptionReady) {
+      navigation.navigate('DreamDetail', { dreamId: dream.id });
+    }
   };
 
   const handleAnalyzePress = (dream: Dream) => {
@@ -412,7 +455,7 @@ export const DreamDiaryScreen: React.FC = () => {
       // Delete from local store
       const { deleteDream } = useDreamStore.getState();
       deleteDream(dream.id);
-      
+
       console.log('✅ Dream deleted successfully:', dream.id);
     } catch (error) {
       console.error('Delete dream error:', error);
@@ -424,25 +467,26 @@ export const DreamDiaryScreen: React.FC = () => {
     console.log('🔄 Retry pressed for dream:', {
       id: dream.id,
       status: dream.status,
-      transcriptionStatus: dream.transcription_status || dream.transcriptionStatus,
+      transcriptionStatus:
+        dream.transcription_status || dream.transcriptionStatus,
       metadata: dream.transcription_metadata || dream.transcriptionMetadata,
       duration: dream.duration,
       hasAudioUri: !!dream.audioUri,
-      audioUri: dream.audioUri
+      audioUri: dream.audioUri,
     });
 
     if (!session?.access_token || !user?.id) {
       Alert.alert(
         'Authentication Required',
         'Please log in to retry transcription',
-        [{ text: 'OK' }]
+        [{ text: 'OK' }],
       );
       return;
     }
 
     // Add to retrying set
-    setRetryingDreams(prev => new Set(prev).add(dream.id));
-    
+    setRetryingDreams((prev) => new Set(prev).add(dream.id));
+
     try {
       // For pending dreams with audio, we need to transcribe from the audio file
       if (dream.status === 'pending') {
@@ -457,7 +501,7 @@ export const DreamDiaryScreen: React.FC = () => {
         // Read the audio file if it exists
         const fileInfo = await FileSystem.getInfoAsync(dream.audioUri);
         console.log('📁 Audio file info:', fileInfo);
-        
+
         if (!fileInfo.exists) {
           throw new Error('Audio file not found at: ' + dream.audioUri);
         }
@@ -477,7 +521,7 @@ export const DreamDiaryScreen: React.FC = () => {
             })
             .select()
             .single();
-          
+
           if (createError || !data) {
             throw new Error('Failed to create dream record');
           }
@@ -488,10 +532,9 @@ export const DreamDiaryScreen: React.FC = () => {
         }
 
         // Read the audio file as base64
-        const audioBase64 = await FileSystem.readAsStringAsync(
-          dream.audioUri,
-          { encoding: FileSystem.EncodingType.Base64 }
-        );
+        const audioBase64 = await FileSystem.readAsStringAsync(dream.audioUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
 
         // Call the transcription edge function
         const response = await fetch(
@@ -499,21 +542,25 @@ export const DreamDiaryScreen: React.FC = () => {
           {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${session.access_token}`,
+              Authorization: `Bearer ${session.access_token}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
               dreamId: dreamId,
               audioBase64,
-              duration: dream.duration || 0
-            })
-          }
+              duration: dream.duration || 0,
+            }),
+          },
         );
 
         const responseData = await response.json();
-        
+
         if (!response.ok) {
-          throw new Error(responseData.message || responseData.error || 'Transcription failed');
+          throw new Error(
+            responseData.message ||
+              responseData.error ||
+              'Transcription failed',
+          );
         }
 
         // Delete the local audio file after successful upload
@@ -527,7 +574,7 @@ export const DreamDiaryScreen: React.FC = () => {
         Alert.alert(
           'Transcription Started',
           'Your dream is being transcribed',
-          [{ text: 'OK' }]
+          [{ text: 'OK' }],
         );
       } else {
         // For failed dreams, use the retry endpoint
@@ -538,17 +585,17 @@ export const DreamDiaryScreen: React.FC = () => {
           {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${session.access_token}`,
+              Authorization: `Bearer ${session.access_token}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
               dreamId: dream.id.replace('temp_', ''),
-            })
-          }
+            }),
+          },
         );
 
         const responseData = await response.json();
-        
+
         if (!response.ok) {
           throw new Error(responseData.error || 'Retry failed');
         }
@@ -556,7 +603,7 @@ export const DreamDiaryScreen: React.FC = () => {
         Alert.alert(
           'Transcription Started',
           'Your dream is being transcribed',
-          [{ text: 'OK' }]
+          [{ text: 'OK' }],
         );
       }
     } catch (error) {
@@ -564,13 +611,15 @@ export const DreamDiaryScreen: React.FC = () => {
         error: error.message || error,
         dreamId: dream.id,
         status: dream.status,
-        audioUri: dream.audioUri
+        audioUri: dream.audioUri,
       });
       // Revert status
-      updateDream(dream.id, { status: dream.status === 'pending' ? 'pending' : 'failed' });
-      
+      updateDream(dream.id, {
+        status: dream.status === 'pending' ? 'pending' : 'failed',
+      });
+
       const errorMessage = error.message || 'Unknown error occurred';
-      
+
       // If it's a "too short" error, fetch the updated dream from database
       if (errorMessage.includes('Recording too short')) {
         console.log('🔄 Fetching updated dream after too-short error');
@@ -579,26 +628,29 @@ export const DreamDiaryScreen: React.FC = () => {
           .select('*')
           .eq('id', dream.id)
           .single();
-          
+
         if (!fetchError && updatedDream) {
-          console.log('✅ Got updated dream with metadata:', updatedDream.transcription_metadata);
+          console.log(
+            '✅ Got updated dream with metadata:',
+            updatedDream.transcription_metadata,
+          );
           const mappedDream = mapDatabaseDreamToFrontend(updatedDream);
           updateDream(dream.id, mappedDream);
         }
       }
-      
+
       Alert.alert(
         String(t('record.serviceUnavailable.title')),
-        errorMessage.includes('Audio file not found') 
+        errorMessage.includes('Audio file not found')
           ? 'The audio file for this dream could not be found. It may have been deleted.'
           : errorMessage.includes('Recording too short')
-          ? 'Recording must be at least 5 seconds long'
-          : String(t('record.serviceUnavailable.message')),
-        [{ text: String(t('actions.ok')) }]
+            ? 'Recording must be at least 5 seconds long'
+            : String(t('record.serviceUnavailable.message')),
+        [{ text: String(t('actions.ok')) }],
       );
     } finally {
       // Remove from retrying set
-      setRetryingDreams(prev => {
+      setRetryingDreams((prev) => {
         const newSet = new Set(prev);
         newSet.delete(dream.id);
         return newSet;
@@ -609,7 +661,7 @@ export const DreamDiaryScreen: React.FC = () => {
   // Duration is now fetched individually by each DreamCardWithDuration
 
   const renderDreamItem = ({ item }: { item: Dream }) => (
-    <DreamCardWithDuration 
+    <DreamCardWithDuration
       dream={item}
       onPress={handleDreamPress}
       onAnalyzePress={handleAnalyzePress}
@@ -620,13 +672,22 @@ export const DreamDiaryScreen: React.FC = () => {
 
   const ListHeader = () => (
     <VStack space="lg" px="$4" pt="$3" pb="$3">
-      {/* Search Bar */}
       <Box position="relative">
-        <Box position="absolute" left="$3" top="50%" zIndex={1} style={{ transform: [{ translateY: -9 }] }}>
-          <Ionicons name="search" size={18} color={darkTheme.colors.text.secondary} />
+        <Box
+          position="absolute"
+          left="$3"
+          top="50%"
+          zIndex={1}
+          style={{ transform: [{ translateY: -9 }] }}
+        >
+          <Ionicons
+            name="search"
+            size={18}
+            color={darkTheme.colors.text.secondary}
+          />
         </Box>
-        <Box 
-          bg={darkTheme.colors.background.elevated} 
+        <Box
+          bg={darkTheme.colors.background.elevated}
           borderRadius={24}
           overflow="hidden"
         >
@@ -644,114 +705,43 @@ export const DreamDiaryScreen: React.FC = () => {
           />
         </Box>
         {searchQuery.length > 0 && (
-          <Pressable 
+          <Pressable
             onPress={() => setSearchQuery('')}
-            position="absolute" 
-            right="$3" 
-            top="50%" 
-            zIndex={1} 
+            position="absolute"
+            right="$3"
+            top="50%"
+            zIndex={1}
             style={{ transform: [{ translateY: -9 }] }}
           >
-            <Ionicons name="close-circle" size={18} color={darkTheme.colors.text.secondary} />
+            <Ionicons
+              name="close-circle"
+              size={18}
+              color={darkTheme.colors.text.secondary}
+            />
           </Pressable>
         )}
       </Box>
 
       {/* Filters */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <HStack space="sm">
-          {(['all', 'recent', 'lucid'] as const).map((filter) => (
+          <PillButton
+            key="all"
+            label={`${String(t('journal.filters.all'))} (${dreams.length})`}
+            isActive={selectedFilter === 'all'}
+            onPress={() => setSelectedFilter('all')}
+          />
+          <Box opacity={0.5}>
             <PillButton
-              key={filter}
-              label={String(t(`journal.filters.${filter}`))}
-              isActive={selectedFilter === filter}
-              onPress={() => setSelectedFilter(filter)}
+              key="lucid"
+              label={String(t('journal.filters.lucid'))}
+              isActive={false}
+              onPress={() => {}}
             />
-          ))}
+          </Box>
         </HStack>
       </ScrollView>
 
-      {/* Debug Buttons - Remove this in production */}
-      {__DEV__ && (
-        <VStack space="sm" mb="$2">
-          <HStack space="sm">
-            <Pressable
-              onPress={testRealtimeConnection}
-              bg={darkTheme.colors.background.elevated}
-              borderRadius={8}
-              px="$3"
-              py="$2"
-              flex={1}
-            >
-              <Text size="sm" color={darkTheme.colors.primary} textAlign="center">
-                Test WebSocket
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => testDatabaseRealtime(user?.id || '')}
-              bg={darkTheme.colors.background.elevated}
-              borderRadius={8}
-              px="$3"
-              py="$2"
-              flex={1}
-            >
-              <Text size="sm" color={darkTheme.colors.primary} textAlign="center">
-                Test DB Realtime
-              </Text>
-            </Pressable>
-          </HStack>
-        </VStack>
-      )}
-
-      {/* Stats Summary */}
-      <Box 
-        bg={darkTheme.colors.background.elevated}
-        borderRadius={12}
-        p="$4"
-        shadowColor={darkTheme.colors.black}
-        shadowOffset={{ width: 0, height: 2 }}
-        shadowOpacity={0.1}
-        shadowRadius={4}
-        elevation={3}
-      >
-        <HStack justifyContent="space-around" alignItems="center">
-          <VStack alignItems="center" flex={1}>
-            <Heading size="xl" color={darkTheme.colors.primary}>
-              {dreams.length}
-            </Heading>
-            <Text size="sm" color={darkTheme.colors.text.secondary}>
-              {t('journal.stats.total') as string}
-            </Text>
-          </VStack>
-          
-          <Box w={1} h={40} bg={darkTheme.colors.border.primary} mx="$4" />
-          
-          <VStack alignItems="center" flex={1}>
-            <Heading size="xl" color={darkTheme.colors.primary}>
-              {dreams.filter(d => d.tags?.includes('lucid')).length}
-            </Heading>
-            <Text size="sm" color={darkTheme.colors.text.secondary}>
-              {t('journal.stats.lucid') as string}
-            </Text>
-          </VStack>
-          
-          <Box w={1} h={40} bg={darkTheme.colors.border.primary} mx="$4" />
-          
-          <VStack alignItems="center" flex={1}>
-            <Heading size="xl" color={darkTheme.colors.primary}>
-              {dreams.length > 0 
-                ? Math.round(dreams.reduce((acc, d) => acc + d.confidence, 0) / dreams.length * 100)
-                : 0}%
-            </Heading>
-            <Text size="sm" color={darkTheme.colors.text.secondary}>
-              {t('journal.stats.avgMood') as string}
-            </Text>
-          </VStack>
-        </HStack>
-      </Box>
     </VStack>
   );
 
@@ -762,7 +752,12 @@ export const DreamDiaryScreen: React.FC = () => {
         <Heading size="lg" textAlign="center">
           {t('journal.empty') as string}
         </Heading>
-        <Text size="md" color={darkTheme.colors.text.secondary} textAlign="center" lineHeight={24}>
+        <Text
+          size="md"
+          color={darkTheme.colors.text.secondary}
+          textAlign="center"
+          lineHeight={24}
+        >
           {t('journal.emptySubtitle') as string}
         </Text>
       </VStack>

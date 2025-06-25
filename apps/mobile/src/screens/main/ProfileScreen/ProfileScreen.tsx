@@ -8,7 +8,6 @@ import {
 } from '@gluestack-ui/themed';
 import { Text, Button, Card } from '../../../components/atoms';
 import { ProfileHeader } from '../../../components/molecules/ProfileHeader';
-import { SharedDreamsSection } from '../../../components/molecules/SharedDreamsSection';
 import { DreamingPreferencesSection } from '../../../components/molecules/DreamingPreferencesSection';
 import { UserPreferencesSection } from '../../../components/molecules/UserPreferencesSection';
 import { SupportSection } from '../../../components/molecules/SupportSection';
@@ -74,12 +73,6 @@ export const ProfileScreen: React.FC = () => {
         <VStack space="lg" style={styles.content}>
           {/* Profile Header with Avatar */}
           <ProfileHeader />
-
-          {/* Shared Dreams Section */}
-          <SharedDreamsSection 
-            onViewAll={() => Alert.alert('Coming Soon', 'Shared dreams feature coming soon!')}
-            onCreateShared={() => Alert.alert('Coming Soon', 'Dream sharing coming soon!')}
-          />
 
           {/* Dreaming Preferences */}
           <DreamingPreferencesSection />

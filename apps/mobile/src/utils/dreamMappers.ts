@@ -5,13 +5,13 @@ import { Dream } from '@somni/types';
  * Handles snake_case to camelCase conversion and provides defaults
  */
 export function mapDatabaseDreamToFrontend(dbDream: any): Partial<Dream> {
-  console.log('🗺️ Mapping dream:', {
-    dreamId: dbDream.id,
-    hasDreamImages: !!dbDream.dream_images,
-    dreamImagesType: typeof dbDream.dream_images,
-    dreamImagesLength: dbDream.dream_images?.length,
-    dreamImages: dbDream.dream_images
-  });
+  // console.log('🗺️ Mapping dream:', {
+  //   dreamId: dbDream.id,
+  //   hasDreamImages: !!dbDream.dream_images,
+  //   dreamImagesType: typeof dbDream.dream_images,
+  //   dreamImagesLength: dbDream.dream_images?.length,
+  //   dreamImages: dbDream.dream_images
+  // });
   
   // Log transcription metadata mapping
   if (dbDream.transcription_metadata) {
@@ -28,11 +28,11 @@ export function mapDatabaseDreamToFrontend(dbDream: any): Partial<Dream> {
     // Find primary image or use the first one
     const primaryImage = dbDream.dream_images.find((img: any) => img.is_primary) || dbDream.dream_images[0];
     imageUrl = primaryImage.storage_path;
-    console.log('🖼️ Found dream image:', {
-      dreamId: dbDream.id,
-      imageUrl,
-      isPrimary: primaryImage.is_primary
-    });
+    // console.log('🖼️ Found dream image:', {
+    //   dreamId: dbDream.id,
+    //   imageUrl,
+    //   isPrimary: primaryImage.is_primary
+    // });
   }
   
   return {

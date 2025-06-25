@@ -109,9 +109,20 @@ export const DreamCard: React.FC<DreamCardProps> = ({
 
   // Removed unused getStatusColor function
 
+  // Check if transcription is ready
+  const isTranscriptionReady = 
+    dream.transcription_status === 'completed' || 
+    dream.status === 'completed' ||
+    (dream.raw_transcript && 
+     dream.raw_transcript !== 'Waiting for transcription...' &&
+     dream.raw_transcript !== '');
+
   return (
     <Card variant="elevated">
-      <Pressable onPress={() => onPress?.(dream)}>
+      <Pressable 
+        onPress={() => isTranscriptionReady ? onPress?.(dream) : undefined}
+        style={{ opacity: isTranscriptionReady ? 1 : 0.8 }}
+      >
         <VStack space="md">
           {/* Header */}
           <HStack justifyContent="space-between" alignItems="center">
@@ -131,8 +142,11 @@ export const DreamCard: React.FC<DreamCardProps> = ({
               </Text>
             </HStack>
             <HStack space="md" alignItems="center">
-              {/* Only show duration before transcription is completed */}
-              {dream.transcription_status !== 'completed' && (
+              {/* Show duration for pending and processing states */}
+              {(dream.transcription_status === 'pending' || 
+                dream.transcription_status === 'processing' ||
+                dream.status === 'pending' ||
+                dream.status === 'transcribing') && (
                 <HStack space="xs" alignItems="center">
                   <Ionicons
                     name="mic"
@@ -186,13 +200,13 @@ export const DreamCard: React.FC<DreamCardProps> = ({
           </Text>
 
           {/* Dream Image */}
-          {console.log('🎨 DreamCard rendering:', {
+          {/* {console.log('🎨 DreamCard rendering:', {
             dreamId: dream.id,
             hasImageUrl: !!dream.image_url,
             imageUrl: dream.image_url,
             dreamTitle: getDreamTitle(),
             dreamObject: dream
-          })}
+          })} */}
           <Box
             borderRadius={8}
             overflow="hidden"
@@ -208,7 +222,7 @@ export const DreamCard: React.FC<DreamCardProps> = ({
                   console.error('🚨 Image failed to load:', {
                     dreamId: dream.id,
                     imageUrl: dream.image_url,
-                    error
+                    error,
                   });
                 }}
                 onLoad={() => {

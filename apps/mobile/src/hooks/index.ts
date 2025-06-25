@@ -6,3 +6,4 @@ export * from './useOfflineRecordingQueue';
 export * from './useNetworkStatus';
 export * from './useAudioRecorder';
 export * from './useUploadNotifications';
+export * from './useDreamThemes';
