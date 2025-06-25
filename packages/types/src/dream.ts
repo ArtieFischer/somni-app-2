@@ -2,7 +2,7 @@
 export type SleepPhase = 'unknown' | 'n1' | 'n2' | 'n3' | 'rem';
 
 // Transcription status enum
-export type TranscriptionStatus = 'pending' | 'processing' | 'done' | 'error';
+export type TranscriptionStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
 // Location metadata for dreams
 export interface DreamLocationMetadata {
@@ -55,6 +55,9 @@ export interface Dream {
   tags?: string[]; // Use dream_themes
   emotions?: string[]; // Use mood fields
   image_url?: string; // Use dream_images table
+  transcriptionStatus?: TranscriptionStatus; // Legacy camelCase version of transcription_status
+  transcriptionMetadata?: Record<string, any>; // Legacy camelCase version of transcription_metadata
+  transcriptionJobId?: string; // Legacy camelCase version of transcription_job_id
 }
 
 export interface DreamDTO {

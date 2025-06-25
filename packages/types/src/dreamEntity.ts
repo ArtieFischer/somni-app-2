@@ -33,14 +33,14 @@ export class DreamEntity {
       createdAt: dto.created_at || now,
       updatedAt: dto.updated_at || now,
       recordedAt: dto.created_at || now,
-      duration: 0, // Deprecated
+      duration: dto.duration || (dto as any).duration || 0, // Preserve duration for display
       confidence: 1, // Deprecated
       wasEdited: false, // Deprecated
-      status: dto.transcription_status === 'done' ? 'completed' : 
-              dto.transcription_status === 'error' ? 'failed' :
+      status: (dto.transcription_status === 'completed' || dto.transcription_status === 'done') ? 'completed' : 
+              (dto.transcription_status === 'failed' || dto.transcription_status === 'error') ? 'failed' :
               dto.transcription_status === 'processing' ? 'transcribing' : 'pending',
-      audioUri: undefined, // Deprecated
-      fileSize: undefined, // Deprecated
+      audioUri: (dto as any).audioUri, // Preserve audioUri for postponed dreams
+      fileSize: (dto as any).fileSize, // Preserve fileSize if provided
       tags: [], // Deprecated
       emotions: [] // Deprecated
     };
@@ -113,10 +113,12 @@ export class DreamEntity {
       });
     }
 
-    // Allow empty transcript for pending/processing dreams
+    // Allow empty transcript for pending/processing dreams and legacy completed dreams
     if (!dream.raw_transcript?.trim() && 
         dream.transcription_status !== 'pending' && 
-        dream.transcription_status !== 'processing') {
+        dream.transcription_status !== 'processing' &&
+        dream.transcription_status !== 'completed' &&
+        dream.transcription_status !== 'done') {
       errors.push({
         field: 'raw_transcript' as keyof Dream,
         message: 'Transcript cannot be empty',
@@ -171,9 +173,9 @@ export class DreamEntity {
       }
     }
 
-    // Transcription status validation
+    // Transcription status validation (including legacy values)
     if (dream.transcription_status && 
-        !['pending', 'processing', 'done', 'error'].includes(dream.transcription_status)) {
+        !['pending', 'processing', 'completed', 'failed', 'done', 'error'].includes(dream.transcription_status)) {
       errors.push({
         field: 'transcription_status' as keyof Dream,
         message: 'Invalid transcription status',

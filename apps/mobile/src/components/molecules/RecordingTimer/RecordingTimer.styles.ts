@@ -21,6 +21,9 @@ export const useStyles = () => {
       backgroundColor: theme.colors.status.recording,
       marginRight: theme.spacing.small,
     },
+    dotWarning: {
+      backgroundColor: '#FF6B6B',
+    },
     time: {
       fontWeight: '600',
       fontSize: 24,

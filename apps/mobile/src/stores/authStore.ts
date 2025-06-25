@@ -45,5 +45,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     await supabase.auth.signOut();
     set({ session: null, user: null, isAuthenticated: false });
+    
+    // Clear dream store data to prevent showing other users' dreams
+    const { useDreamStore } = await import('@somni/stores');
+    useDreamStore.getState().clearAllData();
+    console.log('🧹 Cleared dream store on sign out');
   },
 }));

@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useDreamStore } from '@somni/stores';
 import { Dream } from '@somni/types';
-import { DreamCard } from '../../../components/molecules/DreamCard';
+import { DreamCardWithDuration } from '../../../components/molecules/DreamCard/DreamCardWithDuration';
 import { useNavigation } from '@react-navigation/native';
 import { MainTabScreenProps } from '@somni/types';
 import { darkTheme } from '@somni/theme';
@@ -32,14 +32,13 @@ import { mapDatabaseDreamToFrontend } from '../../../utils/dreamMappers';
 import { testRealtimeConnection } from '../../../utils/testRealtimeConnection';
 import { testDatabaseRealtime } from '../../../utils/testDatabaseRealtime';
 import { useIsFocused } from '@react-navigation/native';
-import { useDreamDurations } from '../../../hooks/useDreamDurations';
 
 type DreamDiaryScreenProps = MainTabScreenProps<'DreamDiary'>;
 
 export const DreamDiaryScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
   const navigation = useNavigation<DreamDiaryScreenProps['navigation']>();
-  const { dreams, searchDreams, updateDream, addDream } = useDreamStore();
+  const { dreams, searchDreams, updateDream, addDream, clearAllData } = useDreamStore();
   const { session, user } = useAuth();
   const isFocused = useIsFocused();
   
@@ -80,16 +79,14 @@ export const DreamDiaryScreen: React.FC = () => {
     );
   }, [dreams, searchQuery, selectedFilter, searchDreams]);
 
-  // Fetch dreams on mount (only once)
+  // Fetch dreams on mount and when user changes
   useEffect(() => {
     if (user?.id) {
-      // Only fetch on first mount, not on every re-render
-      const timer = setTimeout(() => {
-        onRefresh();
-      }, 500);
-      return () => clearTimeout(timer);
+      // Load dreams when component mounts or user changes
+      console.log('📱 DreamDiary: Loading dreams for user:', user.id);
+      onRefresh();
     }
-  }, []); // Empty dependency array to run only once
+  }, [user?.id]); // Re-run when user ID changes
 
   // Memoize the real-time event handler
   const handleRealtimeEvent = useCallback((payload: any) => {
@@ -139,25 +136,9 @@ export const DreamDiaryScreen: React.FC = () => {
           
         }
       } else if (payload.eventType === 'INSERT' && payload.new) {
-        const dreamData = payload.new;
-        
-        // Check if dream already exists
-        const exists = dreams.some(d => 
-          d.id === dreamData.id || 
-          d.id === `temp_${dreamData.id}` ||
-          d.id.replace('temp_', '') === dreamData.id
-        );
-
-        if (!exists) {
-          console.log('➕ Adding new dream from realtime:', dreamData.id);
-          const mappedDream = mapDatabaseDreamToFrontend(dreamData);
-          
-          addDream({
-            ...mappedDream,
-            userId: dreamData.user_id || user.id, // Ensure userId is set
-            description: mappedDream.rawTranscript?.substring(0, 100) + '...' || '',
-          } as any);
-        }
+        // Skip INSERT events - RecordScreen handles new dreams from current session
+        // Database sync handles dreams from other devices/sessions
+        console.log('🔇 Skipping INSERT event (handled by RecordScreen or sync):', payload.new.id);
       }
   }, [dreams, updateDream, addDream, user?.id, isFocused]);
 
@@ -174,6 +155,40 @@ export const DreamDiaryScreen: React.FC = () => {
     }
   }, [user?.id]);
 
+  // Handle real-time dream_images events
+  const handleDreamImagesEvent = useCallback((payload: any) => {
+    console.log('🖼️ Dream images realtime event:', payload);
+    
+    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+      const dreamId = payload.new.dream_id;
+      console.log('🖼️ Image added/updated for dream:', dreamId);
+      
+      // Refresh the dream to get the updated image
+      if (dreamId && user?.id) {
+        // Fetch the updated dream with its images
+        supabase
+          .from('dreams')
+          .select(`
+            *,
+            dream_images (
+              id,
+              storage_path,
+              is_primary
+            )
+          `)
+          .eq('id', dreamId)
+          .single()
+          .then(({ data: updatedDream, error }) => {
+            if (!error && updatedDream) {
+              console.log('🖼️ Fetched updated dream with image:', updatedDream);
+              const mappedDream = mapDatabaseDreamToFrontend(updatedDream);
+              updateDream(dreamId, mappedDream);
+            }
+          });
+      }
+    }
+  }, [user?.id, updateDream]);
+
   // Subscribe to real-time dream updates
   useRealtimeSubscription({
     channelName: 'dream-diary',
@@ -183,15 +198,31 @@ export const DreamDiaryScreen: React.FC = () => {
     onEvent: handleRealtimeEvent,
   });
 
+  // Subscribe to real-time dream_images updates
+  useRealtimeSubscription({
+    channelName: 'dream-images-diary',
+    table: 'dream_images',
+    filter: undefined, // We'll filter by checking the dream's user_id after fetching
+    enabled: shouldSubscribe && !!user?.id,
+    onEvent: handleDreamImagesEvent,
+  });
+
   const onRefresh = async () => {
     setRefreshing(true);
     
     if (user?.id) {
       try {
-        // Fetch dreams from database
+        // Fetch dreams from database with their images
         const { data: dbDreams, error } = await supabase
           .from('dreams')
-          .select('*')
+          .select(`
+            *,
+            dream_images (
+              id,
+              storage_path,
+              is_primary
+            )
+          `)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(50);
@@ -205,16 +236,21 @@ export const DreamDiaryScreen: React.FC = () => {
               title: dbDreams[0].title,
               hasImageUrl: 'image_url' in dbDreams[0],
               image_url: dbDreams[0].image_url,
+              hasDreamImages: 'dream_images' in dbDreams[0],
+              dream_images: dbDreams[0].dream_images,
               columns: Object.keys(dbDreams[0])
             });
           }
           
           // Log dreams with images
-          const dreamsWithImages = dbDreams.filter(d => d.image_url);
+          const dreamsWithImages = dbDreams.filter(d => 
+            d.image_url || (d.dream_images && d.dream_images.length > 0)
+          );
           if (dreamsWithImages.length > 0) {
             console.log('🖼️ Dreams with images:', dreamsWithImages.map(d => ({
               id: d.id,
-              image_url: d.image_url
+              image_url: d.image_url,
+              dream_images: d.dream_images
             })));
           }
           
@@ -227,14 +263,35 @@ export const DreamDiaryScreen: React.FC = () => {
             );
             
             if (existingDream) {
-              // Update existing dream
+              // Update existing dream if status/content has changed
               const mappedDream = mapDatabaseDreamToFrontend(dbDream);
-              updateDream(existingDream.id, {
-                ...mappedDream,
-                id: dbDream.id, // Ensure we keep the correct ID
-              });
-            } else if (dbDream.raw_transcript) {
-              // Add new dream if it has a transcript
+              if (existingDream.transcription_status !== dbDream.transcription_status ||
+                  existingDream.raw_transcript !== dbDream.raw_transcript) {
+                console.log('🔄 Updating existing dream:', dbDream.id);
+                updateDream(existingDream.id, {
+                  ...mappedDream,
+                  id: dbDream.id, // Ensure we keep the correct ID
+                });
+              }
+            } else {
+              // Check if there's a temporary dream that should be replaced
+              const tempDream = dreams.find(d => 
+                d.id.startsWith('temp_') && 
+                d.transcription_status === 'pending' &&
+                Math.abs(new Date(d.created_at).getTime() - new Date(dbDream.created_at).getTime()) < 60000 // Within 1 minute
+              );
+              
+              if (tempDream) {
+                console.log('🔄 Replacing temp dream with database dream:', {
+                  tempId: tempDream.id,
+                  realId: dbDream.id
+                });
+                // Delete temp dream first
+                const { deleteDream } = useDreamStore.getState();
+                deleteDream(tempDream.id);
+              }
+              
+              // Always add new dreams from database (they might be from other devices)
               console.log('➕ Adding dream from database:', dbDream.id);
               const mappedDream = mapDatabaseDreamToFrontend(dbDream);
               
@@ -262,16 +319,44 @@ export const DreamDiaryScreen: React.FC = () => {
     navigation.navigate('DreamDetail', { dreamId: dream.id });
   };
 
-  const handleDeletePress = (dream: Dream) => {
-    // Delete dream from store
-    const { deleteDream } = useDreamStore.getState();
-    deleteDream(dream.id);
+  const handleDeletePress = async (dream: Dream) => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Not authenticated');
+      return;
+    }
+
+    try {
+      // Delete from database first
+      const { error } = await supabase
+        .from('dreams')
+        .delete()
+        .eq('id', dream.id)
+        .eq('user_id', user.id); // Ensure user can only delete their own dreams
+
+      if (error) {
+        console.error('Failed to delete dream from database:', error);
+        Alert.alert('Error', 'Failed to delete dream from database');
+        return;
+      }
+
+      // Delete from local store
+      const { deleteDream } = useDreamStore.getState();
+      deleteDream(dream.id);
+      
+      console.log('✅ Dream deleted successfully:', dream.id);
+    } catch (error) {
+      console.error('Delete dream error:', error);
+      Alert.alert('Error', 'Failed to delete dream');
+    }
   };
 
   const handleRetryPress = async (dream: Dream) => {
     console.log('🔄 Retry pressed for dream:', {
       id: dream.id,
       status: dream.status,
+      transcriptionStatus: dream.transcription_status || dream.transcriptionStatus,
+      metadata: dream.transcription_metadata || dream.transcriptionMetadata,
+      duration: dream.duration,
       hasAudioUri: !!dream.audioUri,
       audioUri: dream.audioUri
     });
@@ -350,7 +435,7 @@ export const DreamDiaryScreen: React.FC = () => {
             body: JSON.stringify({
               dreamId: dreamId,
               audioBase64,
-              duration: dream.duration
+              duration: dream.duration || 0
             })
           }
         );
@@ -358,7 +443,7 @@ export const DreamDiaryScreen: React.FC = () => {
         const responseData = await response.json();
         
         if (!response.ok) {
-          throw new Error(responseData.error || 'Transcription failed');
+          throw new Error(responseData.message || responseData.error || 'Transcription failed');
         }
 
         // Delete the local audio file after successful upload
@@ -415,10 +500,29 @@ export const DreamDiaryScreen: React.FC = () => {
       updateDream(dream.id, { status: dream.status === 'pending' ? 'pending' : 'failed' });
       
       const errorMessage = error.message || 'Unknown error occurred';
+      
+      // If it's a "too short" error, fetch the updated dream from database
+      if (errorMessage.includes('Recording too short')) {
+        console.log('🔄 Fetching updated dream after too-short error');
+        const { data: updatedDream, error: fetchError } = await supabase
+          .from('dreams')
+          .select('*')
+          .eq('id', dream.id)
+          .single();
+          
+        if (!fetchError && updatedDream) {
+          console.log('✅ Got updated dream with metadata:', updatedDream.transcription_metadata);
+          const mappedDream = mapDatabaseDreamToFrontend(updatedDream);
+          updateDream(dream.id, mappedDream);
+        }
+      }
+      
       Alert.alert(
         String(t('record.serviceUnavailable.title')),
         errorMessage.includes('Audio file not found') 
           ? 'The audio file for this dream could not be found. It may have been deleted.'
+          : errorMessage.includes('Recording too short')
+          ? 'Recording must be at least 5 seconds long'
           : String(t('record.serviceUnavailable.message')),
         [{ text: String(t('actions.ok')) }]
       );
@@ -432,14 +536,11 @@ export const DreamDiaryScreen: React.FC = () => {
     }
   };
 
-  // Get durations for all filtered dreams
-  const dreamIds = filteredDreams.map(d => d.id);
-  const { durations } = useDreamDurations(dreamIds);
+  // Duration is now fetched individually by each DreamCardWithDuration
 
   const renderDreamItem = ({ item }: { item: Dream }) => (
-    <DreamCard 
+    <DreamCardWithDuration 
       dream={item}
-      duration={durations[item.id]}
       onPress={handleDreamPress}
       onAnalyzePress={handleAnalyzePress}
       onDeletePress={handleDeletePress}

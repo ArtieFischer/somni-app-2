@@ -96,7 +96,6 @@ export const DreamDetailScreen: React.FC = () => {
 
   const renderOverview = () => (
     <VStack space="lg">
-      {/* Dream Metrics */}
       <HStack space="md">
         <MetricBox
           icon={<Ionicons name={getMoodIcon(dream.mood)} size={24} />}
@@ -111,8 +110,6 @@ export const DreamDetailScreen: React.FC = () => {
           iconColor={dream.clarity && dream.clarity >= 70 ? darkTheme.colors.primary : darkTheme.colors.secondary}
         />
       </HStack>
-      
-      {/* Lucid Dream Badge */}
       {dream.is_lucid && (
         <Card variant="filled" bg={darkTheme.colors.primary + '20'} marginHorizontal={0}>
           <HStack space="sm" alignItems="center">
@@ -123,8 +120,6 @@ export const DreamDetailScreen: React.FC = () => {
           </HStack>
         </Card>
       )}
-      
-      {/* Location */}
       {dream.location_metadata && (
         <Card variant="elevated" marginHorizontal={0}>
           <HStack space="sm" alignItems="center">
@@ -147,8 +142,6 @@ export const DreamDetailScreen: React.FC = () => {
           </HStack>
         </Card>
       )}
-
-      {/* Dream Image */}
       {dream.image_prompt && (
         <Box
           borderRadius="$lg"
@@ -174,8 +167,6 @@ export const DreamDetailScreen: React.FC = () => {
           </Box>
         </Box>
       )}
-
-      {/* Transcript */}
       <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
           <HStack space="sm" alignItems="center">
@@ -189,8 +180,6 @@ export const DreamDetailScreen: React.FC = () => {
           </Text>
         </VStack>
       </Card>
-
-      {/* Recording Info */}
       {dream.duration && (
         <Card variant="elevated" marginHorizontal={0}>
           <HStack space="md" alignItems="center">
@@ -270,7 +259,6 @@ export const DreamDetailScreen: React.FC = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: darkTheme.colors.background.primary }}>
       <VStack flex={1}>
-        {/* Header */}
         <Box px="$5" py="$4" borderBottomWidth={1} borderBottomColor={darkTheme.colors.border.primary}>
           <VStack space="sm">
             <HStack justifyContent="space-between" alignItems="center">
@@ -293,14 +281,12 @@ export const DreamDetailScreen: React.FC = () => {
           </VStack>
         </Box>
 
-        {/* Tab Navigation */}
         <Box px="$5" py="$4" borderBottomWidth={1} borderBottomColor={darkTheme.colors.border.primary}>
           <HStack space="sm">
             {tabs.map(renderTabButton)}
           </HStack>
         </Box>
 
-        {/* Content */}
         <ScrollView 
           flex={1} 
           showsVerticalScrollIndicator={false}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Animated, SafeAreaView, Alert, StyleSheet, Pressable } from 'react-native';
 import { Text } from '../../../components/atoms';
 import SomniLogoMoon from '../../../../../../assets/logo_somni_moon.svg';
-import { DreamyBackground } from '../../../components/DreamyRecordKit';
+// import { DreamyBackground } from '../../../components/DreamyRecordKit';
 import Reanimated, { 
   useAnimatedStyle, 
   useSharedValue, 
@@ -26,6 +26,8 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useStyles } from './RecordScreen.styles';
 import { useNavigation } from '@react-navigation/native';
 import { useRealtimeSubscription } from '../../../hooks/useRealtimeSubscription';
+import { mapDatabaseDreamToFrontend } from '../../../utils/dreamMappers';
+import * as FileSystem from 'expo-file-system';
 // import { testRealtimeSubscription } from '../../../utils/realtimeDebug';
 
 export const RecordScreen: React.FC = () => {
@@ -115,6 +117,34 @@ export const RecordScreen: React.FC = () => {
     try {
       if (isRecording) {
         const result = await stopRecording();
+        
+        // Check minimum duration (5 seconds)
+        if (result.duration < 5) {
+          console.log('❌ Recording too short:', result.duration, 'seconds');
+          
+          // Show alert
+          Alert.alert(
+            'Recording Too Short',
+            'Please record for at least 5 seconds to save your dream.',
+            [{ text: 'OK' }]
+          );
+          
+          // Delete the audio file
+          try {
+            await FileSystem.deleteAsync(result.uri);
+            console.log('🗑️ Deleted short recording audio file');
+          } catch (deleteError) {
+            console.error('Failed to delete audio file:', deleteError);
+          }
+          
+          // Clear the recording session without saving
+          dreamStore.clearRecordingSession();
+          
+          // Don't save the pending recording
+          return;
+        }
+        
+        // Recording is long enough, save it
         savePendingRecording(result);
       } else {
         await startRecording();
@@ -126,7 +156,7 @@ export const RecordScreen: React.FC = () => {
         setIsButtonDisabled(false);
       }, 500);
     }
-  }, [isButtonDisabled, isProcessing, isRecording, stopRecording, savePendingRecording, startRecording]);
+  }, [isButtonDisabled, isProcessing, isRecording, stopRecording, savePendingRecording, startRecording, dreamStore]);
 
   // Listen for tab press when already focused
   useEffect(() => {
@@ -164,30 +194,30 @@ export const RecordScreen: React.FC = () => {
             hasTranscript: !!dream.raw_transcript
           });
           
-          if (dream.transcription_status === 'done' && dream.raw_transcript) {
+          if ((dream.transcription_status === 'completed' || dream.transcription_status === 'done') && dream.raw_transcript) {
             console.log('✅ Transcription completed for dream:', dream.id);
-            
-            // Update the dream in the store
-            dreamStore.updateDream(dream.id, {
-              raw_transcript: dream.raw_transcript,
-              transcription_status: 'done',
-            });
             
             // Check if this dream exists in the store
             const existingDream = dreamStore.getDreamById(dream.id);
-            if (!existingDream) {
-              console.log('⚠️ Dream not found in store, adding it');
-              dreamStore.addDream({
-                id: dream.id,
-                user_id: dream.user_id,
+            
+            if (existingDream) {
+              console.log('✅ Updating existing dream with completed transcription');
+              // Update the existing dream with new status and transcript
+              dreamStore.updateDream(dream.id, {
                 raw_transcript: dream.raw_transcript,
-                transcription_status: 'done',
-                is_lucid: dream.is_lucid || false,
-                mood: dream.mood,
-                clarity: dream.clarity,
-                created_at: dream.created_at,
-                updated_at: dream.updated_at,
+                transcription_status: 'completed',
+                status: 'completed', // Also update legacy status field
               });
+            } else {
+              // Only add dreams if they're from our recording session
+              if (recordedDreamIdsRef.current.has(dream.id)) {
+                console.log('⚠️ Dream not found in store, adding it (from our session)');
+                // Map the full dream data using the mapper
+                const mappedDream = mapDatabaseDreamToFrontend(dream);
+                dreamStore.addDream(mappedDream as any);
+              } else {
+                console.log('🔇 Ignoring dream not from our session:', dream.id);
+              }
             }
             
             // Remove from tracked dreams after completion
@@ -195,10 +225,14 @@ export const RecordScreen: React.FC = () => {
               recordedDreamIdsRef.current.delete(dream.id);
             }
           } else if (dream.transcription_status === 'failed') {
-            console.log('❌ Transcription failed for dream:', dream.id);
-            dreamStore.updateDream(dream.id, {
-              transcription_status: 'error',
+            console.log('❌ Transcription failed for dream:', {
+              id: dream.id,
+              metadata: dream.transcription_metadata
             });
+            
+            // Map the database dream to frontend format
+            const mappedDream = mapDatabaseDreamToFrontend(dream);
+            dreamStore.updateDream(dream.id, mappedDream);
           } else if (dream.transcription_status === 'processing') {
             console.log('⏳ Transcription processing for dream:', dream.id);
             dreamStore.updateDream(dream.id, {
@@ -321,7 +355,7 @@ export const RecordScreen: React.FC = () => {
     <View style={styles.fullScreenContainer}>
       {/* Dreamy animated background - full screen absolute positioned */}
       <View style={StyleSheet.absoluteFill}>
-        <DreamyBackground active={isRecording} />
+        {/* <DreamyBackground active={isRecording} /> */}
       </View>
       
       <SafeAreaView style={styles.container}>
@@ -389,10 +423,29 @@ export const RecordScreen: React.FC = () => {
                 </View>
                 <RecordingActions
                   onAccept={async () => {
-                    const dreamId = await acceptRecording();
-                    if (dreamId) {
-                      // Track this dream ID to show notification when it completes
-                      recordedDreamIdsRef.current.add(dreamId);
+                    try {
+                      const dreamId = await acceptRecording();
+                      if (dreamId) {
+                        // Track this dream ID to show notification when it completes
+                        recordedDreamIdsRef.current.add(dreamId);
+                      }
+                    } catch (error) {
+                      console.error('Failed to accept recording:', error);
+                      
+                      // Check if it's a "too short" error
+                      if (error.message?.includes('Recording too short')) {
+                        Alert.alert(
+                          String(t('record.error.tooShort.title') || 'Recording Too Short'),
+                          String(t('record.error.tooShort.message') || 'Please record for at least 5 seconds to capture your dream'),
+                          [{ text: String(t('actions.ok')) }]
+                        );
+                      } else {
+                        Alert.alert(
+                          String(t('record.serviceUnavailable.title')),
+                          String(t('record.serviceUnavailable.message')),
+                          [{ text: String(t('actions.ok')) }]
+                        );
+                      }
                     }
                   }}
                   onSaveLater={saveLaterRecording}

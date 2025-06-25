@@ -18,19 +18,27 @@ export const useDreamDurations = (dreamIds: string[]) => {
     const fetchDurations = async () => {
       setLoading(true);
       try {
+        console.log('🔍 Fetching durations for dreams:', dreamIds);
+        
         const { data, error } = await supabase
           .from('transcription_usage')
           .select('dream_id, duration_seconds')
           .in('dream_id', dreamIds)
           .eq('user_id', user.id);
 
-        if (!error && data) {
+        if (error) {
+          console.error('❌ Error fetching durations:', error);
+        } else if (data) {
+          console.log('✅ Duration data received:', data);
           const durationMap = data.reduce((acc, item) => {
             acc[item.dream_id] = item.duration_seconds;
             return acc;
           }, {} as Record<string, number>);
           
+          console.log('📊 Duration map:', durationMap);
           setDurations(durationMap);
+        } else {
+          console.log('⚠️ No duration data found');
         }
       } catch (error) {
         console.error('Error fetching dream durations:', error);

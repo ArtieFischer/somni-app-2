@@ -149,6 +149,14 @@ export const useDreamRecorder = (): UseDreamRecorderReturn => {
       // Then update the store
       dreamStore.stopRecording();
 
+      // Check minimum duration before creating any dream entry
+      if (audioResult.duration < 5) {
+        console.log('❌ Recording too short:', audioResult.duration, 'seconds - not creating dream entry');
+        // Don't create any dream entry for recordings under 5 seconds
+        // The RecordScreen will handle showing the alert and cleaning up
+        return audioResult;
+      }
+
       // Create placeholder dream entry with actual user ID and audio URI
       dreamStore.addDream({
         id: `temp_${currentSession.id}`,

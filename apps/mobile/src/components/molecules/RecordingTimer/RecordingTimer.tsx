@@ -49,13 +49,19 @@ export const RecordingTimer: React.FC<RecordingTimerProps> = ({
       ]}
     >
       <View style={styles.timer}>
-        <View style={styles.dot} />
-        <Text variant="h2" style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 'bold' }}>
+        <View style={[styles.dot, duration < 5 && styles.dotWarning]} />
+        <Text variant="h2" style={{ 
+          color: duration < 5 ? '#FF6B6B' : '#FFFFFF', 
+          fontSize: 28, 
+          fontWeight: 'bold' 
+        }}>
           {formatTime(duration)}
         </Text>
       </View>
       <Text variant="caption" color="secondary" style={styles.label}>
-        {String(t('record.button.recording', { duration }))}
+        {duration < 5 
+          ? 'Minimum 5 seconds required' 
+          : String(t('record.button.recording', { duration }))}
       </Text>
     </Animated.View>
   );

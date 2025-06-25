@@ -178,8 +178,8 @@ export const useDreamStore = create<DreamStore>()(
       getDreamsByStatus: (status) => {
         // Map old status to new transcription_status
         const transcriptionStatus = 
-          status === 'completed' ? 'done' :
-          status === 'failed' ? 'error' :
+          status === 'completed' ? 'completed' :
+          status === 'failed' ? 'failed' :
           status === 'transcribing' ? 'processing' :
           'pending';
         return get().dreams.filter(dream => dream.transcription_status === transcriptionStatus);
@@ -202,8 +202,8 @@ export const useDreamStore = create<DreamStore>()(
         // Status filter (map old status to transcription_status)
         if (query.status && query.status.length > 0) {
           const mappedStatuses = query.status.map(status => 
-            status === 'completed' ? 'done' :
-            status === 'failed' ? 'error' :
+            status === 'completed' ? 'completed' :
+            status === 'failed' ? 'failed' :
             status === 'transcribing' ? 'processing' :
             'pending'
           );
@@ -284,10 +284,10 @@ export const useDreamStore = create<DreamStore>()(
 
       getDreamStats: () => {
         const dreams = get().dreams;
-        const completedDreams = dreams.filter(d => d.transcription_status === 'done');
+        const completedDreams = dreams.filter(d => d.transcription_status === 'completed');
         const pendingDreams = dreams.filter(d => d.transcription_status === 'pending');
         const transcribingDreams = dreams.filter(d => d.transcription_status === 'processing');
-        const failedDreams = dreams.filter(d => d.transcription_status === 'error');
+        const failedDreams = dreams.filter(d => d.transcription_status === 'failed');
         
         const totalDuration = dreams.reduce((sum, dream) => sum + (dream.duration || 0), 0);
         const totalMood = dreams.reduce((sum, dream) => sum + (dream.mood || 0), 0);

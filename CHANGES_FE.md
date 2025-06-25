@@ -44,3 +44,21 @@
 - Edge function now expects and validates `duration` parameter
 - Returns 400 error with specific message for too-short recordings
 - Records transcription usage after successful processing
+
+### Bug Fixes
+- Fixed duration display always showing "0:00" - now shows for all dreams (not just non-completed)
+- Added DreamCardWithDuration wrapper to fetch duration from transcription_usage table
+- Fixed error display for "too short" recordings by checking both 'error' and 'failed' status
+- Added refresh of dream data after transcription failure to get updated metadata
+- Improved error handling to show specific message for too-short recordings
+
+### Additional Fixes (2025-01-26 Update)
+- Fixed dream not appearing in diary after "too short" error:
+  - Added dream to local store immediately after creation
+  - Fetch and update dream with error metadata when transcription fails
+  - Don't overwrite failed status with pending status
+- Fixed realtime updates not showing error metadata:
+  - Map full dream data (including metadata) when status changes to 'failed'
+- Added proper error handling in RecordScreen:
+  - Show specific alert for "too short" recordings
+  - Catch and handle errors from acceptRecording function
