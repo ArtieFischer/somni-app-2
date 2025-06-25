@@ -21,8 +21,9 @@ export const useStyles = () => {
       marginBottom: theme.spacing.large,
     },
     title: {
-      marginBottom: theme.spacing.small,
-      textAlign: 'center',
+      marginTop: theme.spacing.large,
+      marginBottom: theme.spacing.medium,
+      marginHorizontal: theme.spacing.large,
     },
     description: {
       marginBottom: theme.spacing.medium,

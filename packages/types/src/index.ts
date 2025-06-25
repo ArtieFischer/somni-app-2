@@ -74,6 +74,8 @@ export type {
 export type {
   MainTabParamList,
   MainTabScreenProps,
+  MainStackParamList,
+  MainStackScreenProps,
   TabIconName
 } from './navigation';
 

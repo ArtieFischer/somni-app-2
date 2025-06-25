@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ScrollView, View } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { ScrollView, View, Image as RNImage, Alert, Platform, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   VStack,
@@ -11,14 +11,22 @@ import {
   BadgeText,
   Pressable,
   Image,
+  Progress,
+  ProgressFilledTrack,
 } from '@gluestack-ui/themed';
 import { darkTheme } from '@somni/theme';
 import { Card, PillButton } from '../../components/atoms';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MainStackScreenProps, Dream } from '@somni/types';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useDreamStore } from '@somni/stores';
 import { format } from 'date-fns';
+// Use mock in development, real module in production
+const Share = __DEV__ 
+  ? require('../../utils/shareMock').default 
+  : require('react-native-share').default;
+import * as FileSystem from 'expo-file-system';
+import ViewShot from 'react-native-view-shot';
 
 type NavigationProps = MainStackScreenProps<'DreamDetail'>['navigation'];
 type RouteProps = MainStackScreenProps<'DreamDetail'>['route'];
@@ -51,9 +59,164 @@ export const DreamDetailScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProps>();
   const route = useRoute<RouteProps>();
   const dreamStore = useDreamStore();
+  const viewShotRef = useRef<ViewShot>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
   
   const dreamId = route.params?.dreamId;
   const dream = dreamId ? dreamStore.getDreamById(dreamId) : null;
+  
+  const handleShareOnSomni = () => {
+    Alert.alert(
+      'Coming Soon',
+      'Share on Somni will be available in the next update!',
+      [{ text: 'OK' }]
+    );
+  };
+  
+  const captureViewShot = async (): Promise<string | null> => {
+    if (!viewShotRef.current) return null;
+    
+    try {
+      setIsCapturing(true);
+      const uri = await viewShotRef.current.capture();
+      console.log('Captured screenshot:', uri);
+      return uri;
+    } catch (error) {
+      console.error('Error capturing screenshot:', error);
+      return null;
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+  
+  const handleShareOnX = async () => {
+    if (!dream) return;
+    
+    try {
+      // Capture the view first
+      const screenshotUri = await captureViewShot();
+      
+      if (screenshotUri) {
+        // Convert screenshot to base64
+        const base64 = await FileSystem.readAsStringAsync(screenshotUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        
+        const dreamText = dream.title || 'Just had an amazing dream';
+        const message = `${dreamText} #Somni #DreamJournal`;
+        
+        const shareOptions: any = {
+          message: message,
+          url: `data:image/png;base64,${base64}`,
+          social: Share.Social.TWITTER,
+          type: 'image/png',
+        };
+        
+        await Share.shareSingle(shareOptions);
+        
+        // Clean up temp file
+        await FileSystem.deleteAsync(screenshotUri, { idempotent: true });
+      } else {
+        // Fallback to text only
+        const dreamText = dream.title || 'Just had an amazing dream';
+        const message = `${dreamText} #Somni #DreamJournal`;
+        
+        const shareOptions: any = {
+          message: message,
+          social: Share.Social.TWITTER,
+        };
+        
+        await Share.shareSingle(shareOptions);
+      }
+    } catch (error) {
+      console.error('Error sharing to X:', error);
+      
+      // Fallback to web intent if the app isn't installed
+      const dreamText = dream.title || 'Just had an amazing dream';
+      const tweetText = `${dreamText} #Somni #DreamJournal`;
+      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+      
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert(
+          'Unable to Share',
+          'Please make sure X (Twitter) is installed on your device',
+          [{ text: 'OK' }]
+        );
+      }
+    }
+  };
+  
+  const handleShareToStory = async () => {
+    if (!dream) return;
+    
+    try {
+      // Check if Instagram is installed first
+      const isInstagramInstalled = await Share.isPackageInstalled('com.instagram.android').catch(() => ({ isInstalled: false }));
+      
+      if (!isInstagramInstalled.isInstalled && Platform.OS === 'android') {
+        Alert.alert(
+          'Instagram Not Found',
+          'Please make sure Instagram is installed on your device',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      // Capture the view screenshot
+      const screenshotUri = await captureViewShot();
+      
+      if (screenshotUri) {
+        // Convert screenshot to base64
+        const imageBase64 = await FileSystem.readAsStringAsync(screenshotUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        
+        const shareOptions: any = {
+          social: Share.Social.INSTAGRAM_STORIES,
+          appId: '1234567890', // You'll need to get a Facebook App ID
+          backgroundImage: `data:image/png;base64,${imageBase64}`,
+          attributionURL: 'https://somni.app', // Your app's deep link
+        };
+        
+        await Share.shareSingle(shareOptions);
+        
+        // Clean up temp file
+        await FileSystem.deleteAsync(screenshotUri, { idempotent: true });
+      } else {
+        // Fallback if screenshot fails
+        Alert.alert(
+          'Error',
+          'Unable to capture dream details. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
+      
+    } catch (error) {
+      console.error('Error sharing to Instagram Story:', error);
+      
+      // Fallback to opening Instagram camera if sharing fails
+      const instagramURL = 'instagram://story-camera';
+      const canOpen = await Linking.canOpenURL(instagramURL);
+      
+      if (canOpen) {
+        await Linking.openURL(instagramURL);
+        Alert.alert(
+          'Instagram Stories',
+          'Take a screenshot of your dream to share it as a story!',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          'Unable to share to Instagram Story. Please make sure Instagram is installed.',
+          [{ text: 'OK' }]
+        );
+      }
+    }
+  };
 
   useEffect(() => {
     if (!dream) {
@@ -94,55 +257,45 @@ export const DreamDetailScreen: React.FC = () => {
     />
   );
 
+  const getMoodPercentage = (mood?: number) => {
+    if (!mood) return 0;
+    return (mood / 5) * 100;
+  };
+  
+  const getMoodColor = (mood?: number) => {
+    if (!mood) return darkTheme.colors.secondary;
+    if (mood >= 4) return darkTheme.colors.success;
+    if (mood >= 3) return darkTheme.colors.primary;
+    return darkTheme.colors.secondary;
+  };
+
   const renderOverview = () => (
-    <VStack space="lg">
-      <HStack space="md">
-        <MetricBox
-          icon={<Ionicons name={getMoodIcon(dream.mood)} size={24} />}
-          label="Mood"
-          value={getMoodLabel(dream.mood)}
-          iconColor={dream.mood && dream.mood >= 4 ? darkTheme.colors.success : darkTheme.colors.secondary}
-        />
-        <MetricBox
-          icon={<MaterialCommunityIcons name="eye-outline" size={24} />}
-          label="Clarity"
-          value={dream.clarity ? `${dream.clarity}%` : 'Not set'}
-          iconColor={dream.clarity && dream.clarity >= 70 ? darkTheme.colors.primary : darkTheme.colors.secondary}
-        />
-      </HStack>
-      {dream.is_lucid && (
-        <Card variant="filled" bg={darkTheme.colors.primary + '20'} marginHorizontal={0}>
-          <HStack space="sm" alignItems="center">
-            <Ionicons name="sparkles" size={20} color={darkTheme.colors.primary} />
-            <Text size="md" color={darkTheme.colors.primary} fontWeight="$medium">
-              Lucid Dream
-            </Text>
-          </HStack>
-        </Card>
+    <VStack space="xl">
+      {dream.image_url && (
+        <Box
+          borderRadius="$lg"
+          overflow="hidden"
+          bg={darkTheme.colors.background.secondary}
+          aspectRatio={3 / 2}
+        >
+          <RNImage
+            source={{ uri: dream.image_url }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+            onError={(error) => {
+              console.error('🚨 Image failed to load:', {
+                dreamId: dream.id,
+                imageUrl: dream.image_url,
+                error
+              });
+            }}
+            onLoad={() => {
+              console.log('✅ Image loaded successfully:', dream.image_url);
+            }}
+          />
+        </Box>
       )}
-      {dream.location_metadata && (
-        <Card variant="elevated" marginHorizontal={0}>
-          <HStack space="sm" alignItems="center">
-            <Ionicons name="location-outline" size={20} color={darkTheme.colors.secondary} />
-            <VStack flex={1} space="xs">
-              <Text size="sm" color="$textLight400" fontWeight="$medium">
-                LOCATION
-              </Text>
-              <Text size="md" color="$textLight100">
-                {[dream.location_metadata.city, dream.location_metadata.country]
-                  .filter(Boolean)
-                  .join(', ') || 'Unknown'}
-              </Text>
-              {dream.location_metadata.method && (
-                <Text size="xs" color="$textLight500">
-                  {dream.location_metadata.method === 'gps' ? 'GPS Location' : 'Manual Entry'}
-                </Text>
-              )}
-            </VStack>
-          </HStack>
-        </Card>
-      )}
-      {dream.image_prompt && (
+      {dream.image_prompt && !dream.image_url && (
         <Box
           borderRadius="$lg"
           overflow="hidden"
@@ -167,6 +320,16 @@ export const DreamDetailScreen: React.FC = () => {
           </Box>
         </Box>
       )}
+      {dream.is_lucid && (
+        <Card variant="filled" bg={darkTheme.colors.primary + '20'} marginHorizontal={0}>
+          <HStack space="sm" alignItems="center">
+            <Ionicons name="sparkles" size={20} color={darkTheme.colors.primary} />
+            <Text size="md" color={darkTheme.colors.primary} fontWeight="$medium">
+              Lucid Dream
+            </Text>
+          </HStack>
+        </Card>
+      )}
       <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
           <HStack space="sm" alignItems="center">
@@ -178,6 +341,62 @@ export const DreamDetailScreen: React.FC = () => {
           <Text size="md" color="$textLight100" lineHeight="$lg">
             {dream.raw_transcript || 'No transcript available'}
           </Text>
+        </VStack>
+      </Card>
+      
+      <Card variant="elevated" marginHorizontal={0}>
+        <VStack space="md">
+          <HStack space="sm" alignItems="center">
+            <MaterialCommunityIcons name="emoticon-outline" size={20} color={darkTheme.colors.secondary} />
+            <Text size="sm" color="$textLight400" fontWeight="$medium">
+              MOOD
+            </Text>
+          </HStack>
+          <VStack space="sm">
+            <HStack justifyContent="space-between" alignItems="center">
+              <Text size="md" color="$textLight100">
+                {getMoodLabel(dream.mood)}
+              </Text>
+              {dream.mood && (
+                <Text size="sm" color={getMoodColor(dream.mood)}>
+                  {dream.mood}/5
+                </Text>
+              )}
+            </HStack>
+            {dream.mood && (
+              <Progress value={getMoodPercentage(dream.mood)} size="md">
+                <ProgressFilledTrack bg={getMoodColor(dream.mood)} />
+              </Progress>
+            )}
+          </VStack>
+        </VStack>
+      </Card>
+      
+      <Card variant="elevated" marginHorizontal={0}>
+        <VStack space="md">
+          <HStack space="sm" alignItems="center">
+            <MaterialCommunityIcons name="eye-outline" size={20} color={darkTheme.colors.secondary} />
+            <Text size="sm" color="$textLight400" fontWeight="$medium">
+              CLARITY
+            </Text>
+          </HStack>
+          <VStack space="sm">
+            <HStack justifyContent="space-between" alignItems="center">
+              <Text size="md" color="$textLight100">
+                {dream.clarity ? `${dream.clarity}%` : 'Not set'}
+              </Text>
+              {dream.clarity && (
+                <Text size="sm" color={dream.clarity >= 70 ? darkTheme.colors.success : darkTheme.colors.secondary}>
+                  {dream.clarity >= 70 ? 'High' : dream.clarity >= 40 ? 'Medium' : 'Low'}
+                </Text>
+              )}
+            </HStack>
+            {dream.clarity && (
+              <Progress value={dream.clarity} size="md">
+                <ProgressFilledTrack bg={dream.clarity >= 70 ? darkTheme.colors.success : dream.clarity >= 40 ? darkTheme.colors.primary : darkTheme.colors.secondary} />
+              </Progress>
+            )}
+          </VStack>
         </VStack>
       </Card>
       {dream.duration && (
@@ -208,6 +427,84 @@ export const DreamDetailScreen: React.FC = () => {
           </HStack>
         </Card>
       )}
+      
+      {/* Share Buttons */}
+      <VStack space="sm" mt="$8" mb="$4">
+        <Pressable
+          onPress={handleShareOnSomni}
+          style={{
+            borderWidth: 1,
+            borderColor: darkTheme.colors.border.secondary,
+            borderRadius: 12,
+            paddingHorizontal: 24,
+            paddingVertical: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+          }}
+        >
+          <Box
+            w={24}
+            h={24}
+            borderRadius="$full"
+            bg={darkTheme.colors.primary}
+            justifyContent="center"
+            alignItems="center"
+          >
+            <Text size="sm" color="white" fontWeight="$bold">
+              S
+            </Text>
+          </Box>
+          <Text size="md" color="$textLight200" fontWeight="$medium">
+            Share on Somni
+          </Text>
+        </Pressable>
+        
+        <Pressable
+          onPress={handleShareOnX}
+          disabled={isCapturing}
+          style={{
+            borderWidth: 1,
+            borderColor: darkTheme.colors.border.secondary,
+            borderRadius: 12,
+            paddingHorizontal: 24,
+            paddingVertical: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            opacity: isCapturing ? 0.6 : 1,
+          }}
+        >
+          <FontAwesome5 name="twitter" size={24} color="#1DA1F2" />
+          <Text size="md" color="$textLight200" fontWeight="$medium">
+            {isCapturing ? 'Capturing...' : 'Share on X'}
+          </Text>
+        </Pressable>
+        
+        <Pressable
+          onPress={handleShareToStory}
+          disabled={isCapturing}
+          style={{
+            borderWidth: 1,
+            borderColor: darkTheme.colors.border.secondary,
+            borderRadius: 12,
+            paddingHorizontal: 24,
+            paddingVertical: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            opacity: isCapturing ? 0.6 : 1,
+          }}
+        >
+          <FontAwesome5 name="instagram" size={24} color="#E4405F" />
+          <Text size="md" color="$textLight200" fontWeight="$medium">
+            {isCapturing ? 'Capturing...' : 'Share on Story'}
+          </Text>
+        </Pressable>
+      </VStack>
     </VStack>
   );
 
@@ -259,41 +556,95 @@ export const DreamDetailScreen: React.FC = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: darkTheme.colors.background.primary }}>
       <VStack flex={1}>
-        <Box px="$5" py="$4" borderBottomWidth={1} borderBottomColor={darkTheme.colors.border.primary}>
-          <VStack space="sm">
-            <HStack justifyContent="space-between" alignItems="center">
-              <Pressable onPress={() => navigation.goBack()}>
-                <HStack space="xs" alignItems="center">
-                  <Ionicons name="chevron-back" size={20} color={darkTheme.colors.primary} />
-                  <Text color={darkTheme.colors.primary} fontWeight="$medium">
-                    Back
-                  </Text>
-                </HStack>
-              </Pressable>
-              <Text size="xs" color="$textLight400">
-                {format(new Date(dream.created_at), 'MMM d, h:mm a')}
+        {/* Back button outside ViewShot */}
+        <Box px="$5" pt="$4" pb="$2">
+          <Pressable onPress={() => navigation.goBack()}>
+            <HStack space="xs" alignItems="center">
+              <Ionicons name="chevron-back" size={20} color={darkTheme.colors.primary} />
+              <Text color={darkTheme.colors.primary} fontWeight="$medium">
+                Back
               </Text>
             </HStack>
-            
-            <Heading size="xl" color="$textLight50" numberOfLines={2}>
-              {dream.title || 'Untitled Dream'}
-            </Heading>
-          </VStack>
+          </Pressable>
         </Box>
-
-        <Box px="$5" py="$4" borderBottomWidth={1} borderBottomColor={darkTheme.colors.border.primary}>
-          <HStack space="sm">
-            {tabs.map(renderTabButton)}
-          </HStack>
-        </Box>
-
-        <ScrollView 
-          flex={1} 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        
+        {/* Capture everything else */}
+        <ViewShot 
+          ref={viewShotRef}
+          style={{ flex: 1 }}
+          options={{
+            format: 'png',
+            quality: 0.9,
+            result: 'tmpfile',
+          }}
         >
-          {renderContent()}
-        </ScrollView>
+          <VStack flex={1} bg={darkTheme.colors.background.primary}>
+            <Box px="$5" pb="$4" pt="$2" borderBottomWidth={1} borderBottomColor={darkTheme.colors.border.primary}>
+              <VStack space="sm">
+                <HStack justifyContent="space-between" alignItems="flex-start">
+                  <VStack flex={1}>
+                    <Heading size="xl" color="$textLight50" numberOfLines={2}>
+                      {dream.title || 'Untitled Dream'}
+                    </Heading>
+                  </VStack>
+                  <VStack alignItems="flex-end" space="2xs" ml="$3">
+                    <Text size="xs" color="$textLight400">
+                      {format(new Date(dream.created_at), 'MMM d, h:mm a')}
+                    </Text>
+                    {dream.location_metadata && (
+                      <Text size="xs" color="$textLight400">
+                        in {[dream.location_metadata.city, dream.location_metadata.country]
+                          .filter(Boolean)
+                          .join(', ') || 'Unknown location'}
+                      </Text>
+                    )}
+                  </VStack>
+                </HStack>
+              </VStack>
+            </Box>
+
+            <Box px="$5" py="$4" borderBottomWidth={1} borderBottomColor={darkTheme.colors.border.primary}>
+              <HStack space="sm">
+                {tabs.map(renderTabButton)}
+              </HStack>
+            </Box>
+
+            <ScrollView 
+              flex={1} 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+            >
+              {renderContent()}
+              
+              {/* Somni branding for screenshots */}
+              {activeTab === 'overview' && (
+                <HStack 
+                  justifyContent="center" 
+                  alignItems="center" 
+                  space="xs" 
+                  mt="$6" 
+                  opacity={0.7}
+                >
+                  <Box
+                    w={20}
+                    h={20}
+                    borderRadius="$full"
+                    bg={darkTheme.colors.primary}
+                    justifyContent="center"
+                    alignItems="center"
+                  >
+                    <Text size="xs" color="white" fontWeight="$bold">
+                      S
+                    </Text>
+                  </Box>
+                  <Text size="sm" color="$textLight400" fontWeight="$medium">
+                    Somni - Dream Journal
+                  </Text>
+                </HStack>
+              )}
+            </ScrollView>
+          </VStack>
+        </ViewShot>
       </VStack>
     </SafeAreaView>
   );

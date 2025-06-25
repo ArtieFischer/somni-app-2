@@ -1,92 +1,56 @@
-import React from 'react';
-import { View, ScrollView } from 'react-native';
-import { Text, Card } from '../../../components/atoms';
+import React, { useState, useMemo } from 'react';
+import { View, ScrollView, FlatList } from 'react-native';
+import { Text } from '../../../components/atoms';
+import { ThemeFilter } from '../../../components/molecules/ThemeFilter/ThemeFilter';
+import { FeedItem } from '../../../components/molecules/FeedItem/FeedItem';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useStyles } from './FeedScreen.styles';
+import { mockThemes, mockDreams } from './mockData';
 
 export const FeedScreen: React.FC = () => {
   const { t } = useTranslation('common');
   const styles = useStyles();
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+
+  // Filter dreams based on selected theme
+  const filteredDreams = useMemo(() => {
+    if (!selectedTheme) return mockDreams;
+    const selectedThemeName = mockThemes.find(t => t.id === selectedTheme)?.name;
+    return mockDreams.filter(dream => 
+      dream.themes?.some(theme => theme === selectedThemeName)
+    );
+  }, [selectedTheme]);
+
+  const handleLike = (dreamId: string) => {
+    console.log('Liked dream:', dreamId);
+    // In real app, this would update the backend
+  };
+
+  const renderHeader = () => (
+    <ThemeFilter
+      themes={mockThemes}
+      selectedTheme={selectedTheme}
+      onThemeSelect={setSelectedTheme}
+    />
+  );
+
+  const renderItem = ({ item }: { item: typeof mockDreams[0] }) => (
+    <FeedItem
+      {...item}
+      onLike={handleLike}
+    />
+  );
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Card variant="elevated" style={styles.comingSoonCard}>
-          <Text style={styles.icon}>🌊</Text>
-          <Text variant="h2" style={styles.title}>
-            {String(t('feed.comingSoon.title'))}
-          </Text>
-          <Text variant="body" color="secondary" style={styles.description}>
-            {String(t('feed.comingSoon.description'))}
-          </Text>
-          <Text variant="caption" color="secondary" style={styles.subtitle}>
-            {String(t('feed.comingSoon.subtitle'))}
-          </Text>
-        </Card>
-
-        {/* Feature preview cards */}
-        <View style={styles.featureSection}>
-          <Text variant="h3" style={styles.sectionTitle}>
-            {String(t('feed.features.title'))}
-          </Text>
-
-          <Card style={styles.featureCard}>
-            <View style={styles.featureCardContent}>
-              <Text style={styles.featureIcon}>👥</Text>
-              <View style={styles.featureContent}>
-              <Text variant="body" style={styles.featureTitle}>
-                {String(t('feed.features.anonymousSharing.title'))}
-              </Text>
-              <Text variant="caption" color="secondary">
-                {String(t('feed.features.anonymousSharing.description'))}
-              </Text>
-              </View>
-            </View>
-          </Card>
-
-          <Card style={styles.featureCard}>
-            <View style={styles.featureCardContent}>
-              <Text style={styles.featureIcon}>💡</Text>
-              <View style={styles.featureContent}>
-              <Text variant="body" style={styles.featureTitle}>
-                {String(t('feed.features.interpretations.title'))}
-              </Text>
-              <Text variant="caption" color="secondary">
-                {String(t('feed.features.interpretations.description'))}
-              </Text>
-              </View>
-            </View>
-          </Card>
-
-          <Card style={styles.featureCard}>
-            <View style={styles.featureCardContent}>
-              <Text style={styles.featureIcon}>🔮</Text>
-              <View style={styles.featureContent}>
-              <Text variant="body" style={styles.featureTitle}>
-                {String(t('feed.features.similarDreams.title'))}
-              </Text>
-              <Text variant="caption" color="secondary">
-                {String(t('feed.features.similarDreams.description'))}
-              </Text>
-              </View>
-            </View>
-          </Card>
-
-          <Card style={styles.featureCard}>
-            <View style={styles.featureCardContent}>
-              <Text style={styles.featureIcon}>🏆</Text>
-              <View style={styles.featureContent}>
-              <Text variant="body" style={styles.featureTitle}>
-                {String(t('feed.features.challenges.title'))}
-              </Text>
-              <Text variant="caption" color="secondary">
-                {String(t('feed.features.challenges.description'))}
-              </Text>
-              </View>
-            </View>
-          </Card>
-        </View>
-      </View>
-    </ScrollView>
+    <View style={styles.container}>
+      <FlatList
+        data={filteredDreams}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderHeader}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
   );
 };

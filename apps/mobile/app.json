@@ -37,7 +37,24 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-audio"
+      "expo-audio",
+      [
+        "react-native-share",
+        {
+          "ios": [
+            "fb",
+            "instagram",
+            "instagram-stories",
+            "twitter"
+          ],
+          "android": [
+            "com.facebook.katana",
+            "com.instagram.android",
+            "com.twitter.android"
+          ],
+          "enableBase64ShareAndroid": true
+        }
+      ]
     ],
     "extra": {
       "eas": {
