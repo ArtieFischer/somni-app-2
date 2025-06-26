@@ -18,14 +18,11 @@ import {
   Badge,
   BadgeText,
   Pressable,
-  Image,
-  Progress,
-  ProgressFilledTrack,
 } from '@gluestack-ui/themed';
 import { darkTheme } from '@somni/theme';
 import { Card, PillButton } from '../../components/atoms';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { MainStackScreenProps, Dream } from '@somni/types';
+import { MainStackScreenProps, Dream, DreamImage } from '@somni/types';
 import {
   Ionicons,
   MaterialCommunityIcons,
@@ -40,6 +37,13 @@ const Share = __DEV__
 import * as FileSystem from 'expo-file-system';
 import ViewShot from 'react-native-view-shot';
 import { useDreamThemes } from '../../hooks/useDreamThemes';
+import { useAuthStore } from '@somni/stores';
+import { DreamInterpreter } from '@somni/types';
+import { supabase } from '../../lib/supabase';
+
+interface DreamWithImages extends Dream {
+  dream_images?: DreamImage[];
+}
 
 type NavigationProps = MainStackScreenProps<'DreamDetail'>['navigation'];
 type RouteProps = MainStackScreenProps<'DreamDetail'>['route'];
@@ -80,9 +84,16 @@ export const DreamDetailScreen: React.FC = () => {
   const viewShotRef = useRef<ViewShot>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const { profile } = useAuthStore();
+  const [dreamGuide, setDreamGuide] = useState<DreamInterpreter | null>(null);
+  const [guideLoading, setGuideLoading] = useState(true);
+  const [isInterpretationReady, setIsInterpretationReady] = useState(false);
+  const [dreamImagesLoaded, setDreamImagesLoaded] = useState(false);
 
   const dreamId = route.params?.dreamId;
-  const dream = dreamId ? dreamStore.getDreamById(dreamId) : null;
+  const [dream, setDream] = useState<DreamWithImages | null>(
+    dreamId ? dreamStore.getDreamById(dreamId) as DreamWithImages : null
+  );
 
   // Call useDreamThemes at the top level
   const {
@@ -90,6 +101,49 @@ export const DreamDetailScreen: React.FC = () => {
     loading: themesLoading,
     error: themesError,
   } = useDreamThemes(dreamId);
+
+  // Fetch dream with images when component mounts or dreamId changes
+  useEffect(() => {
+    const fetchDreamWithImages = async () => {
+      if (!dreamId || dreamImagesLoaded) return;
+      
+      console.log('🔍 Fetching dream images for:', dreamId);
+      
+      try {
+        // Fetch dream images from the database
+        const { data: images, error } = await supabase
+          .from('dream_images')
+          .select('*')
+          .eq('dream_id', dreamId)
+          .order('is_primary', { ascending: false });
+          
+        if (error) {
+          console.error('❌ Error fetching dream images:', error);
+          return;
+        }
+        
+        if (images && images.length > 0) {
+          console.log('🖼️ Found dream images:', images);
+          
+          // Update the dream with its images
+          setDream(prev => ({
+            ...prev!,
+            dream_images: images
+          }));
+          
+          console.log('✅ Updated dream with images:', { dreamId, imageCount: images.length });
+        } else {
+          console.log('📷 No images found for dream:', dreamId);
+        }
+        
+        setDreamImagesLoaded(true);
+      } catch (error) {
+        console.error('❌ Failed to fetch dream images:', error);
+      }
+    };
+    
+    fetchDreamWithImages();
+  }, [dreamId, dreamImagesLoaded]);
 
   const handleShareOnSomni = () => {
     Alert.alert(
@@ -251,6 +305,91 @@ export const DreamDetailScreen: React.FC = () => {
     }
   }, [dream, navigation]);
 
+  useEffect(() => {
+    const fetchGuideInfo = async () => {
+      if (!profile?.dream_interpreter) {
+        setGuideLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('interpreters')
+          .select('*')
+          .eq('id', profile.dream_interpreter)
+          .single();
+
+        if (error) throw error;
+        
+        console.log('🧠 Fetched interpreter:', {
+          id: data.id,
+          name: data.name,
+          image_url: data.image_url,
+          full_data: data
+        });
+        
+        setDreamGuide(data);
+      } catch (error) {
+        console.error('Error fetching guide:', error);
+        // Fallback data for the selected guide
+        const fallbackGuides: Record<string, DreamInterpreter> = {
+          freud: {
+            id: 'freud',
+            name: 'Sigmund',
+            full_name: 'Sigmund Freud',
+            description: 'Analyzes dreams as wish fulfillment and unconscious desires',
+            image_url: '/storage/v1/object/public/interpreters/freud.png',
+            interpretation_style: {
+              approach: 'freudian',
+              focus: ['wish_fulfillment', 'unconscious_desires', 'symbolism'],
+            },
+          },
+          jung: {
+            id: 'jung',
+            name: 'Carl',
+            full_name: 'Carl Jung',
+            description: 'Explores collective unconscious and universal archetypes in your dreams',
+            image_url: '/storage/v1/object/public/interpreters/jung.png',
+            interpretation_style: {
+              approach: 'jungian',
+              focus: ['archetypes', 'collective_unconscious', 'individuation'],
+            },
+          },
+          lakshmi: {
+            id: 'lakshmi',
+            name: 'Lakshmi',
+            full_name: 'Lakshmi Devi',
+            description: 'Interprets dreams through spiritual and karmic perspectives',
+            image_url: '/storage/v1/object/public/interpreters/lakshmi.png',
+            interpretation_style: {
+              approach: 'spiritual',
+              focus: ['karma', 'spiritual_growth', 'consciousness'],
+            },
+          },
+          mary: {
+            id: 'mary',
+            name: 'Mary',
+            full_name: 'Mary Whiton',
+            description: 'Uses modern cognitive science to understand dream meanings',
+            image_url: '/storage/v1/object/public/interpreters/mary.png',
+            interpretation_style: {
+              approach: 'cognitive',
+              focus: ['memory_processing', 'problem_solving', 'neuroscience'],
+            },
+          },
+        };
+        
+        if (profile.dream_interpreter && fallbackGuides[profile.dream_interpreter]) {
+          setDreamGuide(fallbackGuides[profile.dream_interpreter]);
+        }
+      } finally {
+        setGuideLoading(false);
+      }
+    };
+
+    fetchGuideInfo();
+  }, [profile?.dream_interpreter]);
+
   if (!dream) {
     return null;
   }
@@ -287,38 +426,85 @@ export const DreamDetailScreen: React.FC = () => {
 
   const getMoodColor = (mood?: number) => {
     if (!mood) return darkTheme.colors.secondary;
-    if (mood >= 4) return darkTheme.colors.success;
+    if (mood >= 4) return darkTheme.colors.status.success;
     if (mood >= 3) return darkTheme.colors.primary;
     return darkTheme.colors.secondary;
   };
 
+  const getGuideEmoji = (id?: string) => {
+    switch (id) {
+      case 'jung': return '🔮';
+      case 'freud': return '🧠';
+      case 'lakshmi': return '🕉️';
+      case 'mary': return '🔬';
+      default: return '✨';
+    }
+  };
+
+  const getGuideSince = () => {
+    // For now, use profile created date or a hardcoded date
+    // In the future, this could be stored in user preferences
+    if (profile?.created_at) {
+      return format(new Date(profile.created_at), 'MMM yyyy');
+    }
+    return format(new Date(), 'MMM yyyy');
+  };
+
+  const handleDiscussDream = () => {
+    Alert.alert(
+      'Coming Soon',
+      'Dream discussions with your guide will be available soon!',
+      [{ text: 'OK' }],
+    );
+  };
+
+  const handleAskForInterpretation = () => {
+    Alert.alert(
+      'Interpretation Requested',
+      'Your dream guide will analyze this dream and notify you when the interpretation is ready. This may take a few minutes.',
+      [{ text: 'OK' }],
+    );
+    // In the future, this would trigger an API call to request interpretation
+  };
+
   const renderOverview = () => (
     <VStack space="lg">
-      {dream.image_url && (
-        <Box
-          borderRadius="$lg"
-          overflow="hidden"
-          bg={darkTheme.colors.background.secondary}
-          aspectRatio={3 / 2}
-        >
-          <RNImage
-            source={{ uri: dream.image_url }}
-            style={{ width: '100%', height: '100%' }}
-            resizeMode="cover"
-            onError={(error) => {
-              console.error('🚨 Image failed to load:', {
-                dreamId: dream.id,
-                imageUrl: dream.image_url,
-                error,
-              });
-            }}
-            onLoad={() => {
-              console.log('✅ Image loaded successfully:', dream.image_url);
-            }}
-          />
-        </Box>
-      )}
-      {dream.image_prompt && !dream.image_url && (
+      {dream.dream_images && dream.dream_images.length > 0 && dream.dream_images[0].storage_path && (() => {
+        const imageUrl = dream.dream_images[0].storage_path.startsWith('http') 
+          ? dream.dream_images[0].storage_path
+          : supabase.storage.from('dream-images').getPublicUrl(dream.dream_images[0].storage_path).data.publicUrl;
+        
+        console.log('🖼️ Rendering dream image:', {
+          originalPath: dream.dream_images[0].storage_path,
+          publicUrl: imageUrl
+        });
+        
+        return (
+          <Box
+            borderRadius="$lg"
+            overflow="hidden"
+            bg={darkTheme.colors.background.secondary}
+            aspectRatio={3 / 2}
+          >
+            <RNImage
+              source={{ uri: imageUrl }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+              onError={(error) => {
+                console.error('🚨 Image failed to load:', {
+                  dreamId: dream.id,
+                  imageUrl: imageUrl,
+                  error,
+                });
+              }}
+              onLoad={() => {
+                console.log('✅ Image loaded successfully:', imageUrl);
+              }}
+            />
+          </Box>
+        );
+      })()}
+      {dream.image_prompt && (!dream.dream_images || dream.dream_images.length === 0) && (
         <Box
           borderRadius="$lg"
           overflow="hidden"
@@ -407,9 +593,18 @@ export const DreamDetailScreen: React.FC = () => {
               )}
             </HStack>
             {dream.mood && (
-              <Progress value={getMoodPercentage(dream.mood)} size="md">
-                <ProgressFilledTrack bg={getMoodColor(dream.mood)} />
-              </Progress>
+              <View style={{
+                height: 8,
+                backgroundColor: darkTheme.colors.background.secondary,
+                borderRadius: 4,
+                overflow: 'hidden'
+              }}>
+                <View style={{
+                  height: '100%',
+                  width: `${getMoodPercentage(dream.mood)}%`,
+                  backgroundColor: getMoodColor(dream.mood),
+                }} />
+              </View>
             )}
           </VStack>
         </VStack>
@@ -437,7 +632,7 @@ export const DreamDetailScreen: React.FC = () => {
                   size="sm"
                   color={
                     dream.clarity >= 70
-                      ? darkTheme.colors.success
+                      ? darkTheme.colors.status.success
                       : darkTheme.colors.secondary
                   }
                 >
@@ -450,17 +645,22 @@ export const DreamDetailScreen: React.FC = () => {
               )}
             </HStack>
             {dream.clarity && (
-              <Progress value={dream.clarity} size="md">
-                <ProgressFilledTrack
-                  bg={
-                    dream.clarity >= 70
-                      ? darkTheme.colors.success
-                      : dream.clarity >= 40
-                        ? darkTheme.colors.primary
-                        : darkTheme.colors.secondary
-                  }
-                />
-              </Progress>
+              <View style={{
+                height: 8,
+                backgroundColor: darkTheme.colors.background.secondary,
+                borderRadius: 4,
+                overflow: 'hidden'
+              }}>
+                <View style={{
+                  height: '100%',
+                  width: `${dream.clarity}%`,
+                  backgroundColor: dream.clarity >= 70
+                    ? darkTheme.colors.status.success
+                    : dream.clarity >= 40
+                      ? darkTheme.colors.primary
+                      : darkTheme.colors.secondary,
+                }} />
+              </View>
             )}
           </VStack>
         </VStack>
@@ -583,8 +783,173 @@ export const DreamDetailScreen: React.FC = () => {
   );
 
   const renderAnalysis = () => {
+    console.log('Rendering analysis tab:', { guideLoading, dreamGuide, profile });
     return (
       <VStack space="lg">
+        {/* Your Guide Section */}
+        <Card variant="elevated" marginHorizontal={0}>
+          <VStack space="md">
+            <HStack space="sm" alignItems="center">
+              <MaterialCommunityIcons
+                name="account-star"
+                size={20}
+                color={darkTheme.colors.secondary}
+              />
+              <Text 
+                style={{
+                  fontSize: 12,
+                  color: darkTheme.colors.text.secondary,
+                  fontWeight: '500',
+                  letterSpacing: 1.2,
+                  textTransform: 'uppercase',
+                }}
+              >
+                YOUR GUIDE
+              </Text>
+            </HStack>
+            
+            {guideLoading ? (
+              <HStack space="md" alignItems="center">
+                <Box
+                  w={80}
+                  h={80}
+                  borderRadius="$full"
+                  bg={darkTheme.colors.background.secondary}
+                  justifyContent="center"
+                  alignItems="center"
+                >
+                  <ActivityIndicator size="small" color={darkTheme.colors.primary} />
+                </Box>
+                <VStack flex={1} space="xs">
+                  <Box w={100} h={20} bg="$backgroundLight200" borderRadius="$sm" opacity={0.5} />
+                  <Box w={150} h={16} bg="$backgroundLight200" borderRadius="$sm" opacity={0.5} />
+                  <Box w={120} h={16} bg="$backgroundLight200" borderRadius="$sm" opacity={0.5} />
+                </VStack>
+              </HStack>
+            ) : dreamGuide ? (
+              <>
+                <HStack space="md" alignItems="center">
+                  {/* Guide Avatar with image */}
+                  <Box
+                    w={80}
+                    h={80}
+                    borderRadius="$full"
+                    overflow="hidden"
+                    bg={darkTheme.colors.background.secondary}
+                    borderWidth={2}
+                    borderColor={darkTheme.colors.primary + '20'}
+                  >
+                    {dreamGuide.image_url ? (() => {
+                      const imageUrl = dreamGuide.image_url.startsWith('http') 
+                        ? dreamGuide.image_url 
+                        : `https://tqwlnrlvtdsqgqpuryne.supabase.co${dreamGuide.image_url}`;
+                      
+                      console.log('🖼️ Rendering interpreter image:', {
+                        interpreter: dreamGuide.id,
+                        originalUrl: dreamGuide.image_url,
+                        finalUrl: imageUrl
+                      });
+                      
+                      return (
+                        <RNImage
+                          source={{ uri: imageUrl }}
+                          style={{ width: '100%', height: '100%', borderRadius: 40 }}
+                          resizeMode="cover"
+                          onError={(error) => {
+                            console.error('🚨 Interpreter image failed to load:', {
+                              interpreter: dreamGuide.id,
+                              url: imageUrl,
+                              error
+                            });
+                          }}
+                          onLoad={() => {
+                            console.log('✅ Interpreter image loaded successfully:', imageUrl);
+                          }}
+                        />
+                      );
+                    })() : (
+                      <Box
+                        w="$full"
+                        h="$full"
+                        justifyContent="center"
+                        alignItems="center"
+                      >
+                        <Text size="3xl">{getGuideEmoji(dreamGuide.id)}</Text>
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  {/* Guide Info */}
+                  <VStack flex={1} space="xs">
+                    <Text size="xl" color="$textLight100" fontWeight="$bold">
+                      Dr. {dreamGuide.name}
+                    </Text>
+                    <HStack space="sm" alignItems="center">
+                      <HStack space="xs" alignItems="center">
+                        <MaterialCommunityIcons
+                          name="calendar-account"
+                          size={14}
+                          color={darkTheme.colors.text.secondary}
+                        />
+                        <Text size="xs" color="$textLight400">
+                          {getGuideSince()}
+                        </Text>
+                      </HStack>
+                      <HStack space="xs" alignItems="center">
+                        <MaterialCommunityIcons
+                          name="thought-bubble"
+                          size={14}
+                          color={darkTheme.colors.text.secondary}
+                        />
+                        <Text size="xs" color="$textLight400">
+                          0 dreams
+                        </Text>
+                      </HStack>
+                    </HStack>
+                  </VStack>
+                </HStack>
+                
+                {/* Discuss Button - Full Width within card */}
+                <Pressable
+                  onPress={handleDiscussDream}
+                  disabled={!isInterpretationReady}
+                  style={{
+                    backgroundColor: isInterpretationReady ? darkTheme.colors.primary : darkTheme.colors.background.secondary,
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    opacity: isInterpretationReady ? 1 : 0.6,
+                    alignItems: 'center',
+                    marginTop: 16,
+                  }}
+                >
+                  <Text 
+                    style={{
+                      fontSize: 16,
+                      color: isInterpretationReady ? '#FFFFFF' : darkTheme.colors.text.secondary,
+                      fontWeight: '600',
+                    }}
+                  >
+                    Discuss This Dream
+                  </Text>
+                  {!isInterpretationReady && (
+                    <Text 
+                      style={{
+                        fontSize: 12,
+                        color: darkTheme.colors.text.secondary,
+                        marginTop: 4,
+                      }}
+                    >
+                      Available after full interpretation
+                    </Text>
+                  )}
+                </Pressable>
+              </>
+            ) : null}
+          </VStack>
+        </Card>
+
+        {/* Themes Section */}
         <Card variant="elevated" marginHorizontal={0}>
           <VStack space="md">
             <HStack space="sm" alignItems="center">
@@ -674,20 +1039,44 @@ export const DreamDetailScreen: React.FC = () => {
           </VStack>
         </Card>
 
+        {/* Interpretation Section */}
         <Card variant="elevated" marginHorizontal={0}>
-          <VStack space="md" alignItems="center" py="$4">
-            <MaterialCommunityIcons
-              name="telescope"
-              size={48}
-              color={darkTheme.colors.border.secondary}
-            />
-            <Text size="lg" color="$textLight400" textAlign="center">
-              More Analysis Coming Soon
-            </Text>
-            <Text size="sm" color="$textLight500" textAlign="center">
-              Dream interpretation will be available once your dream guide has
-              reviewed your dream.
-            </Text>
+          <VStack space="md">
+            <HStack space="sm" alignItems="center">
+              <MaterialCommunityIcons
+                name="telescope"
+                size={20}
+                color={darkTheme.colors.secondary}
+              />
+              <Text size="sm" color="$textLight400" fontWeight="$medium">
+                INTERPRETATION
+              </Text>
+            </HStack>
+
+            <VStack space="md">
+              <Text size="sm" color="$textLight300" lineHeight="$md">
+                Ask your guide for a deep interpretation of your dream. This analysis may take a few minutes, and you'll be notified when it's ready.
+              </Text>
+              
+              <Pressable
+                onPress={handleAskForInterpretation}
+                disabled={!dream.raw_transcript || themes.length === 0}
+                bg={(!dream.raw_transcript || themes.length === 0) ? darkTheme.colors.background.secondary : darkTheme.colors.primary}
+                borderRadius="$lg"
+                px="$6"
+                py="$4"
+                opacity={(!dream.raw_transcript || themes.length === 0) ? 0.6 : 1}
+                alignItems="center"
+              >
+                <Text 
+                  size="md" 
+                  color={(!dream.raw_transcript || themes.length === 0) ? "$textLight400" : "$textLight50"}
+                  fontWeight="$bold"
+                >
+                  Ask for Interpretation
+                </Text>
+              </Pressable>
+            </VStack>
           </VStack>
         </Card>
       </VStack>

@@ -169,7 +169,7 @@ export interface UserProfile {
   birth_date?: string; // ISO date string
   avatar_url?: string;
   locale: string; // Language code, e.g., 'en', 'pl'
-  dream_interpreter?: 'carl' | 'sigmund' | 'lakshmi' | 'mary';
+  dream_interpreter?: 'jung' | 'freud' | 'lakshmi' | 'mary';
   is_premium: boolean;
   onboarding_complete: boolean;
   
@@ -316,7 +316,7 @@ export interface DreamTheme {
 export interface Interpretation {
   id: string;
   dream_id: string;
-  interpreter_id: 'carl' | 'sigmund' | 'lakshmi' | 'mary';
+  interpreter_id: 'jung' | 'freud' | 'lakshmi' | 'mary';
   interpretation: string;
   key_symbols?: Record<string, any>;
   advice?: string;

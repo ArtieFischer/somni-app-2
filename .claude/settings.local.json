@@ -32,7 +32,8 @@
       "Bash(for f in StepPersonalInfo.tsx StepLucidExperience.tsx StepReview.tsx StepLocation.tsx StepDreamInterpreter.tsx StepPreferences.tsx)",
       "Bash(do sed -i '' 's/variant=\"\"ghost\"\"/variant=\"\"link\"\"/g' \"$f\")",
       "WebFetch(domain:docs.expo.dev)",
-      "Bash(expo doctor:*)"
+      "Bash(expo doctor:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   }
