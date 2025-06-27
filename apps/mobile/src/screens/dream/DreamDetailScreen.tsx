@@ -38,7 +38,11 @@ import { useDreamThemes } from '../../hooks/useDreamThemes';
 import { useAuthStore } from '@somni/stores';
 import { DreamInterpreter } from '@somni/types';
 import { supabase } from '../../lib/supabase';
-import { interpretationService, Interpretation, InterpretationStartResponse } from '../../services/interpretationService';
+import {
+  interpretationService,
+  Interpretation,
+  InterpretationStartResponse,
+} from '../../services/interpretationService';
 import { InterpretationDisplay } from '../../components/organisms/InterpretationDisplay';
 
 interface DreamWithImages extends Dream {
@@ -49,7 +53,6 @@ type NavigationProps = MainStackScreenProps<'DreamDetail'>['navigation'];
 type RouteProps = MainStackScreenProps<'DreamDetail'>['route'];
 
 type TabType = 'overview' | 'analysis' | 'reflection';
-
 
 export const DreamDetailScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -64,15 +67,22 @@ export const DreamDetailScreen: React.FC = () => {
   const [guideLoading, setGuideLoading] = useState(true);
   const [isInterpretationReady, setIsInterpretationReady] = useState(false);
   const [dreamImagesLoaded, setDreamImagesLoaded] = useState(false);
-  const [interpretation, setInterpretation] = useState<Interpretation | null>(null);
+  const [interpretation, setInterpretation] = useState<Interpretation | null>(
+    null,
+  );
   const [interpretationLoading, setInterpretationLoading] = useState(false);
-  const [interpretationJob, setInterpretationJob] = useState<InterpretationStartResponse | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState('Analyzing your dream...');
-  const [interpretationError, setInterpretationError] = useState<string | null>(null);
+  const [interpretationJob, setInterpretationJob] =
+    useState<InterpretationStartResponse | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState(
+    'Analyzing your dream...',
+  );
+  const [interpretationError, setInterpretationError] = useState<string | null>(
+    null,
+  );
 
   const dreamId = route.params?.dreamId;
   const [dream, setDream] = useState<DreamWithImages | null>(
-    dreamId ? dreamStore.getDreamById(dreamId) as DreamWithImages : null
+    dreamId ? (dreamStore.getDreamById(dreamId) as DreamWithImages) : null,
   );
 
   // Call useDreamThemes at the top level
@@ -86,9 +96,9 @@ export const DreamDetailScreen: React.FC = () => {
   useEffect(() => {
     const fetchDreamWithImages = async () => {
       if (!dreamId || dreamImagesLoaded) return;
-      
+
       console.log('🔍 Fetching dream images for:', dreamId);
-      
+
       try {
         // Fetch dream images from the database
         const { data: images, error } = await supabase
@@ -96,35 +106,38 @@ export const DreamDetailScreen: React.FC = () => {
           .select('*')
           .eq('dream_id', dreamId)
           .order('is_primary', { ascending: false });
-          
+
         if (error) {
           console.error('❌ Error fetching dream images:', error);
           return;
         }
-        
+
         if (images && images.length > 0) {
           console.log('🖼️ Found dream images:', images);
-          
+
           // Update the dream with its images
-          setDream(prev => {
+          setDream((prev) => {
             if (!prev) return prev;
             return {
               ...prev,
-              dream_images: images
+              dream_images: images,
             };
           });
-          
-          console.log('✅ Updated dream with images:', { dreamId, imageCount: images.length });
+
+          console.log('✅ Updated dream with images:', {
+            dreamId,
+            imageCount: images.length,
+          });
         } else {
           console.log('📷 No images found for dream:', dreamId);
         }
-        
+
         setDreamImagesLoaded(true);
       } catch (error) {
         console.error('❌ Failed to fetch dream images:', error);
       }
     };
-    
+
     fetchDreamWithImages();
   }, [dreamId, dreamImagesLoaded]);
 
@@ -303,14 +316,14 @@ export const DreamDetailScreen: React.FC = () => {
           .single();
 
         if (error) throw error;
-        
+
         console.log('🧠 Fetched interpreter:', {
           id: data.id,
           name: data.name,
           image_url: data.image_url,
-          full_data: data
+          full_data: data,
         });
-        
+
         setDreamGuide(data);
       } catch (error) {
         console.error('Error fetching guide:', error);
@@ -320,7 +333,8 @@ export const DreamDetailScreen: React.FC = () => {
             id: 'freud',
             name: 'Sigmund',
             full_name: 'Sigmund Freud',
-            description: 'Analyzes dreams as wish fulfillment and unconscious desires',
+            description:
+              'Analyzes dreams as wish fulfillment and unconscious desires',
             image_url: '/storage/v1/object/public/interpreters/freud.png',
             interpretation_style: {
               approach: 'freudian',
@@ -331,7 +345,8 @@ export const DreamDetailScreen: React.FC = () => {
             id: 'jung',
             name: 'Carl',
             full_name: 'Carl Jung',
-            description: 'Explores collective unconscious and universal archetypes in your dreams',
+            description:
+              'Explores collective unconscious and universal archetypes in your dreams',
             image_url: '/storage/v1/object/public/interpreters/jung.png',
             interpretation_style: {
               approach: 'jungian',
@@ -342,7 +357,8 @@ export const DreamDetailScreen: React.FC = () => {
             id: 'lakshmi',
             name: 'Lakshmi',
             full_name: 'Lakshmi Devi',
-            description: 'Interprets dreams through spiritual and karmic perspectives',
+            description:
+              'Interprets dreams through spiritual and karmic perspectives',
             image_url: '/storage/v1/object/public/interpreters/lakshmi.png',
             interpretation_style: {
               approach: 'spiritual',
@@ -353,7 +369,8 @@ export const DreamDetailScreen: React.FC = () => {
             id: 'mary',
             name: 'Mary',
             full_name: 'Mary Whiton',
-            description: 'Uses modern cognitive science to understand dream meanings',
+            description:
+              'Uses modern cognitive science to understand dream meanings',
             image_url: '/storage/v1/object/public/interpreters/mary.png',
             interpretation_style: {
               approach: 'cognitive',
@@ -361,8 +378,11 @@ export const DreamDetailScreen: React.FC = () => {
             },
           },
         };
-        
-        if (profile.dream_interpreter && fallbackGuides[profile.dream_interpreter]) {
+
+        if (
+          profile.dream_interpreter &&
+          fallbackGuides[profile.dream_interpreter]
+        ) {
           setDreamGuide(fallbackGuides[profile.dream_interpreter]);
         }
       } finally {
@@ -377,9 +397,10 @@ export const DreamDetailScreen: React.FC = () => {
   useEffect(() => {
     const checkExistingInterpretations = async () => {
       if (!dreamId) return;
-      
+
       try {
-        const interpretations = await interpretationService.getInterpretations(dreamId);
+        const interpretations =
+          await interpretationService.getInterpretations(dreamId);
         if (interpretations.length > 0) {
           setInterpretation(interpretations[0]);
           setIsInterpretationReady(true);
@@ -388,14 +409,14 @@ export const DreamDetailScreen: React.FC = () => {
         console.error('Error checking interpretations:', error);
       }
     };
-    
+
     checkExistingInterpretations();
   }, [dreamId]);
 
   // Set up real-time subscription for new interpretations
   useEffect(() => {
     if (!dreamId) return;
-    
+
     const subscription = interpretationService.subscribeToInterpretation(
       dreamId,
       (newInterpretation) => {
@@ -404,41 +425,93 @@ export const DreamDetailScreen: React.FC = () => {
         setIsInterpretationReady(true);
         setInterpretationJob(null);
         setInterpretationLoading(false);
-        
+
         // Show notification if app is in background
         if (Platform.OS === 'ios' || Platform.OS === 'android') {
           // This would be handled by push notifications in production
           Alert.alert(
             'Interpretation Ready',
             'Your dream interpretation is ready!',
-            [{ text: 'View', onPress: () => setActiveTab('analysis') }]
+            [{ text: 'View', onPress: () => setActiveTab('analysis') }],
           );
         }
-      }
+      },
     );
-    
+
     return () => {
       subscription.unsubscribe();
     };
   }, [dreamId]);
 
-
-  // Add timeout handling
+  // Add polling mechanism when interpretation is loading
   useEffect(() => {
-    if (interpretationLoading) {
-      const timeout = setTimeout(() => {
-        setInterpretationLoading(false);
-        setInterpretationError('Interpretation is taking longer than expected. Please try again.');
-        Alert.alert(
-          'Timeout',
-          'Interpretation is taking longer than expected. Please try again.',
-          [{ text: 'OK' }]
-        );
-      }, 30000); // 30 second timeout
+    if (!interpretationLoading || !dreamId) return;
 
-      return () => clearTimeout(timeout);
-    }
-  }, [interpretationLoading]);
+    let pollInterval: NodeJS.Timeout;
+    let timeoutTimer: NodeJS.Timeout;
+    let pollCount = 0;
+    const MAX_POLLS = 60; // Poll for up to 2 minutes (60 * 2 seconds)
+
+    const pollForInterpretation = async () => {
+      try {
+        pollCount++;
+        console.log(
+          `🔄 Polling for interpretation (${pollCount}/${MAX_POLLS})`,
+        );
+
+        const interpretations =
+          await interpretationService.getInterpretations(dreamId);
+        if (interpretations.length > 0) {
+          console.log(
+            '✅ Interpretation found via polling:',
+            interpretations[0],
+          );
+          setInterpretation(interpretations[0]);
+          setIsInterpretationReady(true);
+          setInterpretationLoading(false);
+          setInterpretationJob(null);
+          clearInterval(pollInterval);
+          clearTimeout(timeoutTimer);
+        } else if (pollCount >= MAX_POLLS) {
+          // Max polls reached
+          setInterpretationLoading(false);
+          setInterpretationError(
+            'Your interpretation is still being processed in the background. Please use the "Check Status" button below to see if it\'s ready.',
+          );
+          clearInterval(pollInterval);
+        }
+      } catch (error) {
+        console.error('Error polling for interpretation:', error);
+      }
+    };
+
+    // Start polling after 5 seconds (give real-time subscription a chance first)
+    const startPollingDelay = setTimeout(() => {
+      pollInterval = setInterval(pollForInterpretation, 2000); // Poll every 2 seconds
+    }, 5000);
+
+    // Set a final timeout after 2 minutes
+    timeoutTimer = setTimeout(() => {
+      if (interpretationLoading) {
+        setInterpretationLoading(false);
+        setInterpretationError(
+          'Interpretation is taking longer than expected. It may still be processing. Please check back later.',
+        );
+        Alert.alert(
+          'Processing',
+          'Your interpretation is still being generated. Please check back in a few moments.',
+          [{ text: 'OK' }],
+        );
+      }
+      clearInterval(pollInterval);
+    }, 120000); // 2 minute final timeout
+
+    return () => {
+      clearTimeout(startPollingDelay);
+      clearInterval(pollInterval);
+      clearTimeout(timeoutTimer);
+    };
+  }, [interpretationLoading, dreamId]);
 
   if (!dream) {
     return null;
@@ -483,11 +556,16 @@ export const DreamDetailScreen: React.FC = () => {
 
   const getGuideEmoji = (id?: string) => {
     switch (id) {
-      case 'jung': return '🔮';
-      case 'freud': return '🧠';
-      case 'lakshmi': return '🕉️';
-      case 'mary': return '🔬';
-      default: return '✨';
+      case 'jung':
+        return '🔮';
+      case 'freud':
+        return '🧠';
+      case 'lakshmi':
+        return '🕉️';
+      case 'mary':
+        return '🔬';
+      default:
+        return '✨';
     }
   };
 
@@ -503,12 +581,12 @@ export const DreamDetailScreen: React.FC = () => {
   const getRandomTip = () => {
     const tips = [
       "Dreams are the mind's way of processing emotions and memories",
-      "Keep a dream journal to improve dream recall",
-      "Most dreams occur during REM sleep",
-      "Everyone dreams, but not everyone remembers their dreams",
-      "Dreams can help solve problems and boost creativity",
-      "The average person has 4-6 dreams per night",
-      "Dream symbols often represent emotions or experiences"
+      'Keep a dream journal to improve dream recall',
+      'Most dreams occur during REM sleep',
+      'Everyone dreams, but not everyone remembers their dreams',
+      'Dreams can help solve problems and boost creativity',
+      'The average person has 4-6 dreams per night',
+      'Dream symbols often represent emotions or experiences',
     ];
     return tips[Math.floor(Math.random() * tips.length)];
   };
@@ -533,11 +611,15 @@ export const DreamDetailScreen: React.FC = () => {
       setLoadingMessage('Analyzing your dream...');
 
       // Check if interpretation already exists
-      const existingInterpretations = await interpretationService.getInterpretations(dream.id);
+      const existingInterpretations =
+        await interpretationService.getInterpretations(dream.id);
       if (existingInterpretations.length > 0) {
         setInterpretation(existingInterpretations[0]);
         setInterpretationLoading(false);
-        Alert.alert('Interpretation Found', 'An interpretation already exists for this dream.');
+        Alert.alert(
+          'Interpretation Found',
+          'An interpretation already exists for this dream.',
+        );
         return;
       }
 
@@ -545,7 +627,7 @@ export const DreamDetailScreen: React.FC = () => {
       const result = await interpretationService.startInterpretation(
         dream.id,
         profile.user_id,
-        profile.dream_interpreter
+        profile.dream_interpreter,
       );
 
       if (!result.success) {
@@ -553,93 +635,117 @@ export const DreamDetailScreen: React.FC = () => {
       }
 
       setInterpretationJob(result);
-      
+
       // Don't show alert - let the loading UI handle it
       // The real-time subscription will handle the result
     } catch (error: any) {
       console.error('Error requesting interpretation:', error);
-      setInterpretationError(error.message);
-      setInterpretationLoading(false);
       
-      if (error.message.includes('not found')) {
-        Alert.alert('Error', 'This dream no longer exists.');
-      } else if (error.message.includes('transcription')) {
-        Alert.alert('Not Ready', 'Please wait for dream transcription to complete.');
+      // Check if it's a timeout that might still be processing
+      if (error.message?.includes('timed out') || error.message?.includes('Processing may take')) {
+        // Don't treat timeout as complete failure
+        setInterpretationError(
+          'Your interpretation is being processed. This may take a moment. You can check the status below.'
+        );
+        // Keep loading state but start polling
+        // Polling will handle finding the interpretation
       } else {
-        Alert.alert('Error', 'Failed to request interpretation. Please try again.');
+        setInterpretationError(error.message);
+        setInterpretationLoading(false);
+
+        if (error.message.includes('not found')) {
+          Alert.alert('Error', 'This dream no longer exists.');
+        } else if (error.message.includes('transcription')) {
+          Alert.alert(
+            'Not Ready',
+            'Please wait for dream transcription to complete.',
+          );
+        } else {
+          Alert.alert(
+            'Error',
+            'Failed to request interpretation. Please try again.',
+          );
+        }
       }
     }
   };
 
-
   const renderOverview = () => (
     <VStack space="lg">
-      {dream.dream_images && dream.dream_images.length > 0 && dream.dream_images[0].storage_path && (() => {
-        const imageUrl = dream.dream_images[0].storage_path.startsWith('http') 
-          ? dream.dream_images[0].storage_path
-          : supabase.storage.from('dream-images').getPublicUrl(dream.dream_images[0].storage_path).data.publicUrl;
-        
-        console.log('🖼️ Rendering dream image:', {
-          originalPath: dream.dream_images[0].storage_path,
-          publicUrl: imageUrl
-        });
-        
-        return (
+      {dream.dream_images &&
+        dream.dream_images.length > 0 &&
+        dream.dream_images[0].storage_path &&
+        (() => {
+          const imageUrl = dream.dream_images[0].storage_path.startsWith('http')
+            ? dream.dream_images[0].storage_path
+            : supabase.storage
+                .from('dream-images')
+                .getPublicUrl(dream.dream_images[0].storage_path).data
+                .publicUrl;
+
+          return (
+            <Box
+              style={{
+                borderRadius: 12,
+                overflow: 'hidden',
+                backgroundColor: darkTheme.colors.background.secondary,
+                aspectRatio: 3 / 2,
+              }}
+            >
+              <RNImage
+                source={{ uri: imageUrl }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+                onError={(error) => {
+                  console.error('🚨 Image failed to load:', {
+                    dreamId: dream.id,
+                    imageUrl: imageUrl,
+                    error,
+                  });
+                }}
+                onLoad={() => {
+                  console.log('✅ Image loaded successfully:', imageUrl);
+                }}
+              />
+            </Box>
+          );
+        })()}
+      {dream.image_prompt &&
+        (!dream.dream_images || dream.dream_images.length === 0) && (
           <Box
             style={{
               borderRadius: 12,
               overflow: 'hidden',
               backgroundColor: darkTheme.colors.background.secondary,
-              aspectRatio: 3 / 2
+              aspectRatio: 3 / 2,
             }}
           >
-            <RNImage
-              source={{ uri: imageUrl }}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode="cover"
-              onError={(error) => {
-                console.error('🚨 Image failed to load:', {
-                  dreamId: dream.id,
-                  imageUrl: imageUrl,
-                  error,
-                });
+            <Box
+              style={{
+                width: '100%',
+                height: '100%',
+                backgroundColor: darkTheme.colors.background.elevated,
+                justifyContent: 'center',
+                alignItems: 'center',
               }}
-              onLoad={() => {
-                console.log('✅ Image loaded successfully:', imageUrl);
-              }}
-            />
+            >
+              <MaterialCommunityIcons
+                name="image-filter-drama"
+                size={64}
+                color={darkTheme.colors.border.secondary}
+              />
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: darkTheme.colors.text.secondary,
+                  marginTop: 8,
+                }}
+              >
+                Image coming soon
+              </Text>
+            </Box>
           </Box>
-        );
-      })()}
-      {dream.image_prompt && (!dream.dream_images || dream.dream_images.length === 0) && (
-        <Box
-          style={{
-            borderRadius: 12,
-            overflow: 'hidden',
-            backgroundColor: darkTheme.colors.background.secondary,
-            aspectRatio: 3 / 2
-          }}
-        >
-          <Box
-            style={{
-              width: '100%',
-              height: '100%',
-              backgroundColor: darkTheme.colors.background.elevated,
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}
-          >
-            <MaterialCommunityIcons
-              name="image-filter-drama"
-              size={64}
-              color={darkTheme.colors.border.secondary}
-            />
-            <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, marginTop: 8 }}>
-              Image coming soon
-            </Text>
-          </Box>
-        </Box>
-      )}
+        )}
       {dream.is_lucid && (
         <Card
           variant="elevated"
@@ -656,7 +762,7 @@ export const DreamDetailScreen: React.FC = () => {
               style={{
                 fontSize: 16,
                 color: darkTheme.colors.primary,
-                fontWeight: '500'
+                fontWeight: '500',
               }}
             >
               Lucid Dream
@@ -672,11 +778,23 @@ export const DreamDetailScreen: React.FC = () => {
               size={20}
               color={darkTheme.colors.secondary}
             />
-            <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
+            <Text
+              style={{
+                fontSize: 14,
+                color: darkTheme.colors.text.secondary,
+                fontWeight: '500',
+              }}
+            >
               DREAM TRANSCRIPT
             </Text>
           </HStack>
-          <Text style={{ fontSize: 16, color: darkTheme.colors.text.primary, lineHeight: 24 }}>
+          <Text
+            style={{
+              fontSize: 16,
+              color: darkTheme.colors.text.primary,
+              lineHeight: 24,
+            }}
+          >
             {dream.raw_transcript || 'No transcript available'}
           </Text>
         </VStack>
@@ -690,13 +808,23 @@ export const DreamDetailScreen: React.FC = () => {
               size={20}
               color={darkTheme.colors.secondary}
             />
-            <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
+            <Text
+              style={{
+                fontSize: 14,
+                color: darkTheme.colors.text.secondary,
+                fontWeight: '500',
+              }}
+            >
               MOOD
             </Text>
           </HStack>
           <VStack space="sm">
-            <HStack style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 16, color: darkTheme.colors.text.primary }}>
+            <HStack
+              style={{ justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <Text
+                style={{ fontSize: 16, color: darkTheme.colors.text.primary }}
+              >
                 {getMoodLabel(dream.mood)}
               </Text>
               {dream.mood && (
@@ -706,17 +834,21 @@ export const DreamDetailScreen: React.FC = () => {
               )}
             </HStack>
             {dream.mood && (
-              <View style={{
-                height: 8,
-                backgroundColor: darkTheme.colors.background.secondary,
-                borderRadius: 4,
-                overflow: 'hidden'
-              }}>
-                <View style={{
-                  height: '100%',
-                  width: `${getMoodPercentage(dream.mood)}%`,
-                  backgroundColor: getMoodColor(dream.mood),
-                }} />
+              <View
+                style={{
+                  height: 8,
+                  backgroundColor: darkTheme.colors.background.secondary,
+                  borderRadius: 4,
+                  overflow: 'hidden',
+                }}
+              >
+                <View
+                  style={{
+                    height: '100%',
+                    width: `${getMoodPercentage(dream.mood)}%`,
+                    backgroundColor: getMoodColor(dream.mood),
+                  }}
+                />
               </View>
             )}
           </VStack>
@@ -731,22 +863,33 @@ export const DreamDetailScreen: React.FC = () => {
               size={20}
               color={darkTheme.colors.secondary}
             />
-            <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: darkTheme.colors.text.secondary,
+                fontWeight: '500',
+              }}
+            >
               CLARITY
             </Text>
           </HStack>
           <VStack space="sm">
-            <HStack style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 16, color: darkTheme.colors.text.primary }}>
+            <HStack
+              style={{ justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <Text
+                style={{ fontSize: 16, color: darkTheme.colors.text.primary }}
+              >
                 {dream.clarity ? `${dream.clarity}%` : 'Not set'}
               </Text>
               {dream.clarity && (
                 <Text
                   style={{
                     fontSize: 14,
-                    color: dream.clarity >= 70
-                      ? darkTheme.colors.status.success
-                      : darkTheme.colors.secondary
+                    color:
+                      dream.clarity >= 70
+                        ? darkTheme.colors.status.success
+                        : darkTheme.colors.secondary,
                   }}
                 >
                   {dream.clarity >= 70
@@ -758,21 +901,26 @@ export const DreamDetailScreen: React.FC = () => {
               )}
             </HStack>
             {dream.clarity && (
-              <View style={{
-                height: 8,
-                backgroundColor: darkTheme.colors.background.secondary,
-                borderRadius: 4,
-                overflow: 'hidden'
-              }}>
-                <View style={{
-                  height: '100%',
-                  width: `${dream.clarity}%`,
-                  backgroundColor: dream.clarity >= 70
-                    ? darkTheme.colors.status.success
-                    : dream.clarity >= 40
-                      ? darkTheme.colors.primary
-                      : darkTheme.colors.secondary,
-                }} />
+              <View
+                style={{
+                  height: 8,
+                  backgroundColor: darkTheme.colors.background.secondary,
+                  borderRadius: 4,
+                  overflow: 'hidden',
+                }}
+              >
+                <View
+                  style={{
+                    height: '100%',
+                    width: `${dream.clarity}%`,
+                    backgroundColor:
+                      dream.clarity >= 70
+                        ? darkTheme.colors.status.success
+                        : dream.clarity >= 40
+                          ? darkTheme.colors.primary
+                          : darkTheme.colors.secondary,
+                  }}
+                />
               </View>
             )}
           </VStack>
@@ -788,10 +936,20 @@ export const DreamDetailScreen: React.FC = () => {
                 color={darkTheme.colors.secondary}
               />
               <VStack>
-                <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: darkTheme.colors.text.secondary,
+                  }}
+                >
                   Duration
                 </Text>
-                <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: darkTheme.colors.text.secondary,
+                  }}
+                >
                   {Math.floor(dream.duration / 60)}:
                   {String(dream.duration % 60).padStart(2, '0')}
                 </Text>
@@ -804,10 +962,20 @@ export const DreamDetailScreen: React.FC = () => {
                 color={darkTheme.colors.secondary}
               />
               <VStack>
-                <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: darkTheme.colors.text.secondary,
+                  }}
+                >
                   Recorded
                 </Text>
-                <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: darkTheme.colors.text.secondary,
+                  }}
+                >
                   {format(new Date(dream.created_at), 'h:mm a')}
                 </Text>
               </VStack>
@@ -838,14 +1006,20 @@ export const DreamDetailScreen: React.FC = () => {
               borderRadius: 12,
               backgroundColor: darkTheme.colors.primary,
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
             }}
           >
             <Text style={{ fontSize: 14, color: 'white', fontWeight: 'bold' }}>
               S
             </Text>
           </Box>
-          <Text style={{ fontSize: 16, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
+          <Text
+            style={{
+              fontSize: 16,
+              color: darkTheme.colors.text.secondary,
+              fontWeight: '500',
+            }}
+          >
             Share on Somni
           </Text>
         </Pressable>
@@ -867,7 +1041,13 @@ export const DreamDetailScreen: React.FC = () => {
           }}
         >
           <FontAwesome5 name="twitter" size={24} color="#1DA1F2" />
-          <Text style={{ fontSize: 16, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
+          <Text
+            style={{
+              fontSize: 16,
+              color: darkTheme.colors.text.secondary,
+              fontWeight: '500',
+            }}
+          >
             {isCapturing ? 'Capturing...' : 'Share on X'}
           </Text>
         </Pressable>
@@ -889,7 +1069,13 @@ export const DreamDetailScreen: React.FC = () => {
           }}
         >
           <FontAwesome5 name="instagram" size={24} color="#E4405F" />
-          <Text style={{ fontSize: 16, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
+          <Text
+            style={{
+              fontSize: 16,
+              color: darkTheme.colors.text.secondary,
+              fontWeight: '500',
+            }}
+          >
             {isCapturing ? 'Capturing...' : 'Share on Story'}
           </Text>
         </Pressable>
@@ -898,7 +1084,11 @@ export const DreamDetailScreen: React.FC = () => {
   );
 
   const renderAnalysis = () => {
-    console.log('Rendering analysis tab:', { guideLoading, dreamGuide, profile });
+    console.log('Rendering analysis tab:', {
+      guideLoading,
+      dreamGuide,
+      profile,
+    });
     return (
       <VStack space="lg">
         {/* Your Guide Section */}
@@ -910,7 +1100,7 @@ export const DreamDetailScreen: React.FC = () => {
                 size={20}
                 color={darkTheme.colors.secondary}
               />
-              <Text 
+              <Text
                 style={{
                   fontSize: 12,
                   color: darkTheme.colors.text.secondary,
@@ -922,7 +1112,7 @@ export const DreamDetailScreen: React.FC = () => {
                 YOUR GUIDE
               </Text>
             </HStack>
-            
+
             {guideLoading ? (
               <HStack space="md" style={{ alignItems: 'center' }}>
                 <Box
@@ -932,15 +1122,42 @@ export const DreamDetailScreen: React.FC = () => {
                     borderRadius: 40,
                     backgroundColor: darkTheme.colors.background.secondary,
                     justifyContent: 'center',
-                    alignItems: 'center'
+                    alignItems: 'center',
                   }}
                 >
-                  <ActivityIndicator size="small" color={darkTheme.colors.primary} />
+                  <ActivityIndicator
+                    size="small"
+                    color={darkTheme.colors.primary}
+                  />
                 </Box>
                 <VStack style={{ flex: 1 }} space="xs">
-                  <Box style={{ width: 100, height: 20, backgroundColor: darkTheme.colors.background.secondary, borderRadius: 4, opacity: 0.5 }} />
-                  <Box style={{ width: 150, height: 16, backgroundColor: darkTheme.colors.background.secondary, borderRadius: 4, opacity: 0.5 }} />
-                  <Box style={{ width: 120, height: 16, backgroundColor: darkTheme.colors.background.secondary, borderRadius: 4, opacity: 0.5 }} />
+                  <Box
+                    style={{
+                      width: 100,
+                      height: 20,
+                      backgroundColor: darkTheme.colors.background.secondary,
+                      borderRadius: 4,
+                      opacity: 0.5,
+                    }}
+                  />
+                  <Box
+                    style={{
+                      width: 150,
+                      height: 16,
+                      backgroundColor: darkTheme.colors.background.secondary,
+                      borderRadius: 4,
+                      opacity: 0.5,
+                    }}
+                  />
+                  <Box
+                    style={{
+                      width: 120,
+                      height: 16,
+                      backgroundColor: darkTheme.colors.background.secondary,
+                      borderRadius: 4,
+                      opacity: 0.5,
+                    }}
+                  />
                 </VStack>
               </HStack>
             ) : dreamGuide ? (
@@ -955,54 +1172,74 @@ export const DreamDetailScreen: React.FC = () => {
                       overflow: 'hidden',
                       backgroundColor: darkTheme.colors.background.secondary,
                       borderWidth: 2,
-                      borderColor: darkTheme.colors.primary + '20'
+                      borderColor: darkTheme.colors.primary + '20',
                     }}
                   >
-                    {dreamGuide.image_url ? (() => {
-                      const imageUrl = dreamGuide.image_url.startsWith('http') 
-                        ? dreamGuide.image_url 
-                        : `https://tqwlnrlvtdsqgqpuryne.supabase.co${dreamGuide.image_url}`;
-                      
-                      console.log('🖼️ Rendering interpreter image:', {
-                        interpreter: dreamGuide.id,
-                        originalUrl: dreamGuide.image_url,
-                        finalUrl: imageUrl
-                      });
-                      
-                      return (
-                        <RNImage
-                          source={{ uri: imageUrl }}
-                          style={{ width: '100%', height: '100%', borderRadius: 40 }}
-                          resizeMode="cover"
-                          onError={(error) => {
-                            console.error('🚨 Interpreter image failed to load:', {
-                              interpreter: dreamGuide.id,
-                              url: imageUrl,
-                              error
-                            });
-                          }}
-                          onLoad={() => {
-                            console.log('✅ Interpreter image loaded successfully:', imageUrl);
-                          }}
-                        />
-                      );
-                    })() : (
+                    {dreamGuide.image_url ? (
+                      (() => {
+                        const imageUrl = dreamGuide.image_url.startsWith('http')
+                          ? dreamGuide.image_url
+                          : `https://tqwlnrlvtdsqgqpuryne.supabase.co${dreamGuide.image_url}`;
+
+                        console.log('🖼️ Rendering interpreter image:', {
+                          interpreter: dreamGuide.id,
+                          originalUrl: dreamGuide.image_url,
+                          finalUrl: imageUrl,
+                        });
+
+                        return (
+                          <RNImage
+                            source={{ uri: imageUrl }}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: 40,
+                            }}
+                            resizeMode="cover"
+                            onError={(error) => {
+                              console.error(
+                                '🚨 Interpreter image failed to load:',
+                                {
+                                  interpreter: dreamGuide.id,
+                                  url: imageUrl,
+                                  error,
+                                },
+                              );
+                            }}
+                            onLoad={() => {
+                              console.log(
+                                '✅ Interpreter image loaded successfully:',
+                                imageUrl,
+                              );
+                            }}
+                          />
+                        );
+                      })()
+                    ) : (
                       <Box
                         style={{
                           width: '100%',
                           height: '100%',
                           justifyContent: 'center',
-                          alignItems: 'center'
+                          alignItems: 'center',
                         }}
                       >
-                        <Text style={{ fontSize: 30 }}>{getGuideEmoji(dreamGuide.id)}</Text>
+                        <Text style={{ fontSize: 30 }}>
+                          {getGuideEmoji(dreamGuide.id)}
+                        </Text>
                       </Box>
                     )}
                   </Box>
-                  
+
                   {/* Guide Info */}
                   <VStack style={{ flex: 1 }} space="xs">
-                    <Text style={{ fontSize: 20, color: darkTheme.colors.text.primary, fontWeight: 'bold' }}>
+                    <Text
+                      style={{
+                        fontSize: 20,
+                        color: darkTheme.colors.text.primary,
+                        fontWeight: 'bold',
+                      }}
+                    >
                       Dr. {dreamGuide.name}
                     </Text>
                     <HStack space="sm" style={{ alignItems: 'center' }}>
@@ -1012,7 +1249,12 @@ export const DreamDetailScreen: React.FC = () => {
                           size={14}
                           color={darkTheme.colors.text.secondary}
                         />
-                        <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: darkTheme.colors.text.secondary,
+                          }}
+                        >
                           {getGuideSince()}
                         </Text>
                       </HStack>
@@ -1022,20 +1264,27 @@ export const DreamDetailScreen: React.FC = () => {
                           size={14}
                           color={darkTheme.colors.text.secondary}
                         />
-                        <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: darkTheme.colors.text.secondary,
+                          }}
+                        >
                           0 dreams
                         </Text>
                       </HStack>
                     </HStack>
                   </VStack>
                 </HStack>
-                
+
                 {/* Discuss Button - Full Width within card */}
                 <Pressable
                   onPress={handleDiscussDream}
                   disabled={!isInterpretationReady}
                   style={{
-                    backgroundColor: isInterpretationReady ? darkTheme.colors.primary : darkTheme.colors.background.secondary,
+                    backgroundColor: isInterpretationReady
+                      ? darkTheme.colors.primary
+                      : darkTheme.colors.background.secondary,
                     borderRadius: 12,
                     paddingHorizontal: 16,
                     paddingVertical: 12,
@@ -1044,17 +1293,19 @@ export const DreamDetailScreen: React.FC = () => {
                     marginTop: 16,
                   }}
                 >
-                  <Text 
+                  <Text
                     style={{
                       fontSize: 16,
-                      color: isInterpretationReady ? '#FFFFFF' : darkTheme.colors.text.secondary,
+                      color: isInterpretationReady
+                        ? '#FFFFFF'
+                        : darkTheme.colors.text.secondary,
                       fontWeight: '600',
                     }}
                   >
                     Discuss This Dream
                   </Text>
                   {!isInterpretationReady && (
-                    <Text 
+                    <Text
                       style={{
                         fontSize: 12,
                         color: darkTheme.colors.text.secondary,
@@ -1079,7 +1330,13 @@ export const DreamDetailScreen: React.FC = () => {
                 size={20}
                 color={darkTheme.colors.secondary}
               />
-              <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: darkTheme.colors.text.secondary,
+                  fontWeight: '500',
+                }}
+              >
                 THEMES
               </Text>
             </HStack>
@@ -1094,17 +1351,21 @@ export const DreamDetailScreen: React.FC = () => {
                       height: 32,
                       borderRadius: 16,
                       backgroundColor: darkTheme.colors.background.secondary,
-                      opacity: 0.5
+                      opacity: 0.5,
                     }}
                   />
                 ))}
               </HStack>
             ) : themesError ? (
-              <Text style={{ fontSize: 14, color: darkTheme.colors.status.error }}>
+              <Text
+                style={{ fontSize: 14, color: darkTheme.colors.status.error }}
+              >
                 Failed to load themes
               </Text>
             ) : themes.length === 0 ? (
-              <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary }}>
+              <Text
+                style={{ fontSize: 14, color: darkTheme.colors.text.secondary }}
+              >
                 No themes detected for this dream
               </Text>
             ) : (
@@ -1124,18 +1385,19 @@ export const DreamDetailScreen: React.FC = () => {
                           paddingHorizontal: 12,
                           paddingVertical: 8,
                           borderRadius: 20,
-                          backgroundColor: selectedTheme === theme.code
-                            ? darkTheme.colors.secondary + '20'
-                            : 'transparent',
+                          backgroundColor:
+                            selectedTheme === theme.code
+                              ? darkTheme.colors.secondary + '20'
+                              : 'transparent',
                           borderWidth: 1,
-                          borderColor: darkTheme.colors.secondary
+                          borderColor: darkTheme.colors.secondary,
                         }}
                       >
                         <Text
                           style={{
                             fontSize: 14,
                             color: darkTheme.colors.secondary,
-                            fontWeight: '500'
+                            fontWeight: '500',
                           }}
                         >
                           {theme.name}
@@ -1152,10 +1414,16 @@ export const DreamDetailScreen: React.FC = () => {
                       borderRadius: 8,
                       backgroundColor: darkTheme.colors.background.secondary,
                       borderWidth: 1,
-                      borderColor: darkTheme.colors.border.secondary
+                      borderColor: darkTheme.colors.border.secondary,
                     }}
                   >
-                    <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, lineHeight: 20 }}>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: darkTheme.colors.text.secondary,
+                        lineHeight: 20,
+                      }}
+                    >
                       {themes.find((t) => t.code === selectedTheme)
                         ?.description || ''}
                     </Text>
@@ -1168,8 +1436,8 @@ export const DreamDetailScreen: React.FC = () => {
 
         {/* Interpretation Section */}
         {interpretation ? (
-          <InterpretationDisplay 
-            interpretation={interpretation} 
+          <InterpretationDisplay
+            interpretation={interpretation}
             interpreterName={dreamGuide?.full_name}
           />
         ) : (
@@ -1181,74 +1449,178 @@ export const DreamDetailScreen: React.FC = () => {
                   size={20}
                   color={darkTheme.colors.secondary}
                 />
-                <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: darkTheme.colors.text.secondary,
+                    fontWeight: '500',
+                  }}
+                >
                   INTERPRETATION
                 </Text>
               </HStack>
 
               {interpretationLoading ? (
-                <VStack space="md" style={{ alignItems: 'center', paddingVertical: 20 }}>
-                  <ActivityIndicator size="large" color={darkTheme.colors.primary} />
-                  <Text style={{ fontSize: 16, color: darkTheme.colors.text.primary, fontWeight: '600' }}>
-                    {dreamGuide?.name || 'Your guide'} is analyzing your dream...
+                <VStack
+                  space="md"
+                  style={{ alignItems: 'center', paddingVertical: 20 }}
+                >
+                  <ActivityIndicator
+                    size="large"
+                    color={darkTheme.colors.primary}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: darkTheme.colors.text.primary,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {dreamGuide?.name || 'Your guide'} is analyzing your
+                    dream...
                   </Text>
-                  
-                  <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary }}>
+
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: darkTheme.colors.text.secondary,
+                    }}
+                  >
                     This may take a few moments
                   </Text>
-                  
-                  <Text style={{ fontSize: 13, color: darkTheme.colors.text.secondary, fontStyle: 'italic', textAlign: 'center', marginTop: 8 }}>
+
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: darkTheme.colors.text.secondary,
+                      fontStyle: 'italic',
+                      textAlign: 'center',
+                      marginTop: 8,
+                    }}
+                  >
                     💡 {getRandomTip()}
                   </Text>
                 </VStack>
               ) : interpretationError ? (
                 <VStack space="md">
-                  <Text style={{ fontSize: 14, color: darkTheme.colors.status.error }}>
-                    {interpretationError}
-                  </Text>
-                  <Pressable
-                    onPress={handleAskForInterpretation}
+                  <Text
                     style={{
-                      backgroundColor: darkTheme.colors.primary,
-                      borderRadius: 12,
-                      paddingHorizontal: 24,
-                      paddingVertical: 16,
-                      alignItems: 'center',
+                      fontSize: 14,
+                      color: darkTheme.colors.status.error,
                     }}
                   >
-                    <Text 
+                    {interpretationError}
+                  </Text>
+                  <HStack space="sm">
+                    <Pressable
+                      onPress={handleAskForInterpretation}
                       style={{
-                        fontSize: 16,
-                        color: '#FFFFFF',
-                        fontWeight: '600',
+                        backgroundColor: darkTheme.colors.primary,
+                        borderRadius: 12,
+                        paddingHorizontal: 24,
+                        paddingVertical: 16,
+                        alignItems: 'center',
+                        flex: 1,
                       }}
                     >
-                      Try Again
-                    </Text>
-                  </Pressable>
+                      <Text
+                        style={{
+                          fontSize: 16,
+                          color: '#FFFFFF',
+                          fontWeight: '600',
+                        }}
+                      >
+                        Try Again
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={async () => {
+                        setInterpretationError(null);
+                        try {
+                          const interpretations =
+                            await interpretationService.getInterpretations(
+                              dream.id,
+                            );
+                          if (interpretations.length > 0) {
+                            setInterpretation(interpretations[0]);
+                            setIsInterpretationReady(true);
+                            Alert.alert('Success', 'Interpretation found!');
+                          } else {
+                            Alert.alert(
+                              'Not Ready',
+                              'Interpretation is still being generated. Please try again in a moment.',
+                            );
+                          }
+                        } catch (error) {
+                          console.error(
+                            'Error checking for interpretation:',
+                            error,
+                          );
+                          Alert.alert(
+                            'Error',
+                            'Failed to check for interpretation.',
+                          );
+                        }
+                      }}
+                      style={{
+                        backgroundColor: darkTheme.colors.background.secondary,
+                        borderRadius: 12,
+                        paddingHorizontal: 24,
+                        paddingVertical: 16,
+                        alignItems: 'center',
+                        borderWidth: 1,
+                        borderColor: darkTheme.colors.border.secondary,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 16,
+                          color: darkTheme.colors.text.primary,
+                          fontWeight: '600',
+                        }}
+                      >
+                        Check Status
+                      </Text>
+                    </Pressable>
+                  </HStack>
                 </VStack>
               ) : (
                 <VStack space="md">
-                  <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, lineHeight: 20 }}>
-                    Ask your guide for a deep interpretation of your dream. This analysis may take a few minutes, and you'll be notified when it's ready.
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: darkTheme.colors.text.secondary,
+                      lineHeight: 20,
+                    }}
+                  >
+                    Ask your guide for a deep interpretation of your dream. This
+                    analysis may take a few minutes, and you'll be notified when
+                    it's ready.
                   </Text>
-                  
+
                   <Pressable
                     onPress={handleAskForInterpretation}
                     disabled={!dream.raw_transcript || themes.length === 0}
                     style={{
-                      backgroundColor: (!dream.raw_transcript || themes.length === 0) ? darkTheme.colors.background.secondary : darkTheme.colors.primary,
+                      backgroundColor:
+                        !dream.raw_transcript || themes.length === 0
+                          ? darkTheme.colors.background.secondary
+                          : darkTheme.colors.primary,
                       borderRadius: 12,
                       paddingHorizontal: 24,
                       paddingVertical: 16,
-                      opacity: (!dream.raw_transcript || themes.length === 0) ? 0.6 : 1,
+                      opacity:
+                        !dream.raw_transcript || themes.length === 0 ? 0.6 : 1,
                       alignItems: 'center',
                     }}
                   >
-                    <Text 
+                    <Text
                       style={{
                         fontSize: 16,
-                        color: (!dream.raw_transcript || themes.length === 0) ? darkTheme.colors.text.secondary : '#FFFFFF',
+                        color:
+                          !dream.raw_transcript || themes.length === 0
+                            ? darkTheme.colors.text.secondary
+                            : '#FFFFFF',
                         fontWeight: '600',
                       }}
                     >
@@ -1267,16 +1639,31 @@ export const DreamDetailScreen: React.FC = () => {
   const renderReflection = () => (
     <VStack space="lg">
       <Card variant="elevated" marginHorizontal={0}>
-        <VStack space="md" style={{ alignItems: 'center', paddingVertical: 16 }}>
+        <VStack
+          space="md"
+          style={{ alignItems: 'center', paddingVertical: 16 }}
+        >
           <MaterialCommunityIcons
             name="meditation"
             size={48}
             color={darkTheme.colors.border.secondary}
           />
-          <Text style={{ fontSize: 18, color: darkTheme.colors.text.secondary, textAlign: 'center' }}>
+          <Text
+            style={{
+              fontSize: 18,
+              color: darkTheme.colors.text.secondary,
+              textAlign: 'center',
+            }}
+          >
             Reflection Coming Soon
           </Text>
-          <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, textAlign: 'center' }}>
+          <Text
+            style={{
+              fontSize: 14,
+              color: darkTheme.colors.text.secondary,
+              textAlign: 'center',
+            }}
+          >
             Personal reflection prompts will be available after dream analysis.
           </Text>
         </VStack>
@@ -1302,7 +1689,9 @@ export const DreamDetailScreen: React.FC = () => {
       style={{ flex: 1, backgroundColor: darkTheme.colors.background.primary }}
     >
       <VStack style={{ flex: 1 }}>
-        <Box style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
+        <Box
+          style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}
+        >
           <Pressable onPress={() => navigation.goBack()}>
             <HStack space="xs" style={{ alignItems: 'center' }}>
               <Ionicons
@@ -1310,7 +1699,9 @@ export const DreamDetailScreen: React.FC = () => {
                 size={20}
                 color={darkTheme.colors.primary}
               />
-              <Text style={{ color: darkTheme.colors.primary, fontWeight: '500' }}>
+              <Text
+                style={{ color: darkTheme.colors.primary, fontWeight: '500' }}
+              >
                 Back
               </Text>
             </HStack>
@@ -1326,29 +1717,58 @@ export const DreamDetailScreen: React.FC = () => {
             result: 'tmpfile',
           }}
         >
-          <VStack style={{ flex: 1, backgroundColor: darkTheme.colors.background.primary }}>
+          <VStack
+            style={{
+              flex: 1,
+              backgroundColor: darkTheme.colors.background.primary,
+            }}
+          >
             <Box
               style={{
                 paddingHorizontal: 20,
                 paddingBottom: 16,
                 paddingTop: 8,
                 borderBottomWidth: 1,
-                borderBottomColor: darkTheme.colors.border.primary
+                borderBottomColor: darkTheme.colors.border.primary,
               }}
             >
               <VStack space="sm">
-                <HStack style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <HStack
+                  style={{
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                  }}
+                >
                   <VStack style={{ flex: 1 }}>
-                    <Heading style={{ fontSize: 24, color: darkTheme.colors.text.primary }} numberOfLines={2}>
+                    <Heading
+                      style={{
+                        fontSize: 24,
+                        color: darkTheme.colors.text.primary,
+                      }}
+                      numberOfLines={2}
+                    >
                       {dream.title || 'Untitled Dream'}
                     </Heading>
                   </VStack>
-                  <VStack style={{ alignItems: 'flex-end', marginLeft: 12 }} space="2xs">
-                    <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
+                  <VStack
+                    style={{ alignItems: 'flex-end', marginLeft: 12 }}
+                    space="2xs"
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: darkTheme.colors.text.secondary,
+                      }}
+                    >
                       {format(new Date(dream.created_at), 'MMM d, h:mm a')}
                     </Text>
                     {dream.location_metadata && (
-                      <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: darkTheme.colors.text.secondary,
+                        }}
+                      >
                         in{' '}
                         {[
                           dream.location_metadata.city,
@@ -1368,7 +1788,7 @@ export const DreamDetailScreen: React.FC = () => {
                 paddingHorizontal: 20,
                 paddingVertical: 16,
                 borderBottomWidth: 1,
-                borderBottomColor: darkTheme.colors.border.primary
+                borderBottomColor: darkTheme.colors.border.primary,
               }}
             >
               <HStack space="sm">{tabs.map(renderTabButton)}</HStack>
@@ -1388,7 +1808,7 @@ export const DreamDetailScreen: React.FC = () => {
                     justifyContent: 'center',
                     alignItems: 'center',
                     marginTop: 16,
-                    opacity: 0.7
+                    opacity: 0.7,
                   }}
                   space="xs"
                 >
@@ -1399,14 +1819,26 @@ export const DreamDetailScreen: React.FC = () => {
                       borderRadius: 10,
                       backgroundColor: darkTheme.colors.primary,
                       justifyContent: 'center',
-                      alignItems: 'center'
+                      alignItems: 'center',
                     }}
                   >
-                    <Text style={{ fontSize: 12, color: 'white', fontWeight: 'bold' }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: 'white',
+                        fontWeight: 'bold',
+                      }}
+                    >
                       S
                     </Text>
                   </Box>
-                  <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: darkTheme.colors.text.secondary,
+                      fontWeight: '500',
+                    }}
+                  >
                     Somni - Dream Journal
                   </Text>
                 </HStack>

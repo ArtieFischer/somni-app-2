@@ -36,19 +36,48 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
   interpretation,
   interpreterName 
 }) => {
+  // Debug logging
+  console.log('🔍 InterpretationDisplay received:', {
+    interpretation,
+    interpreterName,
+    hasInterpretation: !!interpretation,
+    interpretationType: interpretation ? Object.prototype.toString.call(interpretation) : 'null',
+    interpretationKeys: interpretation ? Object.keys(interpretation) : [],
+    interpretationText: interpretation?.interpretation,
+    hasDreamTopic: interpretation && 'dreamTopic' in interpretation,
+    hasInterpreterId: interpretation && 'interpreter_id' in interpretation,
+  });
+
   // Handle both database format and API response format
-  const isApiResponse = 'dreamTopic' in interpretation;
+  const isApiResponse = interpretation && 'dreamTopic' in interpretation;
+  const hasFullResponse = interpretation && 'full_response' in interpretation;
   
   const interpretationData = isApiResponse ? interpretation as InterpretationResponse : null;
   const dbInterpretation = !isApiResponse ? interpretation as Interpretation : null;
 
-  // Parse key_symbols if it's from database
-  const keySymbols = interpretationData?.symbols || 
+  // Extract data from full_response if available (new database format)
+  const fullResponse = hasFullResponse ? interpretation.full_response : null;
+  
+  // Get interpretation text from various possible locations
+  const interpretationText = interpretation?.interpretation || 
+    interpretation?.interpretation_summary || 
+    fullResponse?.condensedInterpretation ||
+    interpretationData?.interpretation;
+
+  // Get symbols from various possible locations
+  const keySymbols = interpretation?.symbols ||
+    interpretationData?.symbols || 
+    fullResponse?.symbols ||
     (dbInterpretation?.key_symbols ? 
       (typeof dbInterpretation.key_symbols === 'string' ? 
         JSON.parse(dbInterpretation.key_symbols) : 
         dbInterpretation.key_symbols) : 
       []);
+
+  // Get emotional tone from various sources
+  const emotionalTone = interpretation?.emotional_tone || 
+    interpretationData?.emotionalTone || 
+    fullResponse?.emotionalTone;
 
   return (
     <VStack space="lg">
@@ -58,12 +87,12 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
           <HStack style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <HStack space="sm" style={{ alignItems: 'center' }}>
               <MaterialCommunityIcons
-                name={getInterpreterIcon(interpretation.interpreter_id || interpretationData?.interpreterId || '')}
+                name={getInterpreterIcon(interpretation?.interpreter_type || interpretation?.interpreter_id || interpretationData?.interpreterId || '')}
                 size={24}
                 color={darkTheme.colors.primary}
               />
               <Text style={{ fontSize: 18, fontWeight: '600', color: darkTheme.colors.text.primary }}>
-                {interpreterName || getInterpreterDisplayName(interpretation.interpreter_id || interpretationData?.interpreterId || '')}
+                {interpreterName || getInterpreterDisplayName(interpretation?.interpreter_type || interpretation?.interpreter_id || interpretationData?.interpreterId || '')}
               </Text>
             </HStack>
             {dbInterpretation?.created_at && (
@@ -74,14 +103,14 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
           </HStack>
 
           {/* Topic/Title */}
-          {interpretationData?.dreamTopic && (
+          {(interpretation?.dream_topic || interpretationData?.dreamTopic) && (
             <Text style={{ fontSize: 20, fontWeight: '600', color: darkTheme.colors.text.primary }}>
-              {interpretationData.dreamTopic}
+              {interpretation?.dream_topic || interpretationData?.dreamTopic}
             </Text>
           )}
 
           {/* Quick Take */}
-          {interpretationData?.quickTake && (
+          {(interpretation?.quick_take || interpretationData?.quickTake) && (
             <View style={{ 
               backgroundColor: darkTheme.colors.background.secondary, 
               padding: 12, 
@@ -90,7 +119,7 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
               borderLeftColor: darkTheme.colors.primary,
             }}>
               <Text style={{ fontSize: 14, color: darkTheme.colors.text.primary, fontStyle: 'italic' }}>
-                {interpretationData.quickTake}
+                {interpretation?.quick_take || interpretationData?.quickTake}
               </Text>
             </View>
           )}
@@ -98,7 +127,7 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
       </Card>
 
       {/* Emotional Tone */}
-      {interpretationData?.emotionalTone && (
+      {emotionalTone && (
         <Card variant="elevated" marginHorizontal={0}>
           <VStack space="sm">
             <HStack space="sm" style={{ alignItems: 'center' }}>
@@ -113,17 +142,38 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
             </HStack>
             <HStack space="md" style={{ alignItems: 'center' }}>
               <Badge variant="solid" action="muted">
-                <BadgeText>{interpretationData.emotionalTone.primary}</BadgeText>
+                <BadgeText>{emotionalTone.primary}</BadgeText>
               </Badge>
-              {interpretationData.emotionalTone.secondary && (
+              {emotionalTone.secondary && (
                 <Badge variant="outline" action="muted">
-                  <BadgeText>{interpretationData.emotionalTone.secondary}</BadgeText>
+                  <BadgeText>{emotionalTone.secondary}</BadgeText>
                 </Badge>
               )}
               <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
-                Intensity: {Math.round(interpretationData.emotionalTone.intensity * 100)}%
+                Intensity: {Math.round(emotionalTone.intensity * 100)}%
               </Text>
             </HStack>
+          </VStack>
+        </Card>
+      )}
+
+      {/* Primary Insight */}
+      {(interpretation?.primary_insight || fullResponse?.primaryInsight) && (
+        <Card variant="elevated" marginHorizontal={0}>
+          <VStack space="md">
+            <HStack space="sm" style={{ alignItems: 'center' }}>
+              <MaterialCommunityIcons
+                name="lightbulb"
+                size={20}
+                color={darkTheme.colors.secondary}
+              />
+              <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary, fontWeight: '500', textTransform: 'uppercase' }}>
+                PRIMARY INSIGHT
+              </Text>
+            </HStack>
+            <Text style={{ fontSize: 14, color: darkTheme.colors.text.primary, lineHeight: 22, fontWeight: '500' }}>
+              {interpretation?.primary_insight || fullResponse?.primaryInsight}
+            </Text>
           </VStack>
         </Card>
       )}
@@ -138,19 +188,43 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
               color={darkTheme.colors.secondary}
             />
             <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary, fontWeight: '500', textTransform: 'uppercase' }}>
-              INTERPRETATION
+              ANALYSIS
             </Text>
           </HStack>
           <Text style={{ fontSize: 14, color: darkTheme.colors.text.primary, lineHeight: 22 }}>
-            {interpretation.interpretation.split('\n\n').map((paragraph, i) => (
-              <React.Fragment key={i}>
-                {paragraph}
-                {i < interpretation.interpretation.split('\n\n').length - 1 && '\n\n'}
-              </React.Fragment>
-            ))}
+            {interpretationText ? 
+              interpretationText.split('\n\n').map((paragraph, i) => (
+                <React.Fragment key={i}>
+                  {paragraph}
+                  {i < interpretationText.split('\n\n').length - 1 && '\n\n'}
+                </React.Fragment>
+              )) : 
+              'No analysis available'
+            }
           </Text>
         </VStack>
       </Card>
+
+      {/* Key Pattern */}
+      {(interpretation?.key_pattern || fullResponse?.keyPattern) && (
+        <Card variant="elevated" marginHorizontal={0}>
+          <VStack space="md">
+            <HStack space="sm" style={{ alignItems: 'center' }}>
+              <MaterialCommunityIcons
+                name="vector-square"
+                size={20}
+                color={darkTheme.colors.secondary}
+              />
+              <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary, fontWeight: '500', textTransform: 'uppercase' }}>
+                KEY PATTERN
+              </Text>
+            </HStack>
+            <Text style={{ fontSize: 14, color: darkTheme.colors.text.primary, lineHeight: 22 }}>
+              {interpretation?.key_pattern || fullResponse?.keyPattern}
+            </Text>
+          </VStack>
+        </Card>
+      )}
 
       {/* Key Symbols */}
       {keySymbols.length > 0 && (
@@ -190,8 +264,8 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
         </Card>
       )}
 
-      {/* Practical Guidance */}
-      {interpretationData?.practicalGuidance && interpretationData.practicalGuidance.length > 0 && (
+      {/* Practical Guidance / Advice */}
+      {(fullResponse?.advice || interpretationData?.practicalGuidance) && (
         <Card variant="elevated" marginHorizontal={0}>
           <VStack space="md">
             <HStack space="sm" style={{ alignItems: 'center' }}>
@@ -204,16 +278,22 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
                 PRACTICAL GUIDANCE
               </Text>
             </HStack>
-            <VStack space="sm">
-              {interpretationData.practicalGuidance.map((guidance, i) => (
-                <HStack key={i} space="sm" style={{ alignItems: 'flex-start' }}>
-                  <Text style={{ fontSize: 14, color: darkTheme.colors.primary }}>•</Text>
-                  <Text style={{ fontSize: 14, color: darkTheme.colors.text.primary, flex: 1 }}>
-                    {guidance}
-                  </Text>
-                </HStack>
-              ))}
-            </VStack>
+            {fullResponse?.advice ? (
+              <Text style={{ fontSize: 14, color: darkTheme.colors.text.primary, lineHeight: 22 }}>
+                {fullResponse.advice}
+              </Text>
+            ) : interpretationData?.practicalGuidance ? (
+              <VStack space="sm">
+                {interpretationData.practicalGuidance.map((guidance, i) => (
+                  <HStack key={i} space="sm" style={{ alignItems: 'flex-start' }}>
+                    <Text style={{ fontSize: 14, color: darkTheme.colors.primary }}>•</Text>
+                    <Text style={{ fontSize: 14, color: darkTheme.colors.text.primary, flex: 1 }}>
+                      {guidance}
+                    </Text>
+                  </HStack>
+                ))}
+              </VStack>
+            ) : null}
           </VStack>
         </Card>
       )}
@@ -240,7 +320,7 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
       )}
 
       {/* Self Reflection */}
-      {interpretationData?.selfReflection && (
+      {(fullResponse?.selfReflection || interpretationData?.selfReflection) && (
         <Card variant="elevated" marginHorizontal={0}>
           <VStack space="md">
             <HStack space="sm" style={{ alignItems: 'center' }}>
@@ -261,7 +341,7 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
               borderColor: darkTheme.colors.primary + '30',
             }}>
               <Text style={{ fontSize: 16, color: darkTheme.colors.text.primary, fontStyle: 'italic', lineHeight: 24 }}>
-                {interpretationData.selfReflection}
+                {fullResponse?.selfReflection || interpretationData?.selfReflection}
               </Text>
             </View>
           </VStack>
