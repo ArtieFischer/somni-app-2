@@ -400,6 +400,8 @@ export const useRecordingHandler = () => {
         locationMetadata: requestPayload.locationMetadata,
         hasAuth: !!session.access_token,
         authTokenPreview: session.access_token?.substring(0, 20) + '...',
+        apiSecretPreview: (process.env.EXPO_PUBLIC_SOMNI_BACKEND_API_SECRET || '').substring(0, 10) + '...',
+        hasApiSecret: !!(process.env.EXPO_PUBLIC_SOMNI_BACKEND_API_SECRET),
         userId: user.id,
         sessionUserId: session.user?.id
       });
@@ -439,8 +441,9 @@ export const useRecordingHandler = () => {
           {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json',
+              'authorization': `Bearer ${session.access_token}`,
+              'content-type': 'application/json',
+              'x-api-secret': process.env.EXPO_PUBLIC_SOMNI_BACKEND_API_SECRET || '',
             },
             body: JSON.stringify(requestPayload),
             signal: controller.signal

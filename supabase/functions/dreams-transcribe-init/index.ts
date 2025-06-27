@@ -184,9 +184,9 @@ serve(async (req) => {
       const backendResponse = await fetch(backendUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-API-Secret': Deno.env.get('SOMNI_BACKEND_API_SECRET')!,
-          'X-Supabase-Token': authHeader.replace('Bearer ', '')
+          'content-type': 'application/json',
+          'x-api-secret': Deno.env.get('SOMNI_BACKEND_API_SECRET')!,
+          'authorization': authHeader  // Pass the full Bearer token
         },
         body: JSON.stringify(backendPayload)
       });

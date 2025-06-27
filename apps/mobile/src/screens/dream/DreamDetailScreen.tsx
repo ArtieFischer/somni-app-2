@@ -15,8 +15,6 @@ import {
   Box,
   Text,
   Heading,
-  Badge,
-  BadgeText,
   Pressable,
 } from '@gluestack-ui/themed';
 import { darkTheme } from '@somni/theme';
@@ -40,6 +38,8 @@ import { useDreamThemes } from '../../hooks/useDreamThemes';
 import { useAuthStore } from '@somni/stores';
 import { DreamInterpreter } from '@somni/types';
 import { supabase } from '../../lib/supabase';
+import { interpretationService, Interpretation, InterpretationStartResponse } from '../../services/interpretationService';
+import { InterpretationDisplay } from '../../components/organisms/InterpretationDisplay';
 
 interface DreamWithImages extends Dream {
   dream_images?: DreamImage[];
@@ -50,31 +50,6 @@ type RouteProps = MainStackScreenProps<'DreamDetail'>['route'];
 
 type TabType = 'overview' | 'analysis' | 'reflection';
 
-interface MetricBoxProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  iconColor?: string;
-}
-
-const MetricBox: React.FC<MetricBoxProps> = ({
-  icon,
-  label,
-  value,
-  iconColor = darkTheme.colors.secondary,
-}) => (
-  <Card variant="elevated" marginHorizontal={0} flex={1}>
-    <VStack space="sm" alignItems="center" py="$2">
-      {icon}
-      <Text size="xs" color="$textLight400" fontWeight="$medium">
-        {label}
-      </Text>
-      <Text size="lg" color="$textLight100" fontWeight="$bold">
-        {value}
-      </Text>
-    </VStack>
-  </Card>
-);
 
 export const DreamDetailScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -89,6 +64,11 @@ export const DreamDetailScreen: React.FC = () => {
   const [guideLoading, setGuideLoading] = useState(true);
   const [isInterpretationReady, setIsInterpretationReady] = useState(false);
   const [dreamImagesLoaded, setDreamImagesLoaded] = useState(false);
+  const [interpretation, setInterpretation] = useState<Interpretation | null>(null);
+  const [interpretationLoading, setInterpretationLoading] = useState(false);
+  const [interpretationJob, setInterpretationJob] = useState<InterpretationStartResponse | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState('Analyzing your dream...');
+  const [interpretationError, setInterpretationError] = useState<string | null>(null);
 
   const dreamId = route.params?.dreamId;
   const [dream, setDream] = useState<DreamWithImages | null>(
@@ -126,10 +106,13 @@ export const DreamDetailScreen: React.FC = () => {
           console.log('🖼️ Found dream images:', images);
           
           // Update the dream with its images
-          setDream(prev => ({
-            ...prev!,
-            dream_images: images
-          }));
+          setDream(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              dream_images: images
+            };
+          });
           
           console.log('✅ Updated dream with images:', { dreamId, imageCount: images.length });
         } else {
@@ -158,7 +141,7 @@ export const DreamDetailScreen: React.FC = () => {
 
     try {
       setIsCapturing(true);
-      const uri = await viewShotRef.current.capture();
+      const uri = await viewShotRef.current!.capture();
       console.log('Captured screenshot:', uri);
       return uri;
     } catch (error) {
@@ -390,6 +373,73 @@ export const DreamDetailScreen: React.FC = () => {
     fetchGuideInfo();
   }, [profile?.dream_interpreter]);
 
+  // Check for existing interpretations
+  useEffect(() => {
+    const checkExistingInterpretations = async () => {
+      if (!dreamId) return;
+      
+      try {
+        const interpretations = await interpretationService.getInterpretations(dreamId);
+        if (interpretations.length > 0) {
+          setInterpretation(interpretations[0]);
+          setIsInterpretationReady(true);
+        }
+      } catch (error) {
+        console.error('Error checking interpretations:', error);
+      }
+    };
+    
+    checkExistingInterpretations();
+  }, [dreamId]);
+
+  // Set up real-time subscription for new interpretations
+  useEffect(() => {
+    if (!dreamId) return;
+    
+    const subscription = interpretationService.subscribeToInterpretation(
+      dreamId,
+      (newInterpretation) => {
+        console.log('New interpretation received:', newInterpretation);
+        setInterpretation(newInterpretation);
+        setIsInterpretationReady(true);
+        setInterpretationJob(null);
+        setInterpretationLoading(false);
+        
+        // Show notification if app is in background
+        if (Platform.OS === 'ios' || Platform.OS === 'android') {
+          // This would be handled by push notifications in production
+          Alert.alert(
+            'Interpretation Ready',
+            'Your dream interpretation is ready!',
+            [{ text: 'View', onPress: () => setActiveTab('analysis') }]
+          );
+        }
+      }
+    );
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [dreamId]);
+
+
+  // Add timeout handling
+  useEffect(() => {
+    if (interpretationLoading) {
+      const timeout = setTimeout(() => {
+        setInterpretationLoading(false);
+        setInterpretationError('Interpretation is taking longer than expected. Please try again.');
+        Alert.alert(
+          'Timeout',
+          'Interpretation is taking longer than expected. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }, 30000); // 30 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [interpretationLoading]);
+
   if (!dream) {
     return null;
   }
@@ -450,6 +500,19 @@ export const DreamDetailScreen: React.FC = () => {
     return format(new Date(), 'MMM yyyy');
   };
 
+  const getRandomTip = () => {
+    const tips = [
+      "Dreams are the mind's way of processing emotions and memories",
+      "Keep a dream journal to improve dream recall",
+      "Most dreams occur during REM sleep",
+      "Everyone dreams, but not everyone remembers their dreams",
+      "Dreams can help solve problems and boost creativity",
+      "The average person has 4-6 dreams per night",
+      "Dream symbols often represent emotions or experiences"
+    ];
+    return tips[Math.floor(Math.random() * tips.length)];
+  };
+
   const handleDiscussDream = () => {
     Alert.alert(
       'Coming Soon',
@@ -458,14 +521,56 @@ export const DreamDetailScreen: React.FC = () => {
     );
   };
 
-  const handleAskForInterpretation = () => {
-    Alert.alert(
-      'Interpretation Requested',
-      'Your dream guide will analyze this dream and notify you when the interpretation is ready. This may take a few minutes.',
-      [{ text: 'OK' }],
-    );
-    // In the future, this would trigger an API call to request interpretation
+  const handleAskForInterpretation = async () => {
+    if (!dream || !profile?.user_id || !profile?.dream_interpreter) {
+      Alert.alert('Error', 'Missing required information. Please try again.');
+      return;
+    }
+
+    try {
+      setInterpretationLoading(true);
+      setInterpretationError(null);
+      setLoadingMessage('Analyzing your dream...');
+
+      // Check if interpretation already exists
+      const existingInterpretations = await interpretationService.getInterpretations(dream.id);
+      if (existingInterpretations.length > 0) {
+        setInterpretation(existingInterpretations[0]);
+        setInterpretationLoading(false);
+        Alert.alert('Interpretation Found', 'An interpretation already exists for this dream.');
+        return;
+      }
+
+      // Start interpretation (returns immediately)
+      const result = await interpretationService.startInterpretation(
+        dream.id,
+        profile.user_id,
+        profile.dream_interpreter
+      );
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to start interpretation');
+      }
+
+      setInterpretationJob(result);
+      
+      // Don't show alert - let the loading UI handle it
+      // The real-time subscription will handle the result
+    } catch (error: any) {
+      console.error('Error requesting interpretation:', error);
+      setInterpretationError(error.message);
+      setInterpretationLoading(false);
+      
+      if (error.message.includes('not found')) {
+        Alert.alert('Error', 'This dream no longer exists.');
+      } else if (error.message.includes('transcription')) {
+        Alert.alert('Not Ready', 'Please wait for dream transcription to complete.');
+      } else {
+        Alert.alert('Error', 'Failed to request interpretation. Please try again.');
+      }
+    }
   };
+
 
   const renderOverview = () => (
     <VStack space="lg">
@@ -481,10 +586,12 @@ export const DreamDetailScreen: React.FC = () => {
         
         return (
           <Box
-            borderRadius="$lg"
-            overflow="hidden"
-            bg={darkTheme.colors.background.secondary}
-            aspectRatio={3 / 2}
+            style={{
+              borderRadius: 12,
+              overflow: 'hidden',
+              backgroundColor: darkTheme.colors.background.secondary,
+              aspectRatio: 3 / 2
+            }}
           >
             <RNImage
               source={{ uri: imageUrl }}
@@ -506,24 +613,28 @@ export const DreamDetailScreen: React.FC = () => {
       })()}
       {dream.image_prompt && (!dream.dream_images || dream.dream_images.length === 0) && (
         <Box
-          borderRadius="$lg"
-          overflow="hidden"
-          bg={darkTheme.colors.background.secondary}
-          aspectRatio={3 / 2}
+          style={{
+            borderRadius: 12,
+            overflow: 'hidden',
+            backgroundColor: darkTheme.colors.background.secondary,
+            aspectRatio: 3 / 2
+          }}
         >
           <Box
-            w="$full"
-            h="$full"
-            bg={darkTheme.colors.background.elevated}
-            justifyContent="center"
-            alignItems="center"
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: darkTheme.colors.background.elevated,
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
           >
             <MaterialCommunityIcons
               name="image-filter-drama"
               size={64}
               color={darkTheme.colors.border.secondary}
             />
-            <Text size="sm" color="$textLight500" mt="$2">
+            <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, marginTop: 8 }}>
               Image coming soon
             </Text>
           </Box>
@@ -531,20 +642,22 @@ export const DreamDetailScreen: React.FC = () => {
       )}
       {dream.is_lucid && (
         <Card
-          variant="filled"
-          bg={darkTheme.colors.primary + '20'}
+          variant="elevated"
           marginHorizontal={0}
+          style={{ backgroundColor: darkTheme.colors.primary + '20' }}
         >
-          <HStack space="sm" alignItems="center">
+          <HStack space="sm" style={{ alignItems: 'center' }}>
             <Ionicons
               name="sparkles"
               size={20}
               color={darkTheme.colors.primary}
             />
             <Text
-              size="md"
-              color={darkTheme.colors.primary}
-              fontWeight="$medium"
+              style={{
+                fontSize: 16,
+                color: darkTheme.colors.primary,
+                fontWeight: '500'
+              }}
             >
               Lucid Dream
             </Text>
@@ -553,17 +666,17 @@ export const DreamDetailScreen: React.FC = () => {
       )}
       <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
-          <HStack space="sm" alignItems="center">
+          <HStack space="sm" style={{ alignItems: 'center' }}>
             <MaterialCommunityIcons
               name="script-text-outline"
               size={20}
               color={darkTheme.colors.secondary}
             />
-            <Text size="sm" color="$textLight400" fontWeight="$medium">
+            <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
               DREAM TRANSCRIPT
             </Text>
           </HStack>
-          <Text size="md" color="$textLight100" lineHeight="$lg">
+          <Text style={{ fontSize: 16, color: darkTheme.colors.text.primary, lineHeight: 24 }}>
             {dream.raw_transcript || 'No transcript available'}
           </Text>
         </VStack>
@@ -571,23 +684,23 @@ export const DreamDetailScreen: React.FC = () => {
 
       <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
-          <HStack space="sm" alignItems="center">
+          <HStack space="sm" style={{ alignItems: 'center' }}>
             <MaterialCommunityIcons
               name="emoticon-outline"
               size={20}
               color={darkTheme.colors.secondary}
             />
-            <Text size="sm" color="$textLight400" fontWeight="$medium">
+            <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
               MOOD
             </Text>
           </HStack>
           <VStack space="sm">
-            <HStack justifyContent="space-between" alignItems="center">
-              <Text size="md" color="$textLight100">
+            <HStack style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 16, color: darkTheme.colors.text.primary }}>
                 {getMoodLabel(dream.mood)}
               </Text>
               {dream.mood && (
-                <Text size="sm" color={getMoodColor(dream.mood)}>
+                <Text style={{ fontSize: 14, color: getMoodColor(dream.mood) }}>
                   {dream.mood}/5
                 </Text>
               )}
@@ -612,29 +725,29 @@ export const DreamDetailScreen: React.FC = () => {
 
       <Card variant="elevated" marginHorizontal={0}>
         <VStack space="md">
-          <HStack space="sm" alignItems="center">
+          <HStack space="sm" style={{ alignItems: 'center' }}>
             <MaterialCommunityIcons
               name="eye-outline"
               size={20}
               color={darkTheme.colors.secondary}
             />
-            <Text size="sm" color="$textLight400" fontWeight="$medium">
+            <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
               CLARITY
             </Text>
           </HStack>
           <VStack space="sm">
-            <HStack justifyContent="space-between" alignItems="center">
-              <Text size="md" color="$textLight100">
+            <HStack style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 16, color: darkTheme.colors.text.primary }}>
                 {dream.clarity ? `${dream.clarity}%` : 'Not set'}
               </Text>
               {dream.clarity && (
                 <Text
-                  size="sm"
-                  color={
-                    dream.clarity >= 70
+                  style={{
+                    fontSize: 14,
+                    color: dream.clarity >= 70
                       ? darkTheme.colors.status.success
                       : darkTheme.colors.secondary
-                  }
+                  }}
                 >
                   {dream.clarity >= 70
                     ? 'High'
@@ -667,34 +780,34 @@ export const DreamDetailScreen: React.FC = () => {
       </Card>
       {dream.duration && (
         <Card variant="elevated" marginHorizontal={0}>
-          <HStack space="md" alignItems="center">
-            <HStack space="sm" alignItems="center" flex={1}>
+          <HStack space="md" style={{ alignItems: 'center' }}>
+            <HStack space="sm" style={{ alignItems: 'center', flex: 1 }}>
               <Ionicons
                 name="time-outline"
                 size={20}
                 color={darkTheme.colors.secondary}
               />
               <VStack>
-                <Text size="xs" color="$textLight500">
+                <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
                   Duration
                 </Text>
-                <Text size="sm" color="$textLight200">
+                <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary }}>
                   {Math.floor(dream.duration / 60)}:
                   {String(dream.duration % 60).padStart(2, '0')}
                 </Text>
               </VStack>
             </HStack>
-            <HStack space="sm" alignItems="center" flex={1}>
+            <HStack space="sm" style={{ alignItems: 'center', flex: 1 }}>
               <MaterialCommunityIcons
                 name="calendar-clock"
                 size={20}
                 color={darkTheme.colors.secondary}
               />
               <VStack>
-                <Text size="xs" color="$textLight500">
+                <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
                   Recorded
                 </Text>
-                <Text size="sm" color="$textLight200">
+                <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary }}>
                   {format(new Date(dream.created_at), 'h:mm a')}
                 </Text>
               </VStack>
@@ -703,7 +816,7 @@ export const DreamDetailScreen: React.FC = () => {
         </Card>
       )}
 
-      <VStack space="sm" mt="$4" mb="$4">
+      <VStack space="sm" style={{ marginTop: 16, marginBottom: 16 }}>
         <Pressable
           onPress={handleShareOnSomni}
           style={{
@@ -719,18 +832,20 @@ export const DreamDetailScreen: React.FC = () => {
           }}
         >
           <Box
-            w={24}
-            h={24}
-            borderRadius="$full"
-            bg={darkTheme.colors.primary}
-            justifyContent="center"
-            alignItems="center"
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: darkTheme.colors.primary,
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
           >
-            <Text size="sm" color="white" fontWeight="$bold">
+            <Text style={{ fontSize: 14, color: 'white', fontWeight: 'bold' }}>
               S
             </Text>
           </Box>
-          <Text size="md" color="$textLight200" fontWeight="$medium">
+          <Text style={{ fontSize: 16, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
             Share on Somni
           </Text>
         </Pressable>
@@ -752,7 +867,7 @@ export const DreamDetailScreen: React.FC = () => {
           }}
         >
           <FontAwesome5 name="twitter" size={24} color="#1DA1F2" />
-          <Text size="md" color="$textLight200" fontWeight="$medium">
+          <Text style={{ fontSize: 16, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
             {isCapturing ? 'Capturing...' : 'Share on X'}
           </Text>
         </Pressable>
@@ -774,7 +889,7 @@ export const DreamDetailScreen: React.FC = () => {
           }}
         >
           <FontAwesome5 name="instagram" size={24} color="#E4405F" />
-          <Text size="md" color="$textLight200" fontWeight="$medium">
+          <Text style={{ fontSize: 16, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
             {isCapturing ? 'Capturing...' : 'Share on Story'}
           </Text>
         </Pressable>
@@ -789,7 +904,7 @@ export const DreamDetailScreen: React.FC = () => {
         {/* Your Guide Section */}
         <Card variant="elevated" marginHorizontal={0}>
           <VStack space="md">
-            <HStack space="sm" alignItems="center">
+            <HStack space="sm" style={{ alignItems: 'center' }}>
               <MaterialCommunityIcons
                 name="account-star"
                 size={20}
@@ -809,35 +924,39 @@ export const DreamDetailScreen: React.FC = () => {
             </HStack>
             
             {guideLoading ? (
-              <HStack space="md" alignItems="center">
+              <HStack space="md" style={{ alignItems: 'center' }}>
                 <Box
-                  w={80}
-                  h={80}
-                  borderRadius="$full"
-                  bg={darkTheme.colors.background.secondary}
-                  justifyContent="center"
-                  alignItems="center"
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    backgroundColor: darkTheme.colors.background.secondary,
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}
                 >
                   <ActivityIndicator size="small" color={darkTheme.colors.primary} />
                 </Box>
-                <VStack flex={1} space="xs">
-                  <Box w={100} h={20} bg="$backgroundLight200" borderRadius="$sm" opacity={0.5} />
-                  <Box w={150} h={16} bg="$backgroundLight200" borderRadius="$sm" opacity={0.5} />
-                  <Box w={120} h={16} bg="$backgroundLight200" borderRadius="$sm" opacity={0.5} />
+                <VStack style={{ flex: 1 }} space="xs">
+                  <Box style={{ width: 100, height: 20, backgroundColor: darkTheme.colors.background.secondary, borderRadius: 4, opacity: 0.5 }} />
+                  <Box style={{ width: 150, height: 16, backgroundColor: darkTheme.colors.background.secondary, borderRadius: 4, opacity: 0.5 }} />
+                  <Box style={{ width: 120, height: 16, backgroundColor: darkTheme.colors.background.secondary, borderRadius: 4, opacity: 0.5 }} />
                 </VStack>
               </HStack>
             ) : dreamGuide ? (
               <>
-                <HStack space="md" alignItems="center">
+                <HStack space="md" style={{ alignItems: 'center' }}>
                   {/* Guide Avatar with image */}
                   <Box
-                    w={80}
-                    h={80}
-                    borderRadius="$full"
-                    overflow="hidden"
-                    bg={darkTheme.colors.background.secondary}
-                    borderWidth={2}
-                    borderColor={darkTheme.colors.primary + '20'}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 40,
+                      overflow: 'hidden',
+                      backgroundColor: darkTheme.colors.background.secondary,
+                      borderWidth: 2,
+                      borderColor: darkTheme.colors.primary + '20'
+                    }}
                   >
                     {dreamGuide.image_url ? (() => {
                       const imageUrl = dreamGuide.image_url.startsWith('http') 
@@ -869,39 +988,41 @@ export const DreamDetailScreen: React.FC = () => {
                       );
                     })() : (
                       <Box
-                        w="$full"
-                        h="$full"
-                        justifyContent="center"
-                        alignItems="center"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          justifyContent: 'center',
+                          alignItems: 'center'
+                        }}
                       >
-                        <Text size="3xl">{getGuideEmoji(dreamGuide.id)}</Text>
+                        <Text style={{ fontSize: 30 }}>{getGuideEmoji(dreamGuide.id)}</Text>
                       </Box>
                     )}
                   </Box>
                   
                   {/* Guide Info */}
-                  <VStack flex={1} space="xs">
-                    <Text size="xl" color="$textLight100" fontWeight="$bold">
+                  <VStack style={{ flex: 1 }} space="xs">
+                    <Text style={{ fontSize: 20, color: darkTheme.colors.text.primary, fontWeight: 'bold' }}>
                       Dr. {dreamGuide.name}
                     </Text>
-                    <HStack space="sm" alignItems="center">
-                      <HStack space="xs" alignItems="center">
+                    <HStack space="sm" style={{ alignItems: 'center' }}>
+                      <HStack space="xs" style={{ alignItems: 'center' }}>
                         <MaterialCommunityIcons
                           name="calendar-account"
                           size={14}
                           color={darkTheme.colors.text.secondary}
                         />
-                        <Text size="xs" color="$textLight400">
+                        <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
                           {getGuideSince()}
                         </Text>
                       </HStack>
-                      <HStack space="xs" alignItems="center">
+                      <HStack space="xs" style={{ alignItems: 'center' }}>
                         <MaterialCommunityIcons
                           name="thought-bubble"
                           size={14}
                           color={darkTheme.colors.text.secondary}
                         />
-                        <Text size="xs" color="$textLight400">
+                        <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
                           0 dreams
                         </Text>
                       </HStack>
@@ -952,41 +1073,43 @@ export const DreamDetailScreen: React.FC = () => {
         {/* Themes Section */}
         <Card variant="elevated" marginHorizontal={0}>
           <VStack space="md">
-            <HStack space="sm" alignItems="center">
+            <HStack space="sm" style={{ alignItems: 'center' }}>
               <MaterialCommunityIcons
                 name="tag-multiple"
                 size={20}
                 color={darkTheme.colors.secondary}
               />
-              <Text size="sm" color="$textLight400" fontWeight="$medium">
+              <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
                 THEMES
               </Text>
             </HStack>
 
             {themesLoading ? (
-              <HStack space="sm" flexWrap="wrap">
+              <HStack space="sm" style={{ flexWrap: 'wrap' }}>
                 {[1, 2, 3].map((i) => (
                   <Box
                     key={i}
-                    w={80}
-                    h={32}
-                    borderRadius="$full"
-                    bg="$backgroundLight200"
-                    opacity={0.5}
+                    style={{
+                      width: 80,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: darkTheme.colors.background.secondary,
+                      opacity: 0.5
+                    }}
                   />
                 ))}
               </HStack>
             ) : themesError ? (
-              <Text size="sm" color="$error500">
+              <Text style={{ fontSize: 14, color: darkTheme.colors.status.error }}>
                 Failed to load themes
               </Text>
             ) : themes.length === 0 ? (
-              <Text size="sm" color="$textLight500">
+              <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary }}>
                 No themes detected for this dream
               </Text>
             ) : (
               <VStack space="md">
-                <HStack space="sm" flexWrap="wrap">
+                <HStack space="sm" style={{ flexWrap: 'wrap' }}>
                   {themes.map((theme, index) => (
                     <Pressable
                       key={`${theme.code}-${index}`}
@@ -997,21 +1120,23 @@ export const DreamDetailScreen: React.FC = () => {
                       }
                     >
                       <Box
-                        px="$3"
-                        py="$2"
-                        borderRadius="$full"
-                        bg={
-                          selectedTheme === theme.code
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          backgroundColor: selectedTheme === theme.code
                             ? darkTheme.colors.secondary + '20'
-                            : 'transparent'
-                        }
-                        borderWidth={1}
-                        borderColor={darkTheme.colors.secondary}
+                            : 'transparent',
+                          borderWidth: 1,
+                          borderColor: darkTheme.colors.secondary
+                        }}
                       >
                         <Text
-                          size="sm"
-                          color={darkTheme.colors.secondary}
-                          fontWeight="$medium"
+                          style={{
+                            fontSize: 14,
+                            color: darkTheme.colors.secondary,
+                            fontWeight: '500'
+                          }}
                         >
                           {theme.name}
                         </Text>
@@ -1022,13 +1147,15 @@ export const DreamDetailScreen: React.FC = () => {
 
                 {selectedTheme && (
                   <Box
-                    p="$3"
-                    borderRadius="$md"
-                    bg={darkTheme.colors.background.secondary}
-                    borderWidth={1}
-                    borderColor={darkTheme.colors.border.secondary}
+                    style={{
+                      padding: 12,
+                      borderRadius: 8,
+                      backgroundColor: darkTheme.colors.background.secondary,
+                      borderWidth: 1,
+                      borderColor: darkTheme.colors.border.secondary
+                    }}
                   >
-                    <Text size="sm" color="$textLight300" lineHeight="$md">
+                    <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, lineHeight: 20 }}>
                       {themes.find((t) => t.code === selectedTheme)
                         ?.description || ''}
                     </Text>
@@ -1040,45 +1167,99 @@ export const DreamDetailScreen: React.FC = () => {
         </Card>
 
         {/* Interpretation Section */}
-        <Card variant="elevated" marginHorizontal={0}>
-          <VStack space="md">
-            <HStack space="sm" alignItems="center">
-              <MaterialCommunityIcons
-                name="telescope"
-                size={20}
-                color={darkTheme.colors.secondary}
-              />
-              <Text size="sm" color="$textLight400" fontWeight="$medium">
-                INTERPRETATION
-              </Text>
-            </HStack>
-
+        {interpretation ? (
+          <InterpretationDisplay 
+            interpretation={interpretation} 
+            interpreterName={dreamGuide?.full_name}
+          />
+        ) : (
+          <Card variant="elevated" marginHorizontal={0}>
             <VStack space="md">
-              <Text size="sm" color="$textLight300" lineHeight="$md">
-                Ask your guide for a deep interpretation of your dream. This analysis may take a few minutes, and you'll be notified when it's ready.
-              </Text>
-              
-              <Pressable
-                onPress={handleAskForInterpretation}
-                disabled={!dream.raw_transcript || themes.length === 0}
-                bg={(!dream.raw_transcript || themes.length === 0) ? darkTheme.colors.background.secondary : darkTheme.colors.primary}
-                borderRadius="$lg"
-                px="$6"
-                py="$4"
-                opacity={(!dream.raw_transcript || themes.length === 0) ? 0.6 : 1}
-                alignItems="center"
-              >
-                <Text 
-                  size="md" 
-                  color={(!dream.raw_transcript || themes.length === 0) ? "$textLight400" : "$textLight50"}
-                  fontWeight="$bold"
-                >
-                  Ask for Interpretation
+              <HStack space="sm" style={{ alignItems: 'center' }}>
+                <MaterialCommunityIcons
+                  name="telescope"
+                  size={20}
+                  color={darkTheme.colors.secondary}
+                />
+                <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
+                  INTERPRETATION
                 </Text>
-              </Pressable>
+              </HStack>
+
+              {interpretationLoading ? (
+                <VStack space="md" style={{ alignItems: 'center', paddingVertical: 20 }}>
+                  <ActivityIndicator size="large" color={darkTheme.colors.primary} />
+                  <Text style={{ fontSize: 16, color: darkTheme.colors.text.primary, fontWeight: '600' }}>
+                    {dreamGuide?.name || 'Your guide'} is analyzing your dream...
+                  </Text>
+                  
+                  <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary }}>
+                    This may take a few moments
+                  </Text>
+                  
+                  <Text style={{ fontSize: 13, color: darkTheme.colors.text.secondary, fontStyle: 'italic', textAlign: 'center', marginTop: 8 }}>
+                    💡 {getRandomTip()}
+                  </Text>
+                </VStack>
+              ) : interpretationError ? (
+                <VStack space="md">
+                  <Text style={{ fontSize: 14, color: darkTheme.colors.status.error }}>
+                    {interpretationError}
+                  </Text>
+                  <Pressable
+                    onPress={handleAskForInterpretation}
+                    style={{
+                      backgroundColor: darkTheme.colors.primary,
+                      borderRadius: 12,
+                      paddingHorizontal: 24,
+                      paddingVertical: 16,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text 
+                      style={{
+                        fontSize: 16,
+                        color: '#FFFFFF',
+                        fontWeight: '600',
+                      }}
+                    >
+                      Try Again
+                    </Text>
+                  </Pressable>
+                </VStack>
+              ) : (
+                <VStack space="md">
+                  <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, lineHeight: 20 }}>
+                    Ask your guide for a deep interpretation of your dream. This analysis may take a few minutes, and you'll be notified when it's ready.
+                  </Text>
+                  
+                  <Pressable
+                    onPress={handleAskForInterpretation}
+                    disabled={!dream.raw_transcript || themes.length === 0}
+                    style={{
+                      backgroundColor: (!dream.raw_transcript || themes.length === 0) ? darkTheme.colors.background.secondary : darkTheme.colors.primary,
+                      borderRadius: 12,
+                      paddingHorizontal: 24,
+                      paddingVertical: 16,
+                      opacity: (!dream.raw_transcript || themes.length === 0) ? 0.6 : 1,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text 
+                      style={{
+                        fontSize: 16,
+                        color: (!dream.raw_transcript || themes.length === 0) ? darkTheme.colors.text.secondary : '#FFFFFF',
+                        fontWeight: '600',
+                      }}
+                    >
+                      Ask for Interpretation
+                    </Text>
+                  </Pressable>
+                </VStack>
+              )}
             </VStack>
-          </VStack>
-        </Card>
+          </Card>
+        )}
       </VStack>
     );
   };
@@ -1086,16 +1267,16 @@ export const DreamDetailScreen: React.FC = () => {
   const renderReflection = () => (
     <VStack space="lg">
       <Card variant="elevated" marginHorizontal={0}>
-        <VStack space="md" alignItems="center" py="$4">
+        <VStack space="md" style={{ alignItems: 'center', paddingVertical: 16 }}>
           <MaterialCommunityIcons
             name="meditation"
             size={48}
             color={darkTheme.colors.border.secondary}
           />
-          <Text size="lg" color="$textLight400" textAlign="center">
+          <Text style={{ fontSize: 18, color: darkTheme.colors.text.secondary, textAlign: 'center' }}>
             Reflection Coming Soon
           </Text>
-          <Text size="sm" color="$textLight500" textAlign="center">
+          <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, textAlign: 'center' }}>
             Personal reflection prompts will be available after dream analysis.
           </Text>
         </VStack>
@@ -1120,16 +1301,16 @@ export const DreamDetailScreen: React.FC = () => {
     <SafeAreaView
       style={{ flex: 1, backgroundColor: darkTheme.colors.background.primary }}
     >
-      <VStack flex={1}>
-        <Box px="$5" pt="$4" pb="$2">
+      <VStack style={{ flex: 1 }}>
+        <Box style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
           <Pressable onPress={() => navigation.goBack()}>
-            <HStack space="xs" alignItems="center">
+            <HStack space="xs" style={{ alignItems: 'center' }}>
               <Ionicons
                 name="chevron-back"
                 size={20}
                 color={darkTheme.colors.primary}
               />
-              <Text color={darkTheme.colors.primary} fontWeight="$medium">
+              <Text style={{ color: darkTheme.colors.primary, fontWeight: '500' }}>
                 Back
               </Text>
             </HStack>
@@ -1145,27 +1326,29 @@ export const DreamDetailScreen: React.FC = () => {
             result: 'tmpfile',
           }}
         >
-          <VStack flex={1} bg={darkTheme.colors.background.primary}>
+          <VStack style={{ flex: 1, backgroundColor: darkTheme.colors.background.primary }}>
             <Box
-              px="$5"
-              pb="$4"
-              pt="$2"
-              borderBottomWidth={1}
-              borderBottomColor={darkTheme.colors.border.primary}
+              style={{
+                paddingHorizontal: 20,
+                paddingBottom: 16,
+                paddingTop: 8,
+                borderBottomWidth: 1,
+                borderBottomColor: darkTheme.colors.border.primary
+              }}
             >
               <VStack space="sm">
-                <HStack justifyContent="space-between" alignItems="flex-start">
-                  <VStack flex={1}>
-                    <Heading size="xl" color="$textLight50" numberOfLines={2}>
+                <HStack style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <VStack style={{ flex: 1 }}>
+                    <Heading style={{ fontSize: 24, color: darkTheme.colors.text.primary }} numberOfLines={2}>
                       {dream.title || 'Untitled Dream'}
                     </Heading>
                   </VStack>
-                  <VStack alignItems="flex-end" space="2xs" ml="$3">
-                    <Text size="xs" color="$textLight400">
+                  <VStack style={{ alignItems: 'flex-end', marginLeft: 12 }} space="2xs">
+                    <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
                       {format(new Date(dream.created_at), 'MMM d, h:mm a')}
                     </Text>
                     {dream.location_metadata && (
-                      <Text size="xs" color="$textLight400">
+                      <Text style={{ fontSize: 12, color: darkTheme.colors.text.secondary }}>
                         in{' '}
                         {[
                           dream.location_metadata.city,
@@ -1181,10 +1364,12 @@ export const DreamDetailScreen: React.FC = () => {
             </Box>
 
             <Box
-              px="$5"
-              py="$4"
-              borderBottomWidth={1}
-              borderBottomColor={darkTheme.colors.border.primary}
+              style={{
+                paddingHorizontal: 20,
+                paddingVertical: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: darkTheme.colors.border.primary
+              }}
             >
               <HStack space="sm">{tabs.map(renderTabButton)}</HStack>
             </Box>
@@ -1199,25 +1384,29 @@ export const DreamDetailScreen: React.FC = () => {
               {/* Somni branding for screenshots */}
               {activeTab === 'overview' && (
                 <HStack
-                  justifyContent="center"
-                  alignItems="center"
+                  style={{
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginTop: 16,
+                    opacity: 0.7
+                  }}
                   space="xs"
-                  mt="$4"
-                  opacity={0.7}
                 >
                   <Box
-                    w={20}
-                    h={20}
-                    borderRadius="$full"
-                    bg={darkTheme.colors.primary}
-                    justifyContent="center"
-                    alignItems="center"
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      backgroundColor: darkTheme.colors.primary,
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}
                   >
-                    <Text size="xs" color="white" fontWeight="$bold">
+                    <Text style={{ fontSize: 12, color: 'white', fontWeight: 'bold' }}>
                       S
                     </Text>
                   </Box>
-                  <Text size="sm" color="$textLight400" fontWeight="$medium">
+                  <Text style={{ fontSize: 14, color: darkTheme.colors.text.secondary, fontWeight: '500' }}>
                     Somni - Dream Journal
                   </Text>
                 </HStack>

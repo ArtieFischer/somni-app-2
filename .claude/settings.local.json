@@ -33,7 +33,9 @@
       "Bash(do sed -i '' 's/variant=\"\"ghost\"\"/variant=\"\"link\"\"/g' \"$f\")",
       "WebFetch(domain:docs.expo.dev)",
       "Bash(expo doctor:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(ls:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }
