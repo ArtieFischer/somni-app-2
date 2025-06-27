@@ -47,8 +47,8 @@ export const DreamingPreferencesSection: React.FC<
     try {
       const updatedProfile = await userRepository.update(user.id, {
         dream_interpreter: interpreterId as
-          | 'carl'
-          | 'sigmund'
+          | 'jung'
+          | 'freud'
           | 'lakshmi'
           | 'mary',
       });
@@ -202,7 +202,9 @@ export const DreamingPreferencesSection: React.FC<
   const getInterpreterName = (id?: string) => {
     const interpreters = {
       carl: 'Carl Jung',
+      jung: 'Carl Jung',
       sigmund: 'Sigmund Freud',
+      freud: 'Sigmund Freud',
       lakshmi: 'Lakshmi Devi',
       mary: 'Mary Whiton',
     };
@@ -284,11 +286,11 @@ export const DreamingPreferencesSection: React.FC<
                   { text: 'Cancel', style: 'cancel' },
                   {
                     text: 'Carl Jung',
-                    onPress: () => handleInterpreterChange('carl'),
+                    onPress: () => handleInterpreterChange('jung'),
                   },
                   {
                     text: 'Sigmund Freud',
-                    onPress: () => handleInterpreterChange('sigmund'),
+                    onPress: () => handleInterpreterChange('freud'),
                   },
                   {
                     text: 'Lakshmi Devi',

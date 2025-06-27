@@ -3,6 +3,7 @@ import {
   ScrollView,
   Alert,
   Platform,
+  AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -16,7 +17,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { MainStackScreenProps, Dream, DreamImage } from '@somni/types';
 import { useDreamStore } from '@somni/stores';
 import { format } from 'date-fns';
-import ViewShot from 'react-native-view-shot';
+// import ViewShot from 'react-native-view-shot'; // Disabled for Expo Go
 import { useDreamThemes } from '../../hooks/useDreamThemes';
 import { useAuthStore } from '@somni/stores';
 import { DreamInterpreter } from '@somni/types';
@@ -26,6 +27,7 @@ import {
   Interpretation,
   InterpretationStartResponse,
 } from '../../services/interpretationService';
+import { notificationService } from '../../services/notificationService';
 import {
   DreamDetailHeader,
   TabSelector,
@@ -43,11 +45,12 @@ type NavigationProps = MainStackScreenProps<'DreamDetail'>['navigation'];
 type RouteProps = MainStackScreenProps<'DreamDetail'>['route'];
 
 export const DreamDetailScreen: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const navigation = useNavigation<NavigationProps>();
   const route = useRoute<RouteProps>();
+  const [activeTab, setActiveTab] = useState<TabType>(route.params?.initialTab || 'overview');
   const dreamStore = useDreamStore();
-  const viewShotRef = useRef<ViewShot>(null);
+  // const viewShotRef = useRef<ViewShot>(null); // Disabled for Expo Go
+  const viewShotRef = useRef<any>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const { profile } = useAuthStore();
   const [dreamGuide, setDreamGuide] = useState<DreamInterpreter | null>(null);
@@ -127,19 +130,23 @@ export const DreamDetailScreen: React.FC = () => {
   }, [dreamId, dreamImagesLoaded]);
 
   const captureViewShot = async (): Promise<string | null> => {
-    if (!viewShotRef.current) return null;
+    // ViewShot is temporarily disabled for Expo Go compatibility
+    console.warn('ViewShot capture is disabled in Expo Go');
+    return null;
+    
+    // if (!viewShotRef.current) return null;
 
-    try {
-      setIsCapturing(true);
-      const uri = await viewShotRef.current!.capture();
-      console.log('Captured screenshot:', uri);
-      return uri;
-    } catch (error) {
-      console.error('Error capturing screenshot:', error);
-      return null;
-    } finally {
-      setIsCapturing(false);
-    }
+    // try {
+    //   setIsCapturing(true);
+    //   const uri = await viewShotRef.current!.capture();
+    //   console.log('Captured screenshot:', uri);
+    //   return uri;
+    // } catch (error) {
+    //   console.error('Error capturing screenshot:', error);
+    //   return null;
+    // } finally {
+    //   setIsCapturing(false);
+    // }
   };
 
   useEffect(() => {
@@ -280,13 +287,29 @@ export const DreamDetailScreen: React.FC = () => {
         setInterpretationJob(null);
         setInterpretationLoading(false);
 
-        // Show notification if app is in background
-        if (Platform.OS === 'ios' || Platform.OS === 'android') {
-          // This would be handled by push notifications in production
+        // Show notification based on app state
+        const appState = AppState.currentState;
+        
+        if (appState === 'background' || appState === 'inactive') {
+          // App is in background - send local notification
+          notificationService.scheduleLocalNotification(
+            'Interpretation Ready! 🌙',
+            `Your interpretation for "${dream?.title || 'your dream'}" is ready to view.`,
+            {
+              type: 'interpretation_ready',
+              dreamId: dreamId,
+              interpretationId: newInterpretation.id,
+            }
+          );
+        } else {
+          // App is in foreground - show in-app alert
           Alert.alert(
-            'Interpretation Ready',
-            'Your dream interpretation is ready!',
-            [{ text: 'View', onPress: () => setActiveTab('analysis') }],
+            'Interpretation Ready! 🌙',
+            'Your dream interpretation is ready to view.',
+            [
+              { text: 'View', onPress: () => setActiveTab('analysis') },
+              { text: 'Later', style: 'cancel' }
+            ],
           );
         }
       },
@@ -525,7 +548,7 @@ export const DreamDetailScreen: React.FC = () => {
       style={{ flex: 1, backgroundColor: darkTheme.colors.background.primary }}
     >
       <VStack style={{ flex: 1 }}>
-        <ViewShot
+        {/* <ViewShot
           ref={viewShotRef}
           style={{ flex: 1 }}
           options={{
@@ -533,7 +556,7 @@ export const DreamDetailScreen: React.FC = () => {
             quality: 0.9,
             result: 'tmpfile',
           }}
-        >
+        > */}
           <VStack
             style={{
               flex: 1,
@@ -607,7 +630,7 @@ export const DreamDetailScreen: React.FC = () => {
               )}
             </ScrollView>
           </VStack>
-        </ViewShot>
+        {/* </ViewShot> */}
       </VStack>
     </SafeAreaView>
   );

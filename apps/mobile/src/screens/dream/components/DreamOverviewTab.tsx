@@ -234,4 +234,4 @@ const DreamOverviewTab: React.FC<DreamOverviewTabProps> = ({
   );
 };
 
-export default DreamOverviewTab;
+export { DreamOverviewTab };

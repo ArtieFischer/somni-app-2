@@ -11,6 +11,7 @@ import { ProfileHeader } from '../../../components/molecules/ProfileHeader';
 import { DreamingPreferencesSection } from '../../../components/molecules/DreamingPreferencesSection';
 import { UserPreferencesSection } from '../../../components/molecules/UserPreferencesSection';
 import { SupportSection } from '../../../components/molecules/SupportSection';
+import { NotificationSettings } from '../../../components/organisms/NotificationSettings';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../hooks/useTheme';
@@ -79,6 +80,11 @@ export const ProfileScreen: React.FC = () => {
           
           {/* User Preferences */}
           <UserPreferencesSection />
+
+          {/* Notification Settings */}
+          <Card>
+            <NotificationSettings />
+          </Card>
 
           {/* Support Section */}
           <SupportSection />

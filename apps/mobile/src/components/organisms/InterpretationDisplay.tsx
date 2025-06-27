@@ -350,3 +350,5 @@ export const InterpretationDisplay: React.FC<InterpretationDisplayProps> = ({
     </VStack>
   );
 };
+
+export { InterpretationDisplay };

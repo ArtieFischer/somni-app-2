@@ -6,6 +6,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { initI18n } from './src/shared/locales/i18n';
 import { useTheme } from './src/hooks/useTheme';
 import { GluestackProvider } from './src/providers/GluestackProvider';
+import { NotificationProvider } from './src/providers/NotificationProvider';
 
 // Import debug helpers in development
 if (__DEV__) {
@@ -49,8 +50,10 @@ export default function App() {
   return (
     <GluestackProvider>
       <NavigationContainer>
-        <AppNavigator />
-        <StatusBar style="light" />
+        <NotificationProvider>
+          <AppNavigator />
+          <StatusBar style="light" />
+        </NotificationProvider>
       </NavigationContainer>
     </GluestackProvider>
   );

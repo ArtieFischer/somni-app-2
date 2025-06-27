@@ -5,7 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 // Main Stack Navigator params
 export type MainStackParamList = {
   MainTabs: undefined;
-  DreamDetail: { dreamId: string };
+  DreamDetail: { dreamId: string; initialTab?: 'overview' | 'analysis' | 'journal' };
   Debug: undefined;
 };
 
