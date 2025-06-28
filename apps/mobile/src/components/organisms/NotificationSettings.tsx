@@ -50,7 +50,11 @@ export function NotificationSettings() {
   return (
     <VStack space="lg" p="$4">
       <VStack space="sm">
-        <Text size="lg" fontWeight="$semibold" color={darkTheme.colors.text.primary}>
+        <Text
+          size="lg"
+          fontWeight="$semibold"
+          color={darkTheme.colors.text.primary}
+        >
           Push Notifications
         </Text>
         <Text size="sm" color={darkTheme.colors.text.secondary}>
@@ -59,9 +63,7 @@ export function NotificationSettings() {
       </VStack>
 
       <HStack justifyContent="space-between" alignItems="center">
-        <Text color={darkTheme.colors.text.primary}>
-          Enable Notifications
-        </Text>
+        <Text color={darkTheme.colors.text.primary}>Enable Notifications</Text>
         <Switch
           value={isEnabled}
           onValueChange={handleToggleNotifications}
@@ -79,11 +81,11 @@ export function NotificationSettings() {
           <Text size="sm" color={darkTheme.colors.text.secondary}>
             Notification Types:
           </Text>
-          
+
           <VStack space="sm" ml="$2">
             <HStack space="sm" alignItems="center">
               <Text size="sm" color={darkTheme.colors.text.primary}>
-                ✓ Dream interpretations ready
+                ✓ Dream analysis ready
               </Text>
             </HStack>
             <HStack space="sm" alignItems="center" opacity={0.5}>
@@ -127,7 +129,11 @@ export function NotificationSettings() {
 
       {!isEnabled && (
         <VStack space="sm" mt="$2">
-          <Text size="xs" color={darkTheme.colors.text.secondary} fontStyle="italic">
+          <Text
+            size="xs"
+            color={darkTheme.colors.text.secondary}
+            fontStyle="italic"
+          >
             {Platform.OS === 'ios'
               ? 'You can change notification settings anytime in iOS Settings > Somni'
               : 'You can change notification settings anytime in Android Settings > Apps > Somni'}

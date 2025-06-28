@@ -67,6 +67,7 @@ export const DreamDetailScreen: React.FC = () => {
   const [interpretationError, setInterpretationError] = useState<string | null>(
     null,
   );
+  const [guideAnalysesCount, setGuideAnalysesCount] = useState<number>(0);
 
   const dreamId = route.params?.dreamId;
   const [dream, setDream] = useState<DreamWithImages | null>(
@@ -254,6 +255,75 @@ export const DreamDetailScreen: React.FC = () => {
     }
   }, [profile]);
 
+  // Count analyses by current guide
+  useEffect(() => {
+    const fetchGuideAnalysesCount = async () => {
+      if (!profile?.dream_interpreter || !profile?.user_id) {
+        console.log('⏳ Waiting for profile data...', { 
+          hasDreamInterpreter: !!profile?.dream_interpreter, 
+          hasUserId: !!profile?.user_id 
+        });
+        return;
+      }
+
+      try {
+        // First get all user's dreams
+        const { data: dreams } = await supabase
+          .from('dreams')
+          .select('id')
+          .eq('user_id', profile.user_id);
+
+        if (dreams && dreams.length > 0) {
+          const dreamIds = dreams.map(d => d.id);
+          
+          console.log('🔍 Querying interpretations for guide:', {
+            interpreter_id: profile.dream_interpreter,
+            dreamIds: dreamIds.slice(0, 3) + '...' // Show first 3 IDs
+          });
+          
+          // Then count interpretations by this guide for these dreams
+          const { count, error, data } = await supabase
+            .from('interpretations')
+            .select('*', { count: 'exact', head: true })
+            .eq('interpreter_type', profile.dream_interpreter)
+            .in('dream_id', dreamIds);
+
+          // Try alternative query if first one fails
+          if (error || count === null) {
+            console.log('❌ First query failed, trying alternative...');
+            const { data: interpretations, error: altError } = await supabase
+              .from('interpretations')
+              .select('id, interpreter_type, dream_id')
+              .eq('interpreter_type', profile.dream_interpreter)
+              .in('dream_id', dreamIds);
+              
+            const altCount = interpretations?.length || 0;
+            console.log('📊 Alternative query result:', {
+              count: altCount,
+              error: altError,
+              sampleData: interpretations?.slice(0, 2)
+            });
+            
+            setGuideAnalysesCount(altCount);
+          } else {
+            console.log('📊 Guide analyses count:', {
+              guide: profile.dream_interpreter,
+              dreamCount: dreamIds.length,
+              analysesCount: count,
+              error: error ? { code: error.code, message: error.message, details: error.details, hint: error.hint } : null
+            });
+
+            setGuideAnalysesCount(count || 0);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching guide analyses count:', error);
+      }
+    };
+
+    fetchGuideAnalysesCount();
+  }, [profile?.dream_interpreter, profile?.user_id]);
+
   // Check for existing interpretations
   useEffect(() => {
     const checkExistingInterpretations = async () => {
@@ -262,9 +332,22 @@ export const DreamDetailScreen: React.FC = () => {
       try {
         const interpretations =
           await interpretationService.getInterpretations(dreamId);
+        console.log('📋 Interpretations check:', {
+          dreamId,
+          count: interpretations.length,
+          hasInterpretations: interpretations.length > 0
+        });
+        
         if (interpretations.length > 0) {
+          console.log('🔍 Found interpretation:', {
+            interpreterType: interpretations[0].interpreter_type,
+            currentGuide: profile?.dream_interpreter,
+            match: interpretations[0].interpreter_type === profile?.dream_interpreter
+          });
           setInterpretation(interpretations[0]);
           setIsInterpretationReady(true);
+        } else {
+          console.log('❌ No interpretations found for this dream');
         }
       } catch (error) {
         console.error('Error checking interpretations:', error);
@@ -518,6 +601,7 @@ export const DreamDetailScreen: React.FC = () => {
             dreamGuide={dreamGuide}
             guideLoading={guideLoading}
             guideSince={guideSince}
+            guideAnalysesCount={guideAnalysesCount}
             themes={themes}
             themesLoading={themesLoading}
             themesError={themesError}
@@ -525,6 +609,7 @@ export const DreamDetailScreen: React.FC = () => {
             interpretationLoading={interpretationLoading}
             interpretationError={interpretationError}
             isInterpretationReady={isInterpretationReady}
+            currentGuideId={profile?.dream_interpreter}
             onDiscussDream={handleDiscussDream}
             onAskForInterpretation={handleAskForInterpretation}
             onCheckInterpretationStatus={handleCheckInterpretationStatus}

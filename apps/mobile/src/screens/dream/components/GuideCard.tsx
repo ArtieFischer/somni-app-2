@@ -11,7 +11,9 @@ interface GuideCardProps {
   dreamGuide: DreamInterpreter | null;
   guideLoading: boolean;
   guideSince?: string;
+  guideAnalysesCount: number;
   isInterpretationReady: boolean;
+  currentDreamAnalyzedByGuide?: boolean;
   onDiscussDream: () => void;
 }
 
@@ -19,7 +21,9 @@ export const GuideCard: React.FC<GuideCardProps> = ({
   dreamGuide,
   guideLoading,
   guideSince,
+  guideAnalysesCount,
   isInterpretationReady,
+  currentDreamAnalyzedByGuide,
   onDiscussDream,
 }) => {
   const getGuideEmoji = (id?: string) => {
@@ -216,7 +220,7 @@ export const GuideCard: React.FC<GuideCardProps> = ({
                         color: darkTheme.colors.text.secondary,
                       }}
                     >
-                      0 dreams
+                      {guideAnalysesCount} {guideAnalysesCount === 1 ? 'analysis' : 'analyses'}
                     </Text>
                   </HStack>
                 </HStack>
@@ -226,15 +230,15 @@ export const GuideCard: React.FC<GuideCardProps> = ({
             {/* Discuss Button - Full Width within card */}
             <Pressable
               onPress={onDiscussDream}
-              disabled={!isInterpretationReady}
+              disabled={!isInterpretationReady || !currentDreamAnalyzedByGuide}
               style={{
-                backgroundColor: isInterpretationReady
+                backgroundColor: isInterpretationReady && currentDreamAnalyzedByGuide
                   ? darkTheme.colors.primary
                   : darkTheme.colors.background.secondary,
                 borderRadius: 12,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
-                opacity: isInterpretationReady ? 1 : 0.6,
+                opacity: isInterpretationReady && currentDreamAnalyzedByGuide ? 1 : 0.6,
                 alignItems: 'center',
                 marginTop: 16,
               }}
@@ -242,7 +246,7 @@ export const GuideCard: React.FC<GuideCardProps> = ({
               <Text
                 style={{
                   fontSize: 16,
-                  color: isInterpretationReady
+                  color: isInterpretationReady && currentDreamAnalyzedByGuide
                     ? '#FFFFFF'
                     : darkTheme.colors.text.secondary,
                   fontWeight: '600',
@@ -259,6 +263,17 @@ export const GuideCard: React.FC<GuideCardProps> = ({
                   }}
                 >
                   Available after full interpretation
+                </Text>
+              )}
+              {isInterpretationReady && !currentDreamAnalyzedByGuide && (
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: darkTheme.colors.text.secondary,
+                    marginTop: 4,
+                  }}
+                >
+                  This dream was analyzed by a different guide
                 </Text>
               )}
             </Pressable>

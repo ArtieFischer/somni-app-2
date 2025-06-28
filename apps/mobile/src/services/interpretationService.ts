@@ -37,11 +37,24 @@ export interface InterpretationStartResponse {
 export interface Interpretation {
   id: string;
   dream_id: string;
-  interpreter_id: string;
-  interpretation: string;
-  key_symbols: any;
-  advice: string;
-  mood_analysis: any;
+  interpreter_type: string; // This is the actual field name in DB
+  interpreter_id?: string; // For compatibility
+  interpretation?: string;
+  interpretation_summary?: string;
+  full_response?: any;
+  key_symbols?: any;
+  symbols?: string[];
+  advice?: string;
+  mood_analysis?: any;
+  emotional_tone?: {
+    primary: string;
+    secondary: string;
+    intensity: number;
+  };
+  dream_topic?: string;
+  quick_take?: string;
+  primary_insight?: string;
+  key_pattern?: string;
   created_at: string;
   version: number;
 }
@@ -171,6 +184,19 @@ export const interpretationService = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      console.log('🔍 Fetched interpretations:', {
+        count: data?.length || 0,
+        firstInterpretation: data?.[0] ? {
+          id: data[0].id,
+          dream_id: data[0].dream_id,
+          interpreter_type: data[0].interpreter_type,
+          hasInterpretation: !!data[0].interpretation,
+          created_at: data[0].created_at,
+          allFields: Object.keys(data[0])
+        } : null
+      });
+      
       return data || [];
     } catch (error) {
       console.error('Error fetching interpretations:', error);

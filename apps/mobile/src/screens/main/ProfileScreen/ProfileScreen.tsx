@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, TouchableOpacity } from 'react-native';
+import { Alert, TouchableOpacity, Modal } from 'react-native';
 import { 
   ScrollView,
   VStack,
@@ -12,6 +12,7 @@ import { DreamingPreferencesSection } from '../../../components/molecules/Dreami
 import { UserPreferencesSection } from '../../../components/molecules/UserPreferencesSection';
 import { SupportSection } from '../../../components/molecules/SupportSection';
 import { NotificationSettings } from '../../../components/organisms/NotificationSettings';
+import { ConversationalAITest } from '../../../components/test/ConversationalAITest';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../hooks/useTheme';
@@ -23,6 +24,8 @@ export const ProfileScreen: React.FC = () => {
   const theme = useTheme();
   const styles = useStyles();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [showDebugMenu, setShowDebugMenu] = useState(false);
+  const [showWebSocketTest, setShowWebSocketTest] = useState(false);
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -89,6 +92,36 @@ export const ProfileScreen: React.FC = () => {
           {/* Support Section */}
           <SupportSection />
 
+          {/* Debug Menu - Only in development */}
+          {__DEV__ && (
+            <Card>
+              <VStack space="md">
+                <Button
+                  variant="outline"
+                  action="secondary"
+                  size="md"
+                  onPress={() => setShowDebugMenu(!showDebugMenu)}
+                  style={{ backgroundColor: theme.colors.background.secondary }}
+                >
+                  Debug Menu {showDebugMenu ? '▲' : '▼'}
+                </Button>
+                
+                {showDebugMenu && (
+                  <VStack space="sm">
+                    <Button
+                      variant="solid"
+                      action="primary"
+                      size="sm"
+                      onPress={() => setShowWebSocketTest(true)}
+                    >
+                      WebSocket Test
+                    </Button>
+                  </VStack>
+                )}
+              </VStack>
+            </Card>
+          )}
+
           {/* Actions Section */}
           <Card>
             <VStack space="md">
@@ -129,6 +162,23 @@ export const ProfileScreen: React.FC = () => {
           </Box>
         </VStack>
       </ScrollView>
+
+      {/* WebSocket Test Modal */}
+      <Modal
+        visible={showWebSocketTest}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowWebSocketTest(false)}
+      >
+        <SafeAreaView style={{ flex: 1 }}>
+          <Box style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border.default }}>
+            <TouchableOpacity onPress={() => setShowWebSocketTest(false)}>
+              <Text style={{ color: theme.colors.primary.default, fontSize: 16 }}>Close</Text>
+            </TouchableOpacity>
+          </Box>
+          <ConversationalAITest />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };

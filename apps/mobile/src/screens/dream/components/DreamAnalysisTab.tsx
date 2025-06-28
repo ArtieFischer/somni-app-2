@@ -16,6 +16,7 @@ interface DreamAnalysisTabProps {
   dreamGuide: DreamInterpreter | null;
   guideLoading: boolean;
   guideSince?: string;
+  guideAnalysesCount: number;
   themes: Array<{ code: string; name: string; description: string }>;
   themesLoading: boolean;
   themesError: Error | null;
@@ -23,6 +24,7 @@ interface DreamAnalysisTabProps {
   interpretationLoading: boolean;
   interpretationError: string | null;
   isInterpretationReady: boolean;
+  currentGuideId?: string;
   onDiscussDream: () => void;
   onAskForInterpretation: () => void;
   onCheckInterpretationStatus: () => void;
@@ -46,6 +48,7 @@ export const DreamAnalysisTab: React.FC<DreamAnalysisTabProps> = ({
   dreamGuide,
   guideLoading,
   guideSince,
+  guideAnalysesCount,
   themes,
   themesLoading,
   themesError,
@@ -53,6 +56,7 @@ export const DreamAnalysisTab: React.FC<DreamAnalysisTabProps> = ({
   interpretationLoading,
   interpretationError,
   isInterpretationReady,
+  currentGuideId,
   onDiscussDream,
   onAskForInterpretation,
   onCheckInterpretationStatus,
@@ -60,6 +64,9 @@ export const DreamAnalysisTab: React.FC<DreamAnalysisTabProps> = ({
   console.log('Rendering analysis tab:', {
     guideLoading,
     dreamGuide,
+    currentGuideId,
+    interpreterType: interpretation?.interpreter_type,
+    currentDreamAnalyzedByGuide: interpretation?.interpreter_type === currentGuideId,
   });
 
   return (
@@ -69,7 +76,9 @@ export const DreamAnalysisTab: React.FC<DreamAnalysisTabProps> = ({
         dreamGuide={dreamGuide}
         guideLoading={guideLoading}
         guideSince={guideSince}
+        guideAnalysesCount={guideAnalysesCount}
         isInterpretationReady={isInterpretationReady}
+        currentDreamAnalyzedByGuide={interpretation?.interpreter_type === currentGuideId}
         onDiscussDream={onDiscussDream}
       />
 
@@ -84,7 +93,7 @@ export const DreamAnalysisTab: React.FC<DreamAnalysisTabProps> = ({
       {interpretation ? (
         <InterpretationDisplay
           interpretation={interpretation}
-          interpreterName={dreamGuide?.full_name}
+          interpreterId={interpretation.interpreter_type}
         />
       ) : (
         <Card variant="elevated" marginHorizontal={0}>
@@ -102,7 +111,7 @@ export const DreamAnalysisTab: React.FC<DreamAnalysisTabProps> = ({
                   fontWeight: '500',
                 }}
               >
-                INTERPRETATION
+                ANALYSIS
               </Text>
             </HStack>
 
@@ -122,8 +131,7 @@ export const DreamAnalysisTab: React.FC<DreamAnalysisTabProps> = ({
                     fontWeight: '600',
                   }}
                 >
-                  {dreamGuide?.name || 'Your guide'} is analyzing your
-                  dream...
+                  {dreamGuide?.name || 'Your guide'} is analyzing your dream...
                 </Text>
 
                 <Text
@@ -212,9 +220,8 @@ export const DreamAnalysisTab: React.FC<DreamAnalysisTabProps> = ({
                     lineHeight: 20,
                   }}
                 >
-                  Ask your guide for a deep interpretation of your dream. This
-                  analysis may take a few minutes, and you'll be notified when
-                  it's ready.
+                  Ask your guide to analyze your dream. This may take a few
+                  minutes. You'll be notified when it's ready.
                 </Text>
 
                 <Pressable
@@ -243,7 +250,7 @@ export const DreamAnalysisTab: React.FC<DreamAnalysisTabProps> = ({
                       fontWeight: '600',
                     }}
                   >
-                    Ask for Interpretation
+                    Analyze Dream
                   </Text>
                 </Pressable>
               </VStack>
