@@ -9,6 +9,7 @@ import {
   StatusBar,
   Text,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MainStackScreenProps } from '@somni/types';
 import { useAuthStore } from '@somni/stores';
@@ -46,6 +47,7 @@ export const ConversationalAIScreen: React.FC = () => {
   const [currentMessage, setCurrentMessage] = useState<ConversationMessage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
+  const [isMessageCardVisible, setIsMessageCardVisible] = useState(true);
 
   // ElevenLabs state
   const [elevenLabsSignedUrl, setElevenLabsSignedUrl] = useState<string>('');
@@ -200,7 +202,7 @@ export const ConversationalAIScreen: React.FC = () => {
 
           {/* Message display area */}
           <View style={styles.messageArea}>
-            {currentMessage && (
+            {currentMessage && (isMessageCardVisible || currentMessage.source === 'system') && (
               <MessageCard
                 message={currentMessage}
                 guideName={guideConfig.name}
@@ -208,6 +210,18 @@ export const ConversationalAIScreen: React.FC = () => {
               />
             )}
           </View>
+
+          {/* Toggle message card button */}
+          <Pressable
+            onPress={() => setIsMessageCardVisible(!isMessageCardVisible)}
+            style={styles.toggleButton}
+          >
+            <MaterialCommunityIcons
+              name={isMessageCardVisible ? 'eye-off' : 'eye'}
+              size={24}
+              color="#FFFFFF"
+            />
+          </Pressable>
 
           {/* Guide avatar with breathing animation */}
           <View style={styles.avatarContainer}>

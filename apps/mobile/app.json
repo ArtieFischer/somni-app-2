@@ -20,9 +20,19 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.somni.dev",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio",
+          "audio"
+        ],
         "NSMicrophoneUsageDescription": "Aplikacja korzysta z mikrofonu do rozmowy z AI",
-        "NSCameraUsageDescription": "Aplikacja może potrzebować dostępu do kamery dla funkcji WebView"
+        "NSCameraUsageDescription": "Aplikacja może potrzebować dostępu do kamery dla funkcji WebView",
+        "LSApplicationQueriesSchemes": [
+          "fb",
+          "instagram",
+          "instagram-stories",
+          "twitter"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

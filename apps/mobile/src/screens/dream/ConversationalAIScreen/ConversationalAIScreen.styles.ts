@@ -49,4 +49,23 @@ export const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
+  toggleButton: {
+    position: 'absolute',
+    bottom: 40,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
 });
