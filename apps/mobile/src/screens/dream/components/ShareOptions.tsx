@@ -215,7 +215,6 @@ export const ShareOptions: React.FC<ShareOptionsProps> = ({
               fontSize: 16,
               color: isShared ? darkTheme.colors.primary : darkTheme.colors.text.secondary,
               fontWeight: '500',
-              flex: 1,
             }}
           >
             Share on Somni
@@ -231,7 +230,7 @@ export const ShareOptions: React.FC<ShareOptionsProps> = ({
 
       <Pressable
         onPress={handleShareOnX}
-        disabled={isCapturing}
+        disabled={true}
         style={{
           borderWidth: 1,
           borderColor: darkTheme.colors.border.secondary,
@@ -242,7 +241,7 @@ export const ShareOptions: React.FC<ShareOptionsProps> = ({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 12,
-          opacity: isCapturing ? 0.6 : 1,
+          opacity: 0.4,
         }}
       >
         <FontAwesome5 name="twitter" size={24} color="#1DA1F2" />
@@ -259,7 +258,7 @@ export const ShareOptions: React.FC<ShareOptionsProps> = ({
 
       <Pressable
         onPress={handleShareToStory}
-        disabled={isCapturing}
+        disabled={true}
         style={{
           borderWidth: 1,
           borderColor: darkTheme.colors.border.secondary,
@@ -270,7 +269,7 @@ export const ShareOptions: React.FC<ShareOptionsProps> = ({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 12,
-          opacity: isCapturing ? 0.6 : 1,
+          opacity: 0.4,
         }}
       >
         <FontAwesome5 name="instagram" size={24} color="#E4405F" />
