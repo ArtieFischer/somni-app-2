@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert, Platform, Linking } from 'react-native';
 import { VStack, Box, Text, Pressable, HStack } from '@gluestack-ui/themed';
-import { FontAwesome5 } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { darkTheme } from '@somni/theme';
 import { Dream } from '@somni/types';
 import * as FileSystem from 'expo-file-system';
+import { ShareDreamModal } from '../../../components/dream-sharing/ShareDreamModal';
+import { dreamSharingService } from '../../../services/dreamSharingService';
 
 // Use mock in development, real module in production
 const Share = __DEV__
@@ -22,12 +24,28 @@ export const ShareOptions: React.FC<ShareOptionsProps> = ({
   onCaptureViewShot,
   isCapturing,
 }) => {
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [isShared, setIsShared] = useState(false);
+  const [isCheckingShareStatus, setIsCheckingShareStatus] = useState(false);
+
+  useEffect(() => {
+    checkShareStatus();
+  }, [dream.id]);
+
+  const checkShareStatus = async () => {
+    setIsCheckingShareStatus(true);
+    try {
+      const status = await dreamSharingService.getShareStatus(dream.id);
+      setIsShared(status.isShared);
+    } catch (error) {
+      // Silently handle errors when API isn't deployed yet
+    } finally {
+      setIsCheckingShareStatus(false);
+    }
+  };
+
   const handleShareOnSomni = () => {
-    Alert.alert(
-      'Coming Soon',
-      'Share on Somni will be available in the next update!',
-      [{ text: 'OK' }],
-    );
+    setShowShareModal(true);
   };
 
   const handleShareOnX = async () => {
@@ -161,45 +179,55 @@ export const ShareOptions: React.FC<ShareOptionsProps> = ({
   };
 
   return (
-    <VStack space="sm" style={{ marginTop: 16, marginBottom: 16 }}>
-      <Pressable
-        onPress={handleShareOnSomni}
-        style={{
-          borderWidth: 1,
-          borderColor: darkTheme.colors.border.secondary,
-          borderRadius: 12,
-          paddingHorizontal: 24,
-          paddingVertical: 14,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 12,
-        }}
-      >
-        <Box
+    <>
+      <VStack space="sm" style={{ marginTop: 16, marginBottom: 16 }}>
+        <Pressable
+          onPress={handleShareOnSomni}
           style={{
-            width: 24,
-            height: 24,
+            borderWidth: 1,
+            borderColor: isShared ? darkTheme.colors.primary : darkTheme.colors.border.secondary,
+            backgroundColor: isShared ? `${darkTheme.colors.primary}15` : 'transparent',
             borderRadius: 12,
-            backgroundColor: darkTheme.colors.primary,
-            justifyContent: 'center',
+            paddingHorizontal: 24,
+            paddingVertical: 14,
+            flexDirection: 'row',
             alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
           }}
         >
-          <Text style={{ fontSize: 14, color: 'white', fontWeight: 'bold' }}>
-            S
+          <Box
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: darkTheme.colors.primary,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 14, color: 'white', fontWeight: 'bold' }}>
+              S
+            </Text>
+          </Box>
+          <Text
+            style={{
+              fontSize: 16,
+              color: isShared ? darkTheme.colors.primary : darkTheme.colors.text.secondary,
+              fontWeight: '500',
+              flex: 1,
+            }}
+          >
+            Share on Somni
           </Text>
-        </Box>
-        <Text
-          style={{
-            fontSize: 16,
-            color: darkTheme.colors.text.secondary,
-            fontWeight: '500',
-          }}
-        >
-          Share on Somni
-        </Text>
-      </Pressable>
+          {isShared && (
+            <Ionicons
+              name="checkmark-circle"
+              size={20}
+              color={darkTheme.colors.primary}
+            />
+          )}
+        </Pressable>
 
       <Pressable
         onPress={handleShareOnX}
@@ -257,5 +285,17 @@ export const ShareOptions: React.FC<ShareOptionsProps> = ({
         </Text>
       </Pressable>
     </VStack>
+
+      <ShareDreamModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        dreamId={dream.id}
+        dreamTitle={dream.title}
+        onShareStatusChange={(newStatus) => {
+          setIsShared(newStatus);
+          checkShareStatus(); // Refresh status
+        }}
+      />
+    </>
   );
 };

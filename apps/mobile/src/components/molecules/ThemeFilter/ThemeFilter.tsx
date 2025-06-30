@@ -6,7 +6,7 @@ import { useTheme } from '../../../hooks/useTheme';
 interface Theme {
   id: string;
   name: string;
-  symbol: string;
+  symbol?: string;
   count?: number;
 }
 
@@ -23,6 +23,20 @@ export const ThemeFilter: React.FC<ThemeFilterProps> = ({
 }) => {
   const theme = useTheme();
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const scrollPositionRef = React.useRef(0);
+
+  const handleThemeSelect = (themeId: string | null) => {
+    onThemeSelect(themeId);
+  };
+
+  // Restore scroll position after component updates
+  React.useEffect(() => {
+    if (scrollViewRef.current && scrollPositionRef.current > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ x: scrollPositionRef.current, animated: false });
+      }, 0);
+    }
+  });
 
   return (
     <View style={styles.container}>
@@ -31,10 +45,14 @@ export const ThemeFilter: React.FC<ThemeFilterProps> = ({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={(event) => {
+          scrollPositionRef.current = event.nativeEvent.contentOffset.x;
+        }}
+        scrollEventThrottle={16}
       >
         {/* All Dreams filter */}
         <Pressable
-          onPress={() => onThemeSelect(null)}
+          onPress={() => handleThemeSelect(null)}
           style={[
             styles.themeCircle,
             {
@@ -54,7 +72,7 @@ export const ThemeFilter: React.FC<ThemeFilterProps> = ({
                 color: selectedTheme === null 
                   ? theme.colors.secondary 
                   : theme.colors.text.primary,
-                fontWeight: selectedTheme === null ? '600' : '400',
+                fontWeight: selectedTheme === null ? '700' : '500',
               }
             ]}
           >
@@ -65,7 +83,7 @@ export const ThemeFilter: React.FC<ThemeFilterProps> = ({
         {themes.map((item) => (
           <Pressable
             key={item.id}
-            onPress={() => onThemeSelect(item.id)}
+            onPress={() => handleThemeSelect(item.id)}
             style={[
               styles.themeCircle,
               {
@@ -78,26 +96,31 @@ export const ThemeFilter: React.FC<ThemeFilterProps> = ({
               }
             ]}
           >
-            <Text style={styles.themeSymbol}>{item.symbol}</Text>
-            <Text
-              style={[
-                styles.themeText,
-                {
-                  color: selectedTheme === item.id 
-                    ? theme.colors.secondary 
-                    : theme.colors.text.primary,
-                  fontWeight: selectedTheme === item.id ? '600' : '400',
-                }
-              ]}
-              numberOfLines={1}
-            >
-              {item.name}
-            </Text>
-            {item.count && (
+            <View style={styles.themeContent}>
+              <Text
+                style={[
+                  styles.themeText,
+                  {
+                    color: selectedTheme === item.id 
+                      ? theme.colors.secondary 
+                      : theme.colors.text.primary,
+                    fontWeight: selectedTheme === item.id ? '700' : '500',
+                  }
+                ]}
+                numberOfLines={1}
+              >
+                {item.name}
+              </Text>
+            </View>
+            {item.count !== undefined && (
               <Text
                 style={[
                   styles.themeCount,
-                  { color: theme.colors.text.secondary }
+                  { 
+                    color: theme.colors.text.secondary,
+                    position: 'absolute',
+                    bottom: 8,
+                  }
                 ]}
               >
                 {item.count}
@@ -112,7 +135,7 @@ export const ThemeFilter: React.FC<ThemeFilterProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 100,
+    height: 80,
     marginVertical: 8,
   },
   scrollContent: {
@@ -120,25 +143,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   themeCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     borderWidth: 2,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
+    position: 'relative',
+  },
+  themeContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   themeSymbol: {
     fontSize: 20,
     marginBottom: 2,
   },
   themeText: {
-    fontSize: 11,
+    fontSize: 12,
     textAlign: 'center',
   },
   themeCount: {
     fontSize: 9,
-    marginTop: 2,
+    opacity: 0.6,
   },
 });

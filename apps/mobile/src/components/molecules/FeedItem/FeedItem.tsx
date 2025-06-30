@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: screenWidth - 32,
-    height: (screenWidth - 32) * (3 / 2), // 2:3 aspect ratio
+    height: screenWidth - 32, // 1:1 aspect ratio (square)
   },
   content: {
     padding: 16,

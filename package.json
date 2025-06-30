@@ -10,7 +10,6 @@
     "dev:web": "npm run dev --workspace=@somni/web",
     "build:web": "npm run build --workspace=@somni/web",
     "lint": "npm run lint --workspaces",
-    "prepare": "husky",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },
@@ -31,7 +30,8 @@
     "eslint-plugin-prettier": "^5.4.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "husky": "^9.1.7",
+    "expo": "~53.0.12",
+    "expo-location": "~18.1.5",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "typescript-deno-plugin": "^1.31.0"
@@ -40,12 +40,11 @@
     "country-state-city": "^3.2.1",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
-    "expo": "~53.0.12",
-    "expo-location": "~18.1.5",
     "react": "19.0.0",
     "react-native": "0.79.4",
     "react-native-web": "^0.20.0",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "expo": "~53.0.13"
   },
   "overrides": {
     "react": "19.0.0",

@@ -1,13 +1,5 @@
 {
   "ios": {
-    "bundleIdentifier": "com.somni.dev"
-  },
-  "android": {
-    "package": "com.somni.dev"
-  },
-  "extra": {
-    "eas": {
-      "projectId": "c481b6a7-bfdc-4fac-8680-cd5ff6c3e757"
-    }
+    "bundleIdentifier": "com.gregorylime.somni-monorepo"
   }
 }

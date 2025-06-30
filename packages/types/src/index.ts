@@ -199,8 +199,10 @@ export interface UserProfile {
 export interface DreamInterpreter {
   id: string;
   name: string;
-  full_name: string;
+  full_name?: string;
+  title?: string;
   description: string;
+  features?: string[];
   image_url: string;
   interpretation_style: {
     approach: string;

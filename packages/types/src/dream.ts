@@ -159,6 +159,10 @@ export interface DreamStats {
   // Content stats
   mostCommonTags: Array<{ tag: string; count: number }>;
   mostCommonEmotions: Array<{ emotion: string; count: number }>;
+  
+  // Additional stats
+  averageMood?: number;
+  averageClarity?: number;
 }
 
 // Store state types

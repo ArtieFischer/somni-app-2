@@ -35,7 +35,10 @@
       "Bash(expo doctor:*)",
       "Bash(chmod:*)",
       "Bash(ls:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "WebFetch(domain:docs.elevenlabs.io)",
+      "WebFetch(domain:elevenlabs.io)",
+      "mcp__ide__executeCode"
     ],
     "deny": []
   }

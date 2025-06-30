@@ -10,43 +10,76 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { ConversationalAIService } from '../../services/conversationalAIService';
-import { conversationService } from '../../services/conversationService';
+import { conversationService, transformDynamicVariables } from '../../services/conversationService';
 import { Message } from '../../types/websocket.types';
 import { supabase } from '../../lib/supabase';
+import ElevenLabsExpoDom from '../conversational-ai/ElevenLabsExpoDom';
 
 export const ConversationalAITest: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [mode, setMode] = useState<'voice' | 'text'>('text'); // Default to text mode
   const [token, setToken] = useState<string>('');
-  const [selectedInterpreter, setSelectedInterpreter] = useState<'jung' | 'freud' | 'mary' | 'lakshmi'>('lakshmi');
-  const [dreamId, setDreamId] = useState<string>('f51f4f18-45c2-452d-a6a0-2a6018cf78a5');
-  const [isRecording, setIsRecording] = useState(false);
+  const [selectedInterpreter, setSelectedInterpreter] = useState<
+    'jung' | 'freud' | 'mary' | 'lakshmi'
+  >('lakshmi');
+  const [dreamId, setDreamId] = useState<string>(
+    'f51f4f18-45c2-452d-a6a0-2a6018cf78a5',
+  );
   
-  const serviceRef = useRef<ConversationalAIService | null>(null);
+  // Add a reset button for testing
+  const resetConnection = () => {
+    // First hide the component to ensure cleanup
+    setShowElevenLabsComponent(false);
+    
+    // Then reset all state
+    setIsConnected(false);
+    setIsConnecting(false);
+    setSessionStarted(false);
+    setElevenLabsSignedUrl('');
+    setElevenLabsAuthToken('');
+    setConversationId('');
+    setElevenLabsSessionId('');
+    setDynamicVariables(null);
+    setMessages([]);
+  };
+  const [elevenLabsSignedUrl, setElevenLabsSignedUrl] = useState<string>('');
+  const [elevenLabsAuthToken, setElevenLabsAuthToken] = useState<string>('');
+  const [conversationId, setConversationId] = useState<string>('');
+  const [elevenLabsSessionId, setElevenLabsSessionId] = useState<string>('');
+  const [dynamicVariables, setDynamicVariables] = useState<any>(null);
+  const [showElevenLabsComponent, setShowElevenLabsComponent] = useState<boolean>(false);
+  const [sessionStarted, setSessionStarted] = useState<boolean>(false);
+  
+  // Add debug effect to track dynamic variables
+  useEffect(() => {
+    console.log('🔍 Dynamic variables state updated:', {
+      hasDynamicVariables: !!dynamicVariables,
+      keys: dynamicVariables ? Object.keys(dynamicVariables) : 'null',
+      userName: dynamicVariables?.user_name || dynamicVariables?.userName || 'not found'
+    });
+  }, [dynamicVariables]);
+
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     getAuthToken();
-    
-    return () => {
-      if (serviceRef.current) {
-        serviceRef.current.disconnect();
-      }
-    };
   }, []);
+
 
   const getAuthToken = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.access_token) {
         setToken(session.access_token);
         console.log('👤 User ID:', session.user.id);
       } else {
-        Alert.alert('Auth Error', 'No authentication token found. Please log in.');
+        Alert.alert(
+          'Auth Error',
+          'No authentication token found. Please log in.',
+        );
       }
     } catch (error) {
       console.error('Error getting auth token:', error);
@@ -54,316 +87,395 @@ export const ConversationalAITest: React.FC = () => {
     }
   };
 
-  const connectToWebSocket = async () => {
-    if (!token) {
-      Alert.alert('Error', 'No authentication token available');
-      return;
-    }
 
-    console.log('🚀 Starting connection process...');
-    setIsConnecting(true);
-    
-    try {
-      // Step 1: Create conversation via HTTP API
-      console.log('📞 Creating conversation via API...');
-      
-      const conversationData = await conversationService.startConversation({
-        dreamId: dreamId,
-        interpreterId: selectedInterpreter,
-      });
 
-      console.log('✅ Conversation created:', conversationData);
-
-      // Step 2: Connect to WebSocket with the conversation ID
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const service = new ConversationalAIService({
-        token: conversationData.token || token,
-        dreamId: dreamId,
-        conversationId: conversationData.conversationId,
-        mode: 'text',
-        interpreterId: selectedInterpreter,
-        userId: session?.user?.id,
-        websocketUrl: conversationData.websocketUrl || process.env.EXPO_PUBLIC_SOMNI_BACKEND_URL,
-      });
-      
-      serviceRef.current = service;
-
-      service.on('connection_state_changed', (state: any) => {
-        setIsConnected(state.isConnected);
-        setIsConnecting(state.isConnecting);
-        if (state.error) {
-          Alert.alert('Connection Error', state.error);
-        }
-      });
-
-      // Handle conversation_started event
-      service.on('conversation_started', (data: any) => {
-        console.log('Conversation started:', data);
-        // Keep text mode for testing
-        // if (data.mode) {
-        //   setMode(data.mode);
-        // }
-        if (data.message) {
-          // Replace {{symbol}} placeholder if it exists
-          const message = data.message.replace('{{symbol}}', 'this symbol');
-          addMessage({
-            id: Date.now().toString(),
-            text: message,
-            sender: 'agent',
-            timestamp: new Date(),
-          });
-        }
-      });
-
-      service.onConversationInitialized((data: any) => {
-        console.log('Conversation initialized with ID:', data.conversationId);
-        
-        let connectionMessage = 'Connected! You can now start chatting.';
-        if (data.isResumed) {
-          connectionMessage = `Resumed conversation with ${data.messageCount || 0} previous messages. You can continue chatting.`;
-          console.log(`📖 Conversation resumed: ${data.messageCount} previous messages`);
-        }
-        
-        addMessage({
-          id: Date.now().toString(),
-          text: connectionMessage,
-          sender: 'system',
-          timestamp: new Date(),
-        });
-      });
-
-      service.onAgentResponse((data: any) => {
-        addMessage({
-          id: Date.now().toString(),
-          text: data.text,
-          sender: 'agent',
-          timestamp: new Date(),
-        });
-      });
-
-      service.onUserTranscript((data: any) => {
-        console.log('User transcript:', data);
-        if (data.isFinal) {
-          addMessage({
-            id: Date.now().toString(),
-            text: data.text,
-            sender: 'user',
-            timestamp: new Date(),
-          });
-        }
-      });
-
-      service.onAudioChunk((data: any) => {
-        console.log('Audio chunk received:', data.chunk.byteLength, 'bytes');
-        // Audio playback will be handled by the service
-      });
-
-      service.onError((error: any) => {
-        console.error('Conversation error:', error);
-        
-        // Handle specific error codes
-        switch (error.code) {
-          case 'CONVERSATION_NOT_FOUND':
-            Alert.alert('Error', 'Conversation not found. Please reconnect.');
-            disconnect();
-            break;
-          case 'ELEVENLABS_ERROR':
-            Alert.alert('Voice Error', 'Voice service unavailable. Switching to text mode.');
-            setMode('text');
-            serviceRef.current?.setMode('text');
-            break;
-          case 'UNAUTHORIZED':
-            Alert.alert('Auth Error', 'Session expired. Please log in again.');
-            disconnect();
-            break;
-          default:
-            Alert.alert('Error', error.message || 'An unexpected error occurred');
-        }
-      });
-
-      service.onConversationEnded((data: any) => {
-        Alert.alert('Conversation Ended', `Duration: ${data.duration}s`);
-        setIsConnected(false);
-      });
-
-      service.onInactivityTimeout((data: any) => {
-        console.log('⏱️ Inactivity timeout received:', data);
-        
-        // Disconnect the service
-        setIsConnected(false);
-        
-        addMessage({
-          id: Date.now().toString(),
-          text: `Connection timed out due to inactivity. Please connect again.`,
-          sender: 'system',
-          timestamp: new Date(),
-        });
-        
-        Alert.alert(
-          'Connection Timeout',
-          'Your session has timed out due to inactivity.',
-          [{ 
-            text: 'OK',
-            onPress: () => {
-              // Ensure we're fully disconnected
-              if (serviceRef.current) {
-                serviceRef.current.disconnect();
-              }
-            }
-          }]
-        );
-      });
-
-      service.onElevenLabsConversationInitiated((data: any) => {
-        console.log('🎙️ ElevenLabs ready:', data);
-        addMessage({
-          id: Date.now().toString(),
-          text: `Voice conversation ready (${data.audioFormat})`,
-          sender: 'system',
-          timestamp: new Date(),
-        });
-      });
-
-      service.onElevenLabsDisconnected((data: any) => {
-        console.log('🔌 ElevenLabs disconnected:', data);
-        // The inactivity_timeout handler will take care of disconnecting
-        // This is just for logging since elevenlabs_disconnected triggers inactivity_timeout
-      });
-
-      await service.initialize();
-      
-    } catch (error) {
-      console.error('Connection error:', error);
-      Alert.alert('Connection Failed', error instanceof Error ? error.message : 'Unknown error');
-      setIsConnecting(false);
-    }
-  };
-
-  const disconnect = () => {
-    if (serviceRef.current) {
-      serviceRef.current.endConversation();
-      serviceRef.current.disconnect();
-      serviceRef.current = null;
-      setIsConnected(false);
-    }
-  };
-
-  const sendMessage = () => {
-    console.log('📤 sendMessage called:', {
-      inputText,
-      hasService: !!serviceRef.current,
-      isConnected,
-      mode
-    });
-    
-    if (!inputText.trim()) {
-      console.log('❌ No input text');
-      return;
-    }
-    
-    if (!serviceRef.current) {
-      console.log('❌ No service reference');
-      return;
-    }
-    
-    if (!isConnected) {
-      console.log('❌ Not connected');
-      return;
-    }
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputText,
-      sender: 'user',
-      timestamp: new Date(),
-    };
-
-    addMessage(userMessage);
-    console.log('📨 Sending text to service:', inputText);
-    serviceRef.current.sendTextInput(inputText);
-    setInputText('');
-  };
 
   const addMessage = (message: Message) => {
-    setMessages(prev => [...prev, message]);
+    console.log('📝 Adding message to state:', {
+      id: message.id,
+      text: message.text?.substring(0, 50) + '...' || 'no text',
+      sender: message.sender,
+      timestamp: message.timestamp.toLocaleTimeString()
+    });
+    
+    setMessages((prev) => {
+      const newMessages = [...prev, message];
+      console.log('📋 Total messages now:', newMessages.length);
+      return newMessages;
+    });
+
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
   };
 
-  const startRecording = async () => {
-    if (!serviceRef.current || !isConnected || mode !== 'voice') return;
 
-    const success = await serviceRef.current.startAudioRecording();
-    if (success) {
-      setIsRecording(true);
-    } else {
-      Alert.alert('Recording Error', 'Failed to start audio recording');
+
+  // Connect for ElevenLabs implementation
+  const connectElevenLabs = async () => {
+    if (!token) {
+      Alert.alert('Error', 'No authentication token available');
+      return;
+    }
+
+    setIsConnecting(true);
+
+    try {
+      // First, let's check if the dream exists
+      console.log('🔍 Checking dream ID:', dreamId);
+      console.log('🎭 Selected interpreter:', selectedInterpreter);
+      console.log('🔑 Auth token available:', !!token);
+      
+      // For testing, you might want to use a known working dream ID
+      // or create a new dream first
+      console.log('💡 TIP: Make sure this dream exists in your database');
+      console.log('💡 You can also try creating a new dream first');
+      
+      const response = await conversationService.initElevenLabsConversation({
+        dreamId: dreamId.trim(), // Remove any trailing spaces
+        interpreterId: selectedInterpreter,
+      });
+      
+      console.log('📦 Backend response:', JSON.stringify(response, null, 2));
+      console.log('🔍 Response data keys:', response.data ? Object.keys(response.data) : 'No data');
+      
+      if (response.success && response.data) {
+        const { 
+          conversationId,
+          elevenLabsSessionId,
+          signedUrl, 
+          authToken, 
+          dynamicVariables,
+          dynamicVariablesCamelCase,
+          previousMessages = [],
+          messageCount 
+        } = response.data;
+        
+        // Log if elevenLabsSessionId is missing
+        if (!elevenLabsSessionId) {
+          console.error('⚠️ Backend did not return elevenLabsSessionId!');
+          console.error('🔍 Available fields:', Object.keys(response.data));
+        }
+        
+        console.log('✅ New conversation session:', {
+          conversationId,
+          elevenLabsSessionId,
+          hasDynamicVariables: !!dynamicVariables,
+          previousMessagesCount: previousMessages.length,
+          totalMessageCount: messageCount
+        });
+        
+        // Extra validation for elevenLabsSessionId
+        if (elevenLabsSessionId) {
+          console.log('✅ elevenLabsSessionId successfully extracted:', elevenLabsSessionId);
+        } else {
+          console.error('❌ elevenLabsSessionId is undefined after extraction!');
+          console.error('🔍 Full response.data:', response.data);
+        }
+        
+        // Set all the state values
+        setConversationId(conversationId);
+        setElevenLabsSessionId(elevenLabsSessionId);
+        
+        // Use dynamicVariablesCamelCase if dynamicVariables is not provided
+        const variablesToTransform = dynamicVariables || dynamicVariablesCamelCase;
+        
+        console.log('🔍 Variables check:', {
+          hasDynamicVariables: !!dynamicVariables,
+          hasDynamicVariablesCamelCase: !!dynamicVariablesCamelCase,
+          usingWhich: dynamicVariables ? 'dynamicVariables' : 'dynamicVariablesCamelCase'
+        });
+        
+        // Transform dynamic variables to ensure all are in snake_case format
+        const transformedVariables = transformDynamicVariables(variablesToTransform);
+        console.log('🔄 Setting transformed variables');
+        setDynamicVariables(transformedVariables);
+        
+        // Handle signed URL format
+        if (authToken && authToken.startsWith('wss://')) {
+          console.log('🎯 Using authToken as signed URL');
+          setElevenLabsSignedUrl(authToken);
+          setElevenLabsAuthToken('');
+        } else {
+          console.log('🎯 Using separate URL and token');
+          setElevenLabsSignedUrl(signedUrl);
+          setElevenLabsAuthToken(authToken);
+        }
+        
+        // Show previous conversation context if exists
+        if (messageCount > 0) {
+          addMessage({
+            id: Date.now().toString(),
+            text: `Continuing conversation about this dream (${messageCount} previous messages)`,
+            sender: 'system',
+            timestamp: new Date(),
+          });
+          
+          // Optionally show last few messages for context
+          previousMessages.slice(-3).forEach((msg, index) => {
+            setTimeout(() => {
+              addMessage({
+                id: `prev-${msg.id}`,
+                text: `[Previous] ${msg.content}`,
+                sender: msg.role as 'user' | 'assistant',
+                timestamp: new Date(msg.created_at),
+              });
+            }, index * 100); // Stagger for visual effect
+          });
+        }
+        
+        // Connection successful - update UI
+        setIsConnecting(false);
+        setIsConnected(true);
+        setShowElevenLabsComponent(true);
+        // Don't reset sessionStarted here - let ElevenLabsExpoDom manage its own state
+        
+        console.log('✅ Ready for new conversation with fresh session');
+      } else {
+        // Handle error response
+        const errorMsg = response.data?.error || 'Failed to initialize ElevenLabs conversation';
+        console.error('❌ Backend error:', errorMsg);
+        Alert.alert('Error', errorMsg);
+        setIsConnecting(false);
+      }
+    } catch (error) {
+      console.error('❌ Connection error details:', error);
+      console.error('❌ Error type:', error?.constructor?.name);
+      console.error('❌ Error stack:', error?.stack);
+      
+      // Parse error message for more details
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        
+        // Check for timeout
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out. Backend might be slow or unreachable.';
+        } else {
+          // Try to extract the actual error from the backend response
+          const match = error.message.match(/"error":"([^"]+)"/);
+          if (match && match[1]) {
+            errorMessage = match[1];
+          } else {
+            errorMessage = error.message;
+          }
+        }
+      }
+      
+      Alert.alert('Connection Failed', errorMessage);
+      setIsConnecting(false);
     }
   };
 
-  const stopRecording = async () => {
-    if (!serviceRef.current) return;
+  // ElevenLabs handlers
+  const handleElevenLabsMessage = (message: any) => {
+    console.log('💬 handleElevenLabsMessage called:', {
+      hasText: !!message?.text,
+      text: message?.text?.substring(0, 50),
+      source: message?.source,
+      type: message?.type,
+      fullMessage: message
+    });
+    
+    // Don't add messages here to avoid duplicates
+    // Messages are handled by handleElevenLabsTranscript
+  };
+  
+  const handleElevenLabsTranscript = async (transcript: { text: string; source: 'user' | 'agent'; isFinal: boolean }) => {
+    console.log('📝 Transcript received:', {
+      text: (transcript.text?.substring(0, 50) || 'no text') + '...',
+      source: transcript.source,
+      isFinal: transcript.isFinal,
+      length: transcript.text?.length || 0
+    });
+    
+    // Only add final transcripts as actual messages to avoid duplication
+    if (transcript.isFinal && transcript.text && transcript.text.trim().length > 0) {
+      console.log('✅ Adding final transcript to messages');
+      const message = {
+        id: Date.now().toString(),
+        text: transcript.text,
+        sender: transcript.source === 'user' ? 'user' : 'agent',
+        timestamp: new Date(),
+      };
+      
+      addMessage(message);
+      
+      // Save message to backend with session tracking
+      if (conversationId && elevenLabsSessionId) {
+        console.log('💾 Saving message to backend:', {
+          conversationId: conversationId.slice(0, 8) + '...',
+          elevenLabsSessionId: elevenLabsSessionId.slice(0, 8) + '...',
+          role: transcript.source === 'user' ? 'user' : 'assistant',
+          contentLength: transcript.text.length,
+          content: transcript.text.substring(0, 100) + '...'
+        });
+        
+        try {
+          const result = await conversationService.saveMessage({
+            conversationId,
+            elevenLabsSessionId,
+            content: transcript.text,
+            role: transcript.source === 'user' ? 'user' : 'assistant',
+            metadata: {
+              timestamp: new Date().toISOString(),
+              source: 'elevenlabs'
+            }
+          });
+          
+          if (!result.success) {
+            console.error('❌ Failed to save message to backend');
+            Alert.alert('Error', 'Failed to save message to database');
+          } else {
+            console.log('✅ Message saved successfully with ID:', result.messageId);
+          }
+        } catch (error) {
+          console.error('❌ Error saving message:', error);
+          Alert.alert('Error', 'Failed to save message: ' + error.message);
+        }
+      } else {
+        console.warn('⚠️ Cannot save message - missing IDs:', {
+          hasConversationId: !!conversationId,
+          hasElevenLabsSessionId: !!elevenLabsSessionId,
+          conversationId: conversationId || 'undefined',
+          elevenLabsSessionId: elevenLabsSessionId || 'undefined'
+        });
+      }
+    }
+  };
 
-    await serviceRef.current.stopAudioRecording();
-    setIsRecording(false);
+  const handleElevenLabsConnect = () => {
+    setIsConnected(true);
+    setIsConnecting(false);
+    setSessionStarted(true); // Mark session as started
+  };
+
+  const handleElevenLabsDisconnect = () => {
+    setIsConnected(false);
+    setIsConnecting(false);
+  };
+
+  const handleElevenLabsError = (error: any) => {
+    Alert.alert('ElevenLabs Error', error.message || 'An error occurred');
+    setIsConnected(false);
+    setIsConnecting(false);
+  };
+  
+  const handleElevenLabsConversationEnd = () => {
+    console.log('🔔 Conversation ended');
+    // Here you would sync with backend to save conversation state
+    setIsConnected(false);
+    setElevenLabsSignedUrl('');
+    setElevenLabsAuthToken('');
+    // Keep conversationId but clear the session
+    setElevenLabsSessionId('');
+    // Don't reset dynamic variables - they should persist until reset button is clicked
+    // setDynamicVariables(null);
+    setShowElevenLabsComponent(false);
+    setSessionStarted(false);
+  };
+
+  // SECURITY: Agent IDs should NOT be exposed in frontend
+  // This is only for testing visualization - actual agent ID will come from backend
+  const getAgentId = (_interpreter: string): string => {
+    // For testing only - shows which interpreter is selected
+    // Real agent ID is handled securely by backend
+    // TODO: Replace with your actual ElevenLabs agent ID for testing
+    return 'agent_01jyz4635nfa598s7gsra7n4zv';
+    // return `${interpreter}-agent`;
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.header}>
         <Text style={styles.title}>Conversational AI Test</Text>
+
+        <TouchableOpacity
+          style={styles.resetButton}
+          onPress={resetConnection}
+        >
+          <Text style={styles.resetButtonText}>Reset</Text>
+        </TouchableOpacity>
+
         <Text style={styles.status}>
-          Status: {isConnecting ? 'Connecting...' : isConnected ? 'Connected' : 'Disconnected'}
+          Status:{' '}
+          {isConnecting
+            ? 'Connecting...'
+            : isConnected
+              ? 'Connected'
+              : 'Disconnected'}
         </Text>
-        <View style={styles.modeContainer}>
-          <Text style={styles.mode}>Mode: {mode}</Text>
-          {isConnected && (
-            <TouchableOpacity
-              style={styles.modeButton}
-              onPress={() => {
-                const newMode = mode === 'text' ? 'voice' : 'text';
-                setMode(newMode);
-                serviceRef.current?.setMode(newMode);
-              }}
-            >
-              <Text style={styles.modeButtonText}>
-                Switch to {mode === 'text' ? 'Voice' : 'Text'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+
+        <Text style={styles.configNote}>
+          🚀 ElevenLabs Conversational AI
+        </Text>
+        <Text style={styles.configNote}>
+          🔒 Requires HTTPS for microphone (use --tunnel or physical device)
+        </Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
       >
+        {console.log('🎬 Rendering messages:', messages.length, messages.map(m => ({ id: m.id, sender: m.sender, text: m.text?.substring(0, 30) || 'no text' })))}
         {messages.map((message) => (
           <View
             key={message.id}
             style={[
               styles.messageBubble,
-              message.sender === 'user' ? styles.userMessage :
-              message.sender === 'agent' ? styles.agentMessage :
-              styles.systemMessage,
+              message.sender === 'user'
+                ? styles.userMessage
+                : message.sender === 'agent'
+                  ? styles.agentMessage
+                  : styles.systemMessage,
             ]}
           >
-            <Text style={styles.messageText}>{message.text}</Text>
-            <Text style={styles.messageTime}>
-              {message.timestamp.toLocaleTimeString()}
+            <View style={styles.messageHeader}>
+              <Text style={styles.messageSender}>
+                {message.sender === 'user' ? '🎙️ You' : message.sender === 'agent' ? '🤖 Agent' : 'System'}
+              </Text>
+              <Text style={styles.messageTime}>
+                {message.timestamp.toLocaleTimeString()}
+              </Text>
+            </View>
+            <Text style={[
+              styles.messageText,
+              { color: message.sender === 'user' ? '#fff' : '#000' }
+            ]}>
+              {message.text}
             </Text>
           </View>
         ))}
       </ScrollView>
+      
+      {showElevenLabsComponent && (
+        <View style={{ flex: 0, height: 280, marginTop: 10 }}>
+          <ElevenLabsExpoDom
+            dom={{ style: { flex: 1 } }}
+            signedUrl={elevenLabsSignedUrl}
+            authToken={elevenLabsAuthToken}
+            conversationId={conversationId}
+            elevenLabsSessionId={elevenLabsSessionId}
+            dynamicVariables={dynamicVariables}
+            agentId={!elevenLabsSignedUrl ? getAgentId(selectedInterpreter) : undefined}
+            onMessage={handleElevenLabsMessage}
+            onTranscript={handleElevenLabsTranscript}
+            onConnect={handleElevenLabsConnect}
+            onDisconnect={handleElevenLabsDisconnect}
+            onError={handleElevenLabsError}
+            onConversationEnd={handleElevenLabsConversationEnd}
+          />
+        </View>
+      )}
 
-      <View style={styles.controls}>
-        {!isConnected ? (
+
+      <View style={[styles.controls, { paddingTop: 10, paddingBottom: 10 }]}>
+        {!showElevenLabsComponent ? (
           <>
             <View style={styles.configSection}>
               <Text style={styles.label}>Interpreter:</Text>
@@ -373,14 +485,16 @@ export const ConversationalAITest: React.FC = () => {
                     key={interp}
                     style={[
                       styles.interpreterButton,
-                      selectedInterpreter === interp && styles.interpreterButtonActive,
+                      selectedInterpreter === interp &&
+                        styles.interpreterButtonActive,
                     ]}
                     onPress={() => setSelectedInterpreter(interp)}
                   >
                     <Text
                       style={[
                         styles.interpreterButtonText,
-                        selectedInterpreter === interp && styles.interpreterButtonTextActive,
+                        selectedInterpreter === interp &&
+                          styles.interpreterButtonTextActive,
                       ]}
                     >
                       {interp.charAt(0).toUpperCase() + interp.slice(1)}
@@ -388,7 +502,7 @@ export const ConversationalAITest: React.FC = () => {
                   </TouchableOpacity>
                 ))}
               </View>
-              
+
               <Text style={styles.label}>Dream ID (UUID):</Text>
               <TextInput
                 style={styles.dreamIdInput}
@@ -397,50 +511,26 @@ export const ConversationalAITest: React.FC = () => {
                 placeholder="Enter dream UUID or use default"
               />
             </View>
-            
+
             <TouchableOpacity
               style={[styles.button, isConnecting && styles.buttonDisabled]}
-              onPress={connectToWebSocket}
+              onPress={connectElevenLabs}
               disabled={isConnecting || !token}
             >
               <Text style={styles.buttonText}>
-                {isConnecting ? 'Connecting...' : 'Connect'}
+                {isConnecting ? 'Starting Conversation...' : '🎤 Start Voice Conversation'}
               </Text>
             </TouchableOpacity>
           </>
         ) : (
-          <>
-            {mode === 'text' ? (
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={inputText}
-                  onChangeText={setInputText}
-                  placeholder="Type a message..."
-                  onSubmitEditing={sendMessage}
-                  returnKeyType="send"
-                />
-                <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-                  <Text style={styles.buttonText}>Send</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.voiceControlsContainer}>
-                <TouchableOpacity
-                  style={[styles.recordButton, isRecording && styles.recordingButton]}
-                  onPressIn={startRecording}
-                  onPressOut={stopRecording}
-                >
-                  <Text style={styles.recordButtonText}>
-                    {isRecording ? '🔴 Recording...' : '🎤 Hold to Record'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            <TouchableOpacity style={styles.disconnectButton} onPress={disconnect}>
-              <Text style={styles.buttonText}>Disconnect</Text>
-            </TouchableOpacity>
-          </>
+          <TouchableOpacity
+            style={styles.disconnectButton}
+            onPress={() => {
+              handleElevenLabsConversationEnd();
+            }}
+          >
+            <Text style={styles.buttonText}>End Conversation</Text>
+          </TouchableOpacity>
         )}
       </View>
     </KeyboardAvoidingView>
@@ -458,6 +548,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
+  resetButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    backgroundColor: '#FF9500',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  resetButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -466,27 +570,6 @@ const styles = StyleSheet.create({
   status: {
     fontSize: 14,
     color: '#666',
-  },
-  mode: {
-    fontSize: 14,
-    color: '#666',
-  },
-  modeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  modeButton: {
-    marginLeft: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-  },
-  modeButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
   },
   messagesContainer: {
     flex: 1,
@@ -514,33 +597,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
+  messageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  messageSender: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
   messageText: {
     fontSize: 16,
-    color: '#000',
+    lineHeight: 22,
   },
   messageTime: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    fontSize: 11,
+    color: '#999',
   },
   controls: {
     padding: 16,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
   },
   button: {
     backgroundColor: '#007AFF',
@@ -550,13 +630,6 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
-  },
-  sendButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-    justifyContent: 'center',
   },
   disconnectButton: {
     backgroundColor: '#FF3B30',
@@ -569,7 +642,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   configSection: {
-    marginBottom: 16,
+    marginBottom: 10,
   },
   label: {
     fontSize: 14,
@@ -580,7 +653,7 @@ const styles = StyleSheet.create({
   interpreterButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   interpreterButton: {
     flex: 1,
@@ -611,25 +684,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 14,
   },
-  voiceControlsContainer: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  recordButton: {
-    width: 200,
-    height: 60,
-    backgroundColor: '#007AFF',
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  recordingButton: {
-    backgroundColor: '#FF3B30',
-  },
-  recordButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  configNote: {
+    fontSize: 11,
+    color: '#FF9500',
+    fontStyle: 'italic',
+    marginTop: 4,
   },
 });

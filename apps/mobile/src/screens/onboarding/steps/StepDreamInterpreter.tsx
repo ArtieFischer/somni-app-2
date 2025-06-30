@@ -7,6 +7,9 @@ import { supabase } from '../../../lib/supabase';
 import type { OnboardingData } from '../OnboardingScreen';
 import type { DreamInterpreter } from '@somni/types';
 
+// Import guide images - using database URLs as fallback
+// The actual images will be loaded from the database or local assets
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface StepDreamInterpreterProps {
@@ -73,25 +76,28 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
       setInterpreters(interpreterData || []);
     } catch (error) {
       console.error('Error fetching interpreters:', error);
-      // Use hardcoded data as fallback
+      // Use hardcoded data as fallback with proper image URLs
+      const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://gnodjxczbvkoxufrjdtk.supabase.co';
       setInterpreters([
         {
-          id: 'carl',
+          id: 'jung',
           name: 'Carl',
-          full_name: 'Carl Jung',
-          description: 'Explores collective unconscious and universal archetypes in your dreams',
-          image_url: '',
+          title: 'Depth Psychologist',
+          description: 'Links your symbols to timeless archetypes and the collective psyche.',
+          features: ['Archetype match', 'Shadow hints', 'Active imagination'],
+          image_url: `${baseUrl}/storage/v1/object/public/interpreters/jung.png`,
           interpretation_style: {
             approach: 'jungian',
             focus: ['archetypes', 'collective_unconscious', 'individuation'],
           },
         },
         {
-          id: 'sigmund',
+          id: 'freud',
           name: 'Sigmund',
-          full_name: 'Sigmund Freud',
-          description: 'Analyzes dreams as wish fulfillment and unconscious desires',
-          image_url: '',
+          title: 'Psychoanalyst',
+          description: 'Hunts wish-dreams and repressed urges—his (in)famous dirty mind at work.',
+          features: ['Wish detector', 'Symbol index', 'Repression radar'],
+          image_url: `${baseUrl}/storage/v1/object/public/interpreters/freud.png`,
           interpretation_style: {
             approach: 'freudian',
             focus: ['wish_fulfillment', 'unconscious_desires', 'symbolism'],
@@ -100,9 +106,10 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
         {
           id: 'lakshmi',
           name: 'Lakshmi',
-          full_name: 'Lakshmi Devi',
-          description: 'Interprets dreams through spiritual and karmic perspectives',
-          image_url: '',
+          title: 'Transpersonal Scholar',
+          description: 'Frames dreams through karma, chakras, and expanding consciousness.',
+          features: ['Karmic threads', 'Chakra map', 'Meditation cue'],
+          image_url: `${baseUrl}/storage/v1/object/public/interpreters/lakshmi.png`,
           interpretation_style: {
             approach: 'spiritual',
             focus: ['karma', 'spiritual_growth', 'consciousness'],
@@ -111,9 +118,10 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
         {
           id: 'mary',
           name: 'Mary',
-          full_name: 'Mary Whiton',
-          description: 'Uses modern cognitive science to understand dream meanings',
-          image_url: '',
+          title: 'Cognitive Neuroscientist',
+          description: 'Shows how your sleeping brain files memories and tunes emotions.',
+          features: ['Memory snapshot', 'Emotion circuitry', 'Brainwave overlay'],
+          image_url: `${baseUrl}/storage/v1/object/public/interpreters/mary.png`,
           interpretation_style: {
             approach: 'cognitive',
             focus: ['memory_processing', 'problem_solving', 'neuroscience'],
@@ -147,14 +155,14 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
     }
   };
 
-  const getInterpreterEmoji = (id: string) => {
-    switch (id) {
-      case 'carl': return '🔮';
-      case 'sigmund': return '🧠';
-      case 'lakshmi': return '🕉️';
-      case 'mary': return '🔬';
-      default: return '✨';
+  const getInterpreterImage = (interpreter: DreamInterpreter) => {
+    // Use image_url from database if available
+    if (interpreter.image_url) {
+      return { uri: interpreter.image_url };
     }
+    
+    // Fallback to placeholder
+    return null;
   };
 
   const styles: Record<string, ViewStyle> = {
@@ -183,16 +191,41 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
       ...theme.shadows.medium,
     },
     interpreterImage: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
+      width: 100,
+      height: 100,
+      borderRadius: 8,
       marginBottom: theme.spacing.medium,
       backgroundColor: theme.colors.background.secondary,
-      justifyContent: 'center',
+    },
+    experimentalBadge: {
+      position: 'absolute',
+      top: -8,
+      right: -8,
+      backgroundColor: theme.colors.accent.primary,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      zIndex: 1,
+    },
+    badgeText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: theme.colors.text.inverse,
+    },
+    titleText: {
+      textAlign: 'center',
+      marginBottom: theme.spacing.xs,
+      fontWeight: '600',
+    },
+    featuresContainer: {
+      marginTop: theme.spacing.small,
       alignItems: 'center',
     },
-    interpreterEmoji: {
-      fontSize: 60,
+    featureItem: {
+      fontSize: 12,
+      color: theme.colors.text.secondary,
+      textAlign: 'center',
+      marginBottom: 2,
     },
     interpreterInfo: {
       alignItems: 'center',
@@ -226,7 +259,7 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text variant="h2" style={{ marginBottom: theme.spacing.small }}>
-          Choose Your Dream Interpreter
+          Choose Your Dream Guide
         </Text>
         <Text variant="body" color="secondary">
           Select the approach that resonates with you
@@ -266,26 +299,49 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
               }}
               activeOpacity={0.9}
             >
-              <View style={styles.interpreterImage}>
-                <Text style={styles.interpreterEmoji}>
-                  {getInterpreterEmoji(interpreter.id)}
-                </Text>
+              <View style={{ position: 'relative' }}>
+                {getInterpreterImage(interpreter) ? (
+                  <Image
+                    source={getInterpreterImage(interpreter)}
+                    style={styles.interpreterImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.interpreterImage, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={{ fontSize: 40 }}>
+                      {interpreter.id === 'jung' ? '🔮' : 
+                       interpreter.id === 'freud' ? '🧠' :
+                       interpreter.id === 'lakshmi' ? '🕉️' :
+                       interpreter.id === 'mary' ? '🔬' : '✨'}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.experimentalBadge}>
+                  <Text style={styles.badgeText}>EXPERIMENTAL STAGE</Text>
+                </View>
               </View>
               <View style={styles.interpreterInfo}>
-                <Text variant="h3" style={{ textAlign: 'center', marginBottom: theme.spacing.xs }}>
+                <Text variant="h3" style={styles.titleText}>
                   {interpreter.name}
                 </Text>
-                <Text variant="body" style={{ textAlign: 'center', marginBottom: theme.spacing.xs }}>
-                  {interpreter.full_name}
+                <Text variant="body" style={{ textAlign: 'center', marginBottom: theme.spacing.xs, fontSize: 14, fontWeight: '500' }}>
+                  {interpreter.title}
                 </Text>
                 <Text
                   variant="caption"
                   color="secondary"
-                  style={{ textAlign: 'center', marginTop: theme.spacing.xs }}
+                  style={{ textAlign: 'center', marginBottom: theme.spacing.xs }}
                   numberOfLines={3}
                 >
                   {interpreter.description}
                 </Text>
+                <View style={styles.featuresContainer}>
+                  {interpreter.features?.map((feature: string, idx: number) => (
+                    <Text key={idx} style={styles.featureItem}>
+                      • {feature}
+                    </Text>
+                  ))}
+                </View>
               </View>
             </TouchableOpacity>
           ))}

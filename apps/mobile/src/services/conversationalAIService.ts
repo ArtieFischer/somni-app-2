@@ -4,8 +4,8 @@ import { audioService } from './audioService';
 
 export interface ConversationalAIConfig {
   token: string;
-  dreamId: string;  // Required for initialization
-  conversationId?: string;  // From HTTP API response
+  dreamId: string;
+  conversationId?: string;
   mode?: ConversationMode;
   interpreterId?: string;
   userId?: string;
@@ -13,33 +13,25 @@ export interface ConversationalAIConfig {
 }
 
 export class ConversationalAIService extends WebSocketManager {
-  private audioQueue: ArrayBuffer[] = [];
-  private isPlaying = false;
   private mode: ConversationMode = 'text';
   private config: ConversationalAIConfig;
+  private isRecording = false;
+  private audioBytesSent: number = 0;
+  private lastTranscriptText: string = '';
+  private lastTranscriptTime: number = 0;
 
   constructor(config: ConversationalAIConfig) {
     const query: Record<string, any> = {};
-    // If we have a conversationId from HTTP API, pass it in query params
     if (config.conversationId) {
       query.conversationId = config.conversationId;
     }
-
-    console.log('🔧 ConversationalAIService constructor - Config:', {
-      hasToken: !!config.token,
-      mode: config.mode,
-      interpreterId: config.interpreterId,
-      dreamId: config.dreamId,
-      conversationId: config.conversationId,
-      userId: config.userId
-    });
 
     super({
       namespace: '/conversational-ai',
       token: config.token,
       query: Object.keys(query).length > 0 ? query : undefined,
       autoConnect: false,
-      baseUrl: config.websocketUrl, // This will be replaced with the correct namespace
+      baseUrl: config.websocketUrl,
     });
     
     this.config = config;
@@ -49,22 +41,15 @@ export class ConversationalAIService extends WebSocketManager {
   }
 
   async initialize(): Promise<void> {
-    console.log('🎯 ConversationalAIService.initialize() called');
     await this.connect();
-    console.log('✅ Connect promise resolved, setting up listeners...');
     this.setupEventListeners();
     
-    // Only send initialization event if we don't have a conversationId
-    // (i.e., if we're not resuming an existing conversation)
     const socket = this.getSocket();
     if (socket && this.config.dreamId && !this.config.conversationId) {
-      console.log('📤 Sending initialize_conversation event');
       socket.emit('initialize_conversation', {
         dreamId: this.config.dreamId,
         interpreterId: this.config.interpreterId || 'lakshmi'
       });
-    } else if (this.config.conversationId) {
-      console.log('📋 Using existing conversation ID:', this.config.conversationId);
     }
   }
 
@@ -72,139 +57,171 @@ export class ConversationalAIService extends WebSocketManager {
     const socket = this.getSocket();
     if (!socket) return;
 
-    // Conversation initialized
-    socket.on('conversation_initialized', (data: { conversationId: string; elevenLabsSessionId: string; isResumed?: boolean; messageCount?: number }) => {
-      console.log('Conversation initialized:', data);
-      const { conversationId, isResumed, messageCount } = data;
+    // Connection events
+    socket.on('connect', () => {
+      console.log('✅ ConversationalAI Connected');
+      this.emit('connection_state_changed', { isConnected: true, isConnecting: false });
+    });
 
-      if (isResumed) {
-        console.log(`📚 Resuming conversation with ${messageCount} previous messages`);
-      }
-      
+    socket.on('disconnect', (reason: string) => {
+      console.log('❌ ConversationalAI Disconnected:', reason);
+      this.emit('connection_state_changed', { isConnected: false, isConnecting: false });
+    });
+
+    // Conversation lifecycle
+    socket.on('conversation_initialized', (data: any) => {
       this.emit('conversation_initialized', data);
     });
 
-    // Conversation started (initial greeting)
-    socket.on('conversation_started', (data: { interpreter: string; message: string; mode: string }) => {
-      console.log('Conversation started:', data);
+    socket.on('conversation_started', (data: any) => {
       this.emit('conversation_started', data);
     });
 
-    // User transcript (real-time transcription of user speech)
-    socket.on('user_transcript', (data: { text: string; isFinal: boolean }) => {
-      console.log('User transcript:', data);
-      this.emit('user_transcript', data);
-    });
-
-    // Agent text response
-    socket.on('agent_response', (data: { text: string; role: string }) => {
-      console.log('Agent response:', data);
-      this.emit('agent_response', data);
-    });
-
-    // Text response (alternative event name)
-    socket.on('text_response', (data: { text: string }) => {
-      console.log('Text response:', data);
-      this.emit('agent_response', { text: data.text, role: 'agent' });
-    });
-
-    // Audio chunks from agent
-    socket.on('audio_chunk', (data: { chunk: ArrayBuffer; isLast: boolean }) => {
-      console.log('Audio chunk received, size:', data.chunk.byteLength, 'isLast:', data.isLast);
-      this.audioQueue.push(data.chunk);
-      if (!this.isPlaying) {
-        this.playAudioQueue();
-      }
-      this.emit('audio_chunk', data);
-    });
-
-    // Conversation ended
-    socket.on('conversation_ended', (data: { conversationId: string; duration: number }) => {
-      console.log('Conversation ended:', data);
+    socket.on('conversation_ended', (data: any) => {
       this.emit('conversation_ended', data);
     });
 
-    // Error handling
-    socket.on('error', (error: { code: string; message: string }) => {
-      console.error('Conversational AI error:', error);
-      this.emit('error', error);
+    // Listen to transcription event - backend sends all transcripts here
+    socket.on('transcription', (data: { text: string; isFinal: boolean; speaker: string; timestamp: number }) => {
+      console.log('Transcription received:', { speaker: data.speaker, isFinal: data.isFinal, text: data.text });
+      if (data.speaker === 'user' && data.isFinal && data.text) {
+        this.emit('user_transcript', { text: data.text, isFinal: true });
+      }
+      // Handle agent transcripts if needed in future
+    });
+
+    // Handle transcription timeout
+    socket.on('transcription_timeout', () => {
+      console.log('⏱️ Transcription timeout - no transcript received within 15 seconds');
+      this.emit('transcription_timeout');
+    });
+
+    // Agent responses
+    socket.on('agent_response', (data: { text: string; isTentative?: boolean }) => {
+      this.emit('agent_response', data);
+    });
+
+    // Remove duplicate event listeners that cause triple messages
+    // The backend forwards all transcript events to 'transcription' already
+    
+    // Audio handling
+    socket.on('audio_chunk', async (data: { audio: string; format: string; sampleRate: number; isLast: boolean }) => {
+      if (data.format === 'base64') {
+        try {
+          const binaryString = atob(data.audio);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          await audioService.bufferAudioChunk(bytes.buffer, data.sampleRate);
+          
+          if (data.isLast) {
+            await audioService.flushRemainingAudio();
+          }
+        } catch (error) {
+          console.error('Error decoding audio:', error);
+        }
+      }
       
-      if (error.code === 'ELEVENLABS_ERROR') {
-        // Fallback to text-only mode
-        this.mode = 'text';
-        this.emit('mode_changed', { mode: 'text' });
+      this.emit('audio_chunk', data);
+    });
+
+    socket.on('audio_done', () => {
+      audioService.flushRemainingAudio();
+      this.emit('audio_done');
+    });
+
+    // ElevenLabs events
+    socket.on('elevenlabs_conversation_initiated', (data: any) => {
+      this.emit('elevenlabs_conversation_initiated', data);
+      
+      // Trigger first message after a brief delay
+      setTimeout(() => {
+        socket.emit('conversation_ready');
+      }, 500);
+    });
+
+    socket.on('vad_score', (data: { score: number; timestamp: number }) => {
+      this.emit('vad_score', data);
+    });
+
+    // Error handling
+    socket.on('error', (error: { code: string; message: string; details?: any }) => {
+      // Only emit actual errors, not configuration messages
+      if (error.code !== 'MISSING_TRANSCRIPT_EVENTS') {
+        this.emit('error', error);
       }
     });
 
-    // Inactivity timeout handling
-    socket.on('inactivity_timeout', (data: { reason: string; timeout: number }) => {
-      console.log('⏱️ Inactivity timeout:', data);
+    // Timeout handling
+    socket.on('inactivity_timeout', (data: any) => {
       this.emit('inactivity_timeout', data);
     });
 
-    // ElevenLabs conversation initialized
-    socket.on('elevenlabs_conversation_initiated', (data: { audioFormat: string; conversationId: string }) => {
-      console.log('🎙️ ElevenLabs conversation initiated:', data);
-      this.emit('elevenlabs_conversation_initiated', data);
-    });
-
-    // Transcription events
-    socket.on('transcription', (data: { text: string; isFinal: boolean; speaker: string; timestamp: number }) => {
-      console.log('📝 Transcription:', data);
-      if (data.speaker === 'user') {
-        this.emit('user_transcript', { text: data.text, isFinal: data.isFinal });
-      } else if (data.speaker === 'agent' && data.isFinal) {
-        // Only emit agent transcriptions when final to avoid duplicates
-        this.emit('agent_response', { text: data.text, role: 'agent' });
-      }
-    });
-
-    // ElevenLabs disconnected - backup disconnection event
     socket.on('elevenlabs_disconnected', (data: any) => {
-      console.log('🔌 ElevenLabs disconnected:', data);
       this.emit('elevenlabs_disconnected', data);
-      // Treat this as a potential timeout/disconnection
-      this.emit('inactivity_timeout', { 
-        reason: data?.reason || 'ElevenLabs connection lost', 
-        timeout: data?.timeout || 0 
-      });
     });
   }
 
+  // Audio methods
   sendAudioChunk(chunk: ArrayBuffer): void {
     const socket = this.getSocket();
-    if (!socket?.connected) {
-      console.error('Cannot send audio chunk: socket not connected');
-      return;
+    if (!socket?.connected) return;
+    
+    // Convert to base64
+    const bytes = new Uint8Array(chunk);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
+    const base64 = btoa(binary);
     
-    console.log('Sending audio chunk to server, size:', chunk.byteLength);
-    
-    // Socket.IO should handle ArrayBuffer directly
-    socket.emit('send_audio', { audio: chunk });
+    socket.emit('send_audio', { audio: base64 });
+    this.audioBytesSent += chunk.byteLength;
   }
 
+  private sendAudioEnd(): void {
+    const socket = this.getSocket();
+    if (!socket?.connected) return;
+    
+    socket.emit('user-audio-end');
+    
+    // Log audio session info
+    console.log('📊 Audio sent:', {
+      bytes: this.audioBytesSent,
+      duration: Math.round(this.audioBytesSent / 32) + 'ms'
+    });
+    
+    // Reset counter
+    this.audioBytesSent = 0;
+  }
+
+  private sendAudioStart(): void {
+    const socket = this.getSocket();
+    if (!socket?.connected) return;
+    
+    socket.emit('user-audio-start');
+  }
+
+  // Text input
   sendTextInput(text: string): void {
     const socket = this.getSocket();
-    if (!socket?.connected) {
-      console.error('Cannot send text input: socket not connected');
-      return;
-    }
+    if (!socket?.connected) return;
+    
     socket.emit('send_text', { text });
   }
 
+  // Conversation control
   endConversation(): void {
     const socket = this.getSocket();
-    if (!socket?.connected) {
-      console.error('Cannot end conversation: socket not connected');
-      return;
-    }
-    socket.emit('end_conversation');
+    if (!socket?.connected) return;
     
-    // Stop any ongoing audio recording
+    socket.emit('end_conversation');
     this.stopAudioRecording();
   }
 
+  // Mode management
   getMode(): ConversationMode {
     return this.mode;
   }
@@ -214,29 +231,40 @@ export class ConversationalAIService extends WebSocketManager {
     this.emit('mode_changed', { mode });
   }
 
-  private async playAudioQueue(): Promise<void> {
-    if (this.audioQueue.length === 0) {
-      this.isPlaying = false;
-      return;
+  // Audio recording
+  async startAudioRecording(): Promise<boolean> {
+    if (this.mode !== 'voice' || this.isRecording) {
+      return false;
     }
 
-    this.isPlaying = true;
-
-    while (this.audioQueue.length > 0) {
-      const audioChunk = this.audioQueue.shift();
-      if (audioChunk) {
-        try {
-          await audioService.playAudioBuffer(audioChunk);
-        } catch (error) {
-          console.error('Error playing audio chunk:', error);
-        }
+    const success = await audioService.startRecording(
+      (audioData) => {
+        this.sendAudioChunk(audioData);
+      },
+      () => {
+        this.sendAudioEnd();
+        this.isRecording = false;
       }
+    );
+
+    if (success) {
+      this.isRecording = true;
+      this.audioBytesSent = 0;
+      this.sendAudioStart();
     }
 
-    this.isPlaying = false;
+    return success;
   }
 
-  onConversationInitialized(callback: (data: { conversationId: string; elevenLabsSessionId: string; isResumed?: boolean; messageCount?: number }) => void): void {
+  async stopAudioRecording(): Promise<void> {
+    if (!this.isRecording) return;
+    
+    await audioService.stopRecording();
+    this.isRecording = false;
+  }
+
+  // Event handlers
+  onConversationInitialized(callback: (data: any) => void): void {
     this.on('conversation_initialized', callback);
   }
 
@@ -244,11 +272,11 @@ export class ConversationalAIService extends WebSocketManager {
     this.on('user_transcript', callback);
   }
 
-  onAgentResponse(callback: (data: { text: string; role: string }) => void): void {
+  onAgentResponse(callback: (data: { text: string; isTentative?: boolean }) => void): void {
     this.on('agent_response', callback);
   }
 
-  onAudioChunk(callback: (data: { chunk: ArrayBuffer; isLast: boolean }) => void): void {
+  onAudioChunk(callback: (data: any) => void): void {
     this.on('audio_chunk', callback);
   }
 
@@ -256,19 +284,15 @@ export class ConversationalAIService extends WebSocketManager {
     this.on('error', callback);
   }
 
-  onConversationEnded(callback: (data: { conversationId: string; duration: number }) => void): void {
+  onConversationEnded(callback: (data: any) => void): void {
     this.on('conversation_ended', callback);
   }
 
-  onModeChanged(callback: (data: { mode: ConversationMode }) => void): void {
-    this.on('mode_changed', callback);
-  }
-
-  onInactivityTimeout(callback: (data: { reason: string; timeout: number }) => void): void {
+  onInactivityTimeout(callback: (data: any) => void): void {
     this.on('inactivity_timeout', callback);
   }
 
-  onElevenLabsConversationInitiated(callback: (data: { audioFormat: string; conversationId: string }) => void): void {
+  onElevenLabsConversationInitiated(callback: (data: any) => void): void {
     this.on('elevenlabs_conversation_initiated', callback);
   }
 
@@ -276,24 +300,19 @@ export class ConversationalAIService extends WebSocketManager {
     this.on('elevenlabs_disconnected', callback);
   }
 
-  // Audio recording methods
-  async startAudioRecording(): Promise<boolean> {
-    if (this.mode !== 'voice') {
-      console.warn('Cannot start audio recording in text mode');
-      return false;
-    }
-
-    return await audioService.startRecording((audioData) => {
-      // Send audio chunks to the server
-      this.sendAudioChunk(audioData);
-    });
+  onVADScore(callback: (data: { score: number; timestamp: number }) => void): void {
+    this.on('vad_score', callback);
   }
 
-  async stopAudioRecording(): Promise<void> {
-    await audioService.stopRecording();
+  onAudioDone(callback: () => void): void {
+    this.on('audio_done', callback);
   }
 
-  // Cleanup method
+  onTranscriptionTimeout(callback: () => void): void {
+    this.on('transcription_timeout', callback);
+  }
+
+  // Cleanup
   async cleanup(): Promise<void> {
     await this.stopAudioRecording();
     await audioService.cleanup();

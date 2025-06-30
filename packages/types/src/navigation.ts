@@ -7,6 +7,7 @@ export type MainStackParamList = {
   MainTabs: undefined;
   DreamDetail: { dreamId: string; initialTab?: 'overview' | 'analysis' | 'journal' };
   Debug: undefined;
+  SharedDreams: undefined;
 };
 
 // Main tab navigator param list

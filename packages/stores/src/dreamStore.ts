@@ -338,6 +338,12 @@ export const useDreamStore = create<DreamStore>()(
           .slice(0, 10)
           .map(([country, count]) => ({ country, count }));
         
+        // Calculate average mood and clarity
+        const dreamsWithClarity = dreams.filter(d => d.clarity !== undefined);
+        const averageClarity = dreamsWithClarity.length > 0
+          ? dreamsWithClarity.reduce((sum, d) => sum + (d.clarity || 0), 0) / dreamsWithClarity.length
+          : 50;
+        
         // Empty arrays for deprecated fields
         const mostCommonTags: Array<{ tag: string; count: number }> = [];
         const mostCommonEmotions: Array<{ emotion: string; count: number }> = [];
@@ -370,7 +376,11 @@ export const useDreamStore = create<DreamStore>()(
           
           // Content stats
           mostCommonTags,
-          mostCommonEmotions
+          mostCommonEmotions,
+          
+          // Additional stats
+          averageMood,
+          averageClarity
         };
       },
 

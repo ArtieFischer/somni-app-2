@@ -5,6 +5,7 @@ import { useTheme } from '../hooks/useTheme';
 import MainNavigator from './MainNavigator';
 import { DreamDetailScreen } from '../screens/dream/DreamDetailScreen';
 import { DebugScreen } from '../screens/settings/DebugScreen';
+import { SharedDreamsScreen } from '../screens/community/SharedDreamsScreen';
 import { useDreamStore } from '@somni/stores';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -81,6 +82,14 @@ export default function MainStackNavigator() {
         component={DebugScreen}
         options={{ 
           title: 'Debug Settings',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="SharedDreams"
+        component={SharedDreamsScreen}
+        options={{ 
+          headerShown: false,
           presentation: 'modal',
         }}
       />
