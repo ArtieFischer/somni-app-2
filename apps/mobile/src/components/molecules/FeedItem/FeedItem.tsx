@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
-import { Image, Pressable, Text, HStack, VStack } from '../../ui';
+import { View, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import { Image, Pressable, Text, HStack, VStack, Box } from '../../ui';
 import { Card } from '../../atoms';
 import { useTheme } from '../../../hooks/useTheme';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -38,6 +38,8 @@ export const FeedItem: React.FC<FeedItemProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
   const [localLikes, setLocalLikes] = useState(likes);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
 
   const handleLike = () => {
     setLocalIsLiked(!localIsLiked);
@@ -97,14 +99,51 @@ export const FeedItem: React.FC<FeedItemProps> = ({
         </HStack>
       </View>
 
-      {/* Image */}
-      {imageUrl && (
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.image}
-          alt="Dream image"
-          resizeMode="cover"
-        />
+      {/* Image or Placeholder */}
+      {(imageUrl || (!imageUrl && !imageError)) && (
+        <View style={styles.imageContainer}>
+          {imageUrl && !imageError ? (
+            <>
+              <Image
+                source={{ uri: imageUrl }}
+                style={styles.image}
+                alt="Dream image"
+                resizeMode="cover"
+                onError={(error: any) => {
+                  console.error('FeedItem image failed to load:', {
+                    imageUrl,
+                    error: error?.nativeEvent?.error || error,
+                    id
+                  });
+                  setImageError(true);
+                  setImageLoading(false);
+                }}
+                onLoadStart={() => setImageLoading(true)}
+                onLoadEnd={() => setImageLoading(false)}
+              />
+              {imageLoading && (
+                <View style={styles.imageLoadingOverlay}>
+                  <ActivityIndicator size="large" color={theme.colors.primary} />
+                </View>
+              )}
+            </>
+          ) : (
+            // Placeholder for dreams without images
+            <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.background.secondary }]}>
+              <MaterialCommunityIcons 
+                name="cloud-outline" 
+                size={64} 
+                color={theme.colors.text.secondary} 
+              />
+              <Text 
+                variant="caption" 
+                style={{ color: theme.colors.text.secondary, marginTop: 8 }}
+              >
+                No dream image
+              </Text>
+            </View>
+          )}
+        </View>
       )}
 
       {/* Content */}
@@ -180,9 +219,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  image: {
+  imageContainer: {
     width: screenWidth - 32,
     height: screenWidth - 32, // 1:1 aspect ratio (square)
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  imageLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     padding: 16,

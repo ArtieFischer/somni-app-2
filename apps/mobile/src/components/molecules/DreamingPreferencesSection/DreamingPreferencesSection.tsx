@@ -116,13 +116,25 @@ export const DreamingPreferencesSection: React.FC<
 
   const formatSleepSchedule = () => {
     const schedule = profile?.settings?.sleep_schedule;
-    if (!schedule) return 'Not set';
+    if (!schedule || !schedule.bed || !schedule.wake) return 'Not set';
     return `${formatDisplayTime(schedule.bed)} - ${formatDisplayTime(schedule.wake)}`;
   };
 
   const formatDisplayTime = (time24: string) => {
     if (!time24) return '';
-    return time24; // Return 24-hour format as-is
+    
+    // Check if it's already in HH:MM format
+    if (/^\d{1,2}:\d{2}$/.test(time24)) {
+      return time24;
+    }
+    
+    // Try to parse time if it's in a different format
+    const [hours, minutes] = time24.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) {
+      return '00:00'; // Default fallback instead of showing NaN
+    }
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   };
 
   const parseTimeToDate = (time24: string) => {

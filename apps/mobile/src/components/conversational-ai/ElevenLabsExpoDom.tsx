@@ -3,10 +3,12 @@
 import { useConversation } from '@elevenlabs/react';
 import { View, Pressable, Text } from 'react-native';
 import React, { useState, useCallback, useEffect, useMemo, memo, useRef } from 'react';
+import { getGuideConfig, GuideType } from '../../config/guideConfigs';
 
 interface ElevenLabsExpoDomProps {
   dom?: import('expo/dom').DOMProps;
   agentId?: string;
+  guideType?: GuideType; // Which guide to use (jung, freud, mary, lakshmi)
   signedUrl?: string; // Backend-provided WebSocket URL
   authToken?: string; // Backend-provided auth token
   conversationId?: string; // Database conversation ID (groups messages by dream)
@@ -32,6 +34,7 @@ interface ElevenLabsExpoDomProps {
 function ElevenLabsExpoDom({ 
   dom,
   agentId,
+  guideType = 'jung', // Default to Jung
   signedUrl,
   authToken,
   conversationId,
@@ -59,6 +62,18 @@ function ElevenLabsExpoDom({
     
     return dynamicVariables;
   }, [JSON.stringify(dynamicVariables)]);
+  
+  // Get guide configuration based on selected guide type
+  const guideConfig = useMemo(() => {
+    const config = getGuideConfig(guideType);
+    console.log('🎭 Guide configuration loaded:', {
+      guideType,
+      name: config.name,
+      hasPrompt: !!config.prompt,
+      hasFirstMessage: !!config.firstMessage
+    });
+    return config;
+  }, [guideType]);
   
   // Only log on initial mount to reduce noise
   useEffect(() => {
@@ -291,11 +306,15 @@ function ElevenLabsExpoDom({
         console.log('🔒 Starting session with extracted agentId and dynamic variables');
         console.log('🔍 Signed URL:', signedUrl);
         
-        // Extract agent ID from the signed URL
+        // Extract agent ID from the signed URL (backend controls which agent based on interpreterId)
         const urlParams = new URLSearchParams(signedUrl.split('?')[1]);
         const agentIdFromUrl = urlParams.get('agent_id');
-        console.log('🔍 Agent ID from signed URL:', agentIdFromUrl);
-        console.log('⚠️ Is this the default agent?', agentIdFromUrl === 'agent_01jyt0tk6yejm9rbw9hcjrxdht');
+        
+        console.log('🔍 Agent ID from backend:', {
+          agentId: agentIdFromUrl,
+          guideName: guideConfig.name,
+          note: 'Backend controls agent ID mapping based on interpreterId'
+        });
         
         if (!agentIdFromUrl) {
           throw new Error('Could not extract agent_id from signed URL');
@@ -307,33 +326,40 @@ function ElevenLabsExpoDom({
           hasDreamContent: !!memoizedDynamicVariables?.dream_content
         });
         
-        // Use conversation.start() with agentId instead of startSession with signedUrl
-        // This should honor the hook-level overrides better
+        // Use conversation.startSession with guide-specific configuration
         const cleanDynamicVars = memoizedDynamicVariables ? { ...memoizedDynamicVariables } : {};
+        
+        // Clean up dynamic variables - trim whitespace
+        if (cleanDynamicVars.user_name && typeof cleanDynamicVars.user_name === 'string') {
+          cleanDynamicVars.user_name = cleanDynamicVars.user_name.trim();
+        }
+        
+        // Debug: Check if variables are being interpolated
+        console.log('🔍 Debug - Variable interpolation check:');
+        console.log('  Raw prompt snippet:', guideConfig.prompt.substring(0, 200));
+        console.log('  Raw firstMessage:', guideConfig.firstMessage);
+        console.log('  Variables to interpolate:', {
+          user_name: cleanDynamicVars.user_name,
+          age: cleanDynamicVars.age,
+          hasUserName: 'user_name' in cleanDynamicVars,
+          userNameValue: cleanDynamicVars.user_name,
+          userNameType: typeof cleanDynamicVars.user_name
+        });
+        
         const startConfig = { 
           agentId: agentIdFromUrl,
           dynamicVariables: cleanDynamicVars,
           overrides: {
             agent: {
               prompt: {
-                prompt: `You are Dr. Carl Jung, the renowned psychologist and founder of analytical psychology. You specialize in dream analysis, archetypal psychology, and the collective unconscious.
-
-User Profile:
-- Name: {{user_name}}
-- Age: {{age}}
-- Dream Content: {{dream_content}}
-- Primary Emotional Tone: {{emotional_tone_primary}}
-- Emotional Intensity: {{emotional_tone_intensity}}
-- Dream Symbols: {{dream_symbols}}
-
-Analyze this dream using Jungian principles, focusing on archetypes, symbols, and the collective unconscious. Provide deep psychological insights while maintaining a warm, therapeutic tone.`
+                prompt: guideConfig.prompt
               },
-              firstMessage: `Hello {{user_name}}! I'm Dr. Carl Jung.`,
+              firstMessage: guideConfig.firstMessage,
               language: "en" as const,
             },
           }
         };
-        console.log('🚀 Using conversation.start() with agentId and hook overrides');
+        console.log('🚀 Using conversation.startSession with agentId and guide overrides');
         console.log('🎯 Start config being passed:', JSON.stringify(startConfig, null, 2));
         
         // Use conversation.startSession() - conversation.start() doesn't exist in this SDK version
@@ -341,9 +367,9 @@ Analyze this dream using Jungian principles, focusing on archetypes, symbols, an
         console.log('📝 Session ID returned:', sessionId);
       } else if (authToken && authToken.startsWith('wss://')) {
         // If authToken is actually a WebSocket URL
-        console.log('🔒 Using authToken as signedUrl with extracted agentId');
+        console.log('🔒 Using authToken as signedUrl with guide-specific agentId');
         
-        // Extract agent ID from the authToken URL
+        // Extract agent ID from the authToken URL (backend controls which agent based on interpreterId)
         const urlParams = new URLSearchParams(authToken.split('?')[1]);
         const agentIdFromUrl = urlParams.get('agent_id');
         
@@ -363,46 +389,30 @@ Analyze this dream using Jungian principles, focusing on archetypes, symbols, an
           overrides: {
             agent: {
               prompt: {
-                prompt: `You are Dr. Carl Jung, the renowned psychologist and founder of analytical psychology. You specialize in dream analysis, archetypal psychology, and the collective unconscious.
-
-User Profile:
-- Name: {{user_name}}
-- Age: {{age}}
-- Dream Content: {{dream_content}}
-- Primary Emotional Tone: {{emotional_tone_primary}}
-- Emotional Intensity: {{emotional_tone_intensity}}
-- Dream Symbols: {{dream_symbols}}
-
-Analyze this dream using Jungian principles, focusing on archetypes, symbols, and the collective unconscious. Provide deep psychological insights while maintaining a warm, therapeutic tone.`
+                prompt: guideConfig.prompt
               },
-              firstMessage: `Hello {{user_name}}! I'm Dr. Carl Jung. I can see you're {{age}} years old and you've shared a fascinating dream with me. The emotional tone of "{{emotional_tone_primary}}" at intensity {{emotional_tone_intensity}} tells me much. I'm ready to explore its meaning together - what aspect calls to you most?`,
+              firstMessage: guideConfig.firstMessage,
               language: "en" as const,
             },
           }
         });
       } else if (agentId) {
         // Fallback to direct agentId (for testing only)
-        console.log('⚠️ Using direct agentId (testing only):', agentId);
-        console.log('🚨 FALLBACK PATH - Using conversation.startSession()');
+        console.log('⚠️ Using fallback agentId (testing only):', {
+          provided: agentId,
+          guideName: guideConfig.name,
+          note: 'This should only be used for testing - production should use backend-provided signed URLs'
+        });
+        
         await conversation.startSession({ 
-          agentId,
+          agentId: agentId,
           dynamicVariables: memoizedDynamicVariables || {},
           overrides: {
             agent: {
               prompt: {
-                prompt: `You are Dr. Carl Jung, the renowned psychologist and founder of analytical psychology. You specialize in dream analysis, archetypal psychology, and the collective unconscious.
-
-User Profile:
-- Name: {{user_name}}
-- Age: {{age}}
-- Dream Content: {{dream_content}}
-- Primary Emotional Tone: {{emotional_tone_primary}}
-- Emotional Intensity: {{emotional_tone_intensity}}
-- Dream Symbols: {{dream_symbols}}
-
-Analyze this dream using Jungian principles, focusing on archetypes, symbols, and the collective unconscious. Provide deep psychological insights while maintaining a warm, therapeutic tone.`
+                prompt: guideConfig.prompt
               },
-              firstMessage: `Hello {{user_name}}! I'm Dr. Carl Jung. I can see you're {{age}} years old and you've shared a fascinating dream with me. The emotional tone of "{{emotional_tone_primary}}" at intensity {{emotional_tone_intensity}} tells me much. I'm ready to explore its meaning together - what aspect calls to you most?`,
+              firstMessage: guideConfig.firstMessage,
               language: "en" as const,
             },
           }

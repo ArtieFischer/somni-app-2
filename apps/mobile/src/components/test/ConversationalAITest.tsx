@@ -14,15 +14,14 @@ import { conversationService, transformDynamicVariables } from '../../services/c
 import { Message } from '../../types/websocket.types';
 import { supabase } from '../../lib/supabase';
 import ElevenLabsExpoDom from '../conversational-ai/ElevenLabsExpoDom';
+import { GuideType } from '../../config/guideConfigs';
 
 export const ConversationalAITest: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [token, setToken] = useState<string>('');
-  const [selectedInterpreter, setSelectedInterpreter] = useState<
-    'jung' | 'freud' | 'mary' | 'lakshmi'
-  >('lakshmi');
+  const [selectedInterpreter, setSelectedInterpreter] = useState<GuideType>('lakshmi');
   const [dreamId, setDreamId] = useState<string>(
     'f51f4f18-45c2-452d-a6a0-2a6018cf78a5',
   );
@@ -375,15 +374,8 @@ export const ConversationalAITest: React.FC = () => {
     setSessionStarted(false);
   };
 
-  // SECURITY: Agent IDs should NOT be exposed in frontend
-  // This is only for testing visualization - actual agent ID will come from backend
-  const getAgentId = (_interpreter: string): string => {
-    // For testing only - shows which interpreter is selected
-    // Real agent ID is handled securely by backend
-    // TODO: Replace with your actual ElevenLabs agent ID for testing
-    return 'agent_01jyz4635nfa598s7gsra7n4zv';
-    // return `${interpreter}-agent`;
-  };
+  // SECURITY: Agent IDs are handled by backend based on interpreterId
+  // Frontend should never have access to actual agent IDs
 
   return (
     <KeyboardAvoidingView
@@ -457,12 +449,12 @@ export const ConversationalAITest: React.FC = () => {
         <View style={{ flex: 0, height: 280, marginTop: 10 }}>
           <ElevenLabsExpoDom
             dom={{ style: { flex: 1 } }}
+            guideType={selectedInterpreter}
             signedUrl={elevenLabsSignedUrl}
             authToken={elevenLabsAuthToken}
             conversationId={conversationId}
             elevenLabsSessionId={elevenLabsSessionId}
             dynamicVariables={dynamicVariables}
-            agentId={!elevenLabsSignedUrl ? getAgentId(selectedInterpreter) : undefined}
             onMessage={handleElevenLabsMessage}
             onTranscript={handleElevenLabsTranscript}
             onConnect={handleElevenLabsConnect}
@@ -480,7 +472,7 @@ export const ConversationalAITest: React.FC = () => {
             <View style={styles.configSection}>
               <Text style={styles.label}>Interpreter:</Text>
               <View style={styles.interpreterButtons}>
-                {(['jung', 'freud', 'mary', 'lakshmi'] as const).map((interp) => (
+                {(['jung', 'freud', 'mary', 'lakshmi'] as GuideType[]).map((interp) => (
                   <TouchableOpacity
                     key={interp}
                     style={[

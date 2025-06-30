@@ -72,8 +72,18 @@ export const StepReview: React.FC<StepReviewProps> = ({
 
   const formatTime = (timeString?: string) => {
     if (!timeString) return 'Not set';
+    
+    // Check if it's already in HH:MM format
+    if (/^\d{1,2}:\d{2}$/.test(timeString)) {
+      return timeString;
+    }
+    
+    // Otherwise try to parse as a date
     try {
       const date = new Date(timeString);
+      if (isNaN(date.getTime())) {
+        return 'Not set';
+      }
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch {
       return 'Not set';

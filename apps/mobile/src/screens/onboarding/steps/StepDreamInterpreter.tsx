@@ -7,8 +7,11 @@ import { supabase } from '../../../lib/supabase';
 import type { OnboardingData } from '../OnboardingScreen';
 import type { DreamInterpreter } from '@somni/types';
 
-// Import guide images - using database URLs as fallback
-// The actual images will be loaded from the database or local assets
+// Import guide images from local assets
+import jungImage from '../../../../../../assets/jung.png';
+import freudImage from '../../../../../../assets/freud.png';
+import lakshmiImage from '../../../../../../assets/lakshmi.png';
+import maryImage from '../../../../../../assets/mary.png';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -156,13 +159,19 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
   };
 
   const getInterpreterImage = (interpreter: DreamInterpreter) => {
-    // Use image_url from database if available
-    if (interpreter.image_url) {
-      return { uri: interpreter.image_url };
+    // Use local images based on interpreter ID
+    switch (interpreter.id) {
+      case 'jung':
+        return jungImage;
+      case 'freud':
+        return freudImage;
+      case 'lakshmi':
+        return lakshmiImage;
+      case 'mary':
+        return maryImage;
+      default:
+        return null;
     }
-    
-    // Fallback to placeholder
-    return null;
   };
 
   const styles: Record<string, ViewStyle> = {
@@ -191,30 +200,32 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
       ...theme.shadows.medium,
     },
     interpreterImage: {
-      width: 100,
-      height: 100,
-      borderRadius: 8,
+      width: 180,
+      height: 180,
+      borderRadius: 12,
       marginBottom: theme.spacing.medium,
       backgroundColor: theme.colors.background.secondary,
     },
     experimentalBadge: {
       position: 'absolute',
-      top: -8,
-      right: -8,
-      backgroundColor: theme.colors.accent.primary,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
+      top: -4,
+      right: -4,
+      backgroundColor: '#FFFFFF',
+      paddingHorizontal: 5,
+      paddingVertical: 3,
+      borderRadius: 6,
       zIndex: 1,
+      borderWidth: 1,
+      borderColor: theme.colors.accent.primary,
     },
     badgeText: {
-      fontSize: 10,
+      fontSize: 8,
       fontWeight: 'bold',
-      color: theme.colors.text.inverse,
+      color: theme.colors.accent.primary,
     },
     titleText: {
       textAlign: 'center',
-      marginBottom: theme.spacing.xs,
+      marginBottom: 4,
       fontWeight: '600',
     },
     featuresContainer: {
@@ -229,7 +240,7 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
     },
     interpreterInfo: {
       alignItems: 'center',
-      marginTop: theme.spacing.small,
+      marginTop: theme.spacing.xs,
     },
     dotsContainer: {
       flexDirection: 'row',
@@ -308,7 +319,7 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
                   />
                 ) : (
                   <View style={[styles.interpreterImage, { justifyContent: 'center', alignItems: 'center' }]}>
-                    <Text style={{ fontSize: 40 }}>
+                    <Text style={{ fontSize: 72 }}>
                       {interpreter.id === 'jung' ? '🔮' : 
                        interpreter.id === 'freud' ? '🧠' :
                        interpreter.id === 'lakshmi' ? '🕉️' :
@@ -321,16 +332,16 @@ export const StepDreamInterpreter: React.FC<StepDreamInterpreterProps> = ({
                 </View>
               </View>
               <View style={styles.interpreterInfo}>
-                <Text variant="h3" style={styles.titleText}>
+                <Text variant="h3" style={[styles.titleText, { lineHeight: 24 }]}>
                   {interpreter.name}
                 </Text>
-                <Text variant="body" style={{ textAlign: 'center', marginBottom: theme.spacing.xs, fontSize: 14, fontWeight: '500' }}>
+                <Text variant="body" style={{ textAlign: 'center', marginBottom: 0, fontSize: 14, fontWeight: '500', lineHeight: 8 }}>
                   {interpreter.title}
                 </Text>
                 <Text
                   variant="caption"
                   color="secondary"
-                  style={{ textAlign: 'center', marginBottom: theme.spacing.xs }}
+                  style={{ textAlign: 'center', marginBottom: theme.spacing.xs, lineHeight: 18 }}
                   numberOfLines={3}
                 >
                   {interpreter.description}

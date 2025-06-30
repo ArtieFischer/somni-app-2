@@ -46,6 +46,7 @@ export const DreamDiaryScreen: React.FC = () => {
   >('all');
   const [refreshing, setRefreshing] = useState(false);
   const [, setRetryingDreams] = useState<Set<string>>(new Set());
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
 
   // Filter and search dreams
   const filteredDreams = useMemo(() => {
@@ -80,6 +81,21 @@ export const DreamDiaryScreen: React.FC = () => {
       onRefresh();
     }
   }, [user?.id]); // Re-run when user ID changes
+
+  // Refresh when screen comes into focus, but with rate limiting
+  useEffect(() => {
+    if (isFocused && user?.id) {
+      const now = Date.now();
+      const timeSinceLastRefresh = now - lastRefreshTime;
+      
+      // Only refresh if it's been more than 5 seconds since last refresh
+      if (timeSinceLastRefresh > 5000) {
+        console.log('🔄 Screen focused, refreshing dreams');
+        onRefresh();
+        setLastRefreshTime(now);
+      }
+    }
+  }, [isFocused, user?.id]);
 
   // Memoize the real-time event handler
   const handleRealtimeEvent = useCallback(
@@ -165,6 +181,19 @@ export const DreamDiaryScreen: React.FC = () => {
 
         // Refresh the dream to get the updated image
         if (dreamId && user?.id) {
+          // Find the existing dream in the store first
+          const existingDream = dreams.find(
+            (d) =>
+              d.id === dreamId ||
+              d.id === `temp_${dreamId}` ||
+              d.id.replace('temp_', '') === dreamId,
+          );
+
+          if (!existingDream) {
+            console.log('🤔 Dream not found in store, skipping image update');
+            return;
+          }
+
           // Fetch the updated dream
           supabase
             .from('dreams')
@@ -188,13 +217,18 @@ export const DreamDiaryScreen: React.FC = () => {
                   updatedDream,
                 );
                 const mappedDream = mapDatabaseDreamToFrontend(updatedDream);
-                updateDream(dreamId, mappedDream);
+                
+                // Update using the existing dream's ID (might have temp_ prefix)
+                updateDream(existingDream.id, {
+                  ...mappedDream,
+                  id: existingDream.id, // Keep the store's ID
+                });
               }
             });
         }
       }
     },
-    [user?.id, updateDream],
+    [user?.id, updateDream, dreams],
   );
 
   // Subscribe to real-time dream updates
@@ -351,24 +385,26 @@ export const DreamDiaryScreen: React.FC = () => {
               // Update existing dream if status/content/image has changed
               const mappedDream = mapDatabaseDreamToFrontend(dbDream);
               const hasImageUpdate =
-                !!mappedDream.image_url &&
                 mappedDream.image_url !== existingDream.image_url;
 
+              // Always update if there's new data
               if (
                 existingDream.transcription_status !==
                   dbDream.transcription_status ||
                 existingDream.raw_transcript !== dbDream.raw_transcript ||
-                hasImageUpdate
+                hasImageUpdate ||
+                dbDream.dream_images?.length > 0 // Always update if we have images
               ) {
                 console.log('🔄 Updating existing dream:', {
                   id: dbDream.id,
                   hasImageUpdate,
                   oldImageUrl: existingDream.image_url,
                   newImageUrl: mappedDream.image_url,
+                  dreamImagesCount: dbDream.dream_images?.length || 0,
                 });
                 updateDream(existingDream.id, {
                   ...mappedDream,
-                  id: dbDream.id, // Ensure we keep the correct ID
+                  id: existingDream.id, // Keep the store's ID format
                 });
               }
             } else {
@@ -411,6 +447,7 @@ export const DreamDiaryScreen: React.FC = () => {
       }
     }
 
+    setLastRefreshTime(Date.now());
     setTimeout(() => setRefreshing(false), 500);
   };
 

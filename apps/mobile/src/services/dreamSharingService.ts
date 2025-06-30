@@ -1,13 +1,5 @@
 import { supabase } from '../lib/supabase';
 
-// Utility to construct proper image URL from storage path
-const getDreamImageUrl = (storagePath: string | null): string | null => {
-  if (!storagePath) return null;
-  return storagePath.startsWith('http')
-    ? storagePath
-    : supabase.storage.from('dream-images').getPublicUrl(storagePath).data.publicUrl;
-};
-
 export interface ShareDreamRequest {
   isAnonymous: boolean;
   displayName?: string | null;
@@ -45,7 +37,7 @@ export interface PublicSharedDream {
     code: string;
     label: string;
   }>;
-  image_url: string | null;
+  image_url: string | null; // Direct URL from Supabase storage, null if no image
 }
 
 export interface GetSharedDreamsResponse {
@@ -291,28 +283,10 @@ class DreamSharingService {
 
       const data = await response.json();
       
-      // Fetch images for each dream
+      // Log image statistics
       if (data.success && data.dreams && data.dreams.length > 0) {
-        const dreamIds = data.dreams.map((dream: any) => dream.dream_id);
-        
-        // Fetch dream images from Supabase
-        const { data: dreamImages, error: imagesError } = await supabase
-          .from('dream_images')
-          .select('dream_id, storage_path, is_primary')
-          .in('dream_id', dreamIds)
-          .order('is_primary', { ascending: false })
-          .order('generated_at', { ascending: true });
-
-        if (!imagesError && dreamImages) {
-          // Attach images to dreams
-          data.dreams = data.dreams.map((dream: any) => {
-            const dreamImage = dreamImages.find(img => img.dream_id === dream.dream_id);
-            return {
-              ...dream,
-              image_url: dreamImage ? getDreamImageUrl(dreamImage.storage_path) : null
-            };
-          });
-        }
+        const dreamsWithImages = data.dreams.filter((d: any) => d.image_url !== null).length;
+        console.log(`Loaded ${data.dreams.length} dreams, ${dreamsWithImages} with images`);
       }
       
       return data;
