@@ -5,6 +5,7 @@ import { Text, Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
 import { useTranslation } from '../../../hooks/useTranslation';
 import SomniLogo from '../../../../../../assets/logo_somni_full.svg';
+import { DreamyBackground } from '../../../components/DreamyRecordKit';
 
 interface NavigationType {
   navigate: (screen: string) => void;
@@ -17,8 +18,10 @@ export const WelcomeScreen: React.FC = () => {
   const styles = createStyles(theme);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+    <View style={styles.fullScreenContainer}>
+      <DreamyBackground active={true} />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
         <View style={styles.logoContainer}>
           <SomniLogo width={300} height={100} />
         </View>
@@ -37,16 +40,21 @@ export const WelcomeScreen: React.FC = () => {
             {String(t('alreadyHaveAccount'))}
           </Button>
         </View>
-      </View>
-    </SafeAreaView>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const createStyles = (theme: any) =>
   StyleSheet.create({
+    fullScreenContainer: {
+      flex: 1,
+      backgroundColor: '#000',
+    },
     container: {
       flex: 1,
-      backgroundColor: theme.colors.background.primary,
+      backgroundColor: 'transparent',
     },
     content: {
       flex: 1,

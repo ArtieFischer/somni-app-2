@@ -66,11 +66,12 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
           {showPercentage && (
             <SvgText
               x={size / 2}
-              y={label ? size / 2 - 5 : size / 2 + 5}
+              y={label ? size / 2 - 5 : size / 2 + 7}
               fontSize={size / 5}
               fontWeight="bold"
               fill={theme.colors.text.primary}
               textAnchor="middle"
+              alignmentBaseline="middle"
             >
               {Math.round(progress)}%
             </SvgText>

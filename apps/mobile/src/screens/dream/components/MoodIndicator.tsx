@@ -39,7 +39,7 @@ export const MoodIndicator: React.FC<MoodIndicatorProps> = ({ mood }) => {
           />
           <Text
             style={{
-              fontSize: 14,
+              fontSize: 12,
               color: darkTheme.colors.text.secondary,
               fontWeight: '500',
             }}
@@ -52,7 +52,7 @@ export const MoodIndicator: React.FC<MoodIndicatorProps> = ({ mood }) => {
             style={{ justifyContent: 'space-between', alignItems: 'center' }}
           >
             <Text
-              style={{ fontSize: 16, color: darkTheme.colors.text.primary }}
+              style={{ fontSize: 14, color: darkTheme.colors.text.primary }}
             >
               {getMoodLabel(mood)}
             </Text>

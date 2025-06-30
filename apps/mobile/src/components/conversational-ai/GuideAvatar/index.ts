@@ -1,0 +1,1 @@
+export { GuideAvatar } from './GuideAvatar';

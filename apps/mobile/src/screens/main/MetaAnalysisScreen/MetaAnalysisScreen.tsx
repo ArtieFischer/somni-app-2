@@ -65,48 +65,53 @@ export const MetaAnalysisScreen: React.FC = () => {
   const renderOverviewTab = () => (
     <>
       {/* Key Metrics */}
-      <View style={styles.metricsGrid}>
-        <StatCard
-          value={stats.totalDreams}
-          label="Total Dreams"
-          iconName="star"
-          iconType="material"
-          variant="primary"
-          trend={analytics?.dreamsByMonth?.length >= 2 ? {
-            value: Math.round(((analytics.dreamsByMonth[analytics.dreamsByMonth.length - 1].count - 
-                    analytics.dreamsByMonth[analytics.dreamsByMonth.length - 2].count) / 
-                    (analytics.dreamsByMonth[analytics.dreamsByMonth.length - 2].count || 1)) * 100),
-            isPositive: analytics.dreamsByMonth[analytics.dreamsByMonth.length - 1].count >= 
-                       analytics.dreamsByMonth[analytics.dreamsByMonth.length - 2].count
-          } : undefined}
-        />
-        
-        <StatCard
-          value={`${analytics?.streakDays || 0}d`}
-          label="Current Streak"
-          iconName="fire"
-          iconType="material"
-          variant={analytics?.streakDays > 3 ? 'success' : 'default'}
-        />
-      </View>
+      <InsightCard 
+        title="Key Metrics"
+        subtitle="Your dream journey at a glance"
+      >
+        <View style={styles.metricsGrid}>
+          <StatCard
+            value={stats.totalDreams}
+            label="Total Dreams"
+            iconName="star"
+            iconType="material"
+            variant="primary"
+            trend={analytics?.dreamsByMonth?.length >= 2 ? {
+              value: Math.round(((analytics.dreamsByMonth[analytics.dreamsByMonth.length - 1].count - 
+                      analytics.dreamsByMonth[analytics.dreamsByMonth.length - 2].count) / 
+                      (analytics.dreamsByMonth[analytics.dreamsByMonth.length - 2].count || 1)) * 100),
+              isPositive: analytics.dreamsByMonth[analytics.dreamsByMonth.length - 1].count >= 
+                         analytics.dreamsByMonth[analytics.dreamsByMonth.length - 2].count
+            } : undefined}
+          />
+          
+          <StatCard
+            value={`${analytics?.streakDays || 0}d`}
+            label="Current Streak"
+            iconName="fire"
+            iconType="material"
+            variant={analytics?.streakDays > 3 ? 'success' : 'default'}
+          />
+        </View>
 
-      <View style={styles.metricsGrid}>
-        <StatCard
-          value={`${Math.round(analytics?.lucidDreamProgress.percentage || 0)}%`}
-          label="Lucid Dreams"
-          iconName="sparkles"
-          iconType="material"
-          variant="primary"
-        />
-        
-        <StatCard
-          value={analytics?.averageQualityScore || 0}
-          label="Avg. Quality"
-          iconName="star"
-          iconType="ionicons"
-          variant={analytics?.averageQualityScore >= 70 ? 'success' : 'default'}
-        />
-      </View>
+        <View style={styles.metricsGrid}>
+          <StatCard
+            value={`${Math.round(analytics?.lucidDreamProgress.percentage || 0)}%`}
+            label="Lucid Dreams"
+            iconName="sparkles"
+            iconType="material"
+            variant="primary"
+          />
+          
+          <StatCard
+            value={analytics?.averageQualityScore || 0}
+            label="Avg. Quality"
+            iconName="star"
+            iconType="ionicons"
+            variant={analytics?.averageQualityScore >= 70 ? 'success' : 'default'}
+          />
+        </View>
+      </InsightCard>
 
       {/* Weekly Activity */}
       <InsightCard 
@@ -126,32 +131,6 @@ export const MetaAnalysisScreen: React.FC = () => {
         </View>
       </InsightCard>
 
-      {/* Recent Mood */}
-      <InsightCard 
-        title="Mood Trend"
-        subtitle="Last 7 days"
-      >
-        <View style={styles.moodTrend}>
-          {analytics?.moodTrend.slice(-7).map((item, index) => (
-            <View key={index} style={styles.moodDay}>
-              <View 
-                style={[
-                  styles.moodBar,
-                  { 
-                    height: `${(item.avgMood / 5) * 100}%`,
-                    backgroundColor: item.avgMood >= 4 ? theme.colors.status.success :
-                                   item.avgMood >= 3 ? theme.colors.primary :
-                                   theme.colors.status.warning
-                  }
-                ]}
-              />
-              <Text variant="caption" style={styles.moodLabel}>
-                {new Date(item.date).toLocaleDateString('en', { weekday: 'short' })[0]}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </InsightCard>
     </>
   );
 
@@ -192,18 +171,22 @@ export const MetaAnalysisScreen: React.FC = () => {
         title="Monthly Pattern"
         subtitle="Dream frequency over time"
       >
-        <LineChart
-          data={analytics?.dreamsByMonth.map((item, index) => ({
-            x: item.month,
-            y: item.count,
-            label: item.month
-          })) || []}
-          height={180}
-          minY={0}
-          lineColor={theme.colors.primary}
-          showPoints={true}
-          fillArea={true}
-        />
+        <View style={{ marginHorizontal: -20, overflow: 'hidden' }}>
+          <View style={{ transform: [{ scale: 0.9 }], alignItems: 'center' }}>
+            <LineChart
+              data={analytics?.dreamsByMonth.map((item, index) => ({
+                x: item.month,
+                y: item.count,
+                label: item.month
+              })) || []}
+              height={180}
+              minY={0}
+              lineColor={theme.colors.primary}
+              showPoints={true}
+              fillArea={true}
+            />
+          </View>
+        </View>
       </InsightCard>
 
       {/* Clarity Distribution */}
@@ -251,7 +234,7 @@ export const MetaAnalysisScreen: React.FC = () => {
                     {tone.tone}
                   </Text>
                   <Text variant="caption" color="secondary">
-                    {tone.count} dreams • Intensity: {tone.avgIntensity.toFixed(1)}/10
+                    {tone.count} dreams • Intensity: {tone.avgIntensity.toFixed(1)}/1
                   </Text>
                 </View>
                 <View style={styles.emotionBarContainer}>
@@ -259,8 +242,8 @@ export const MetaAnalysisScreen: React.FC = () => {
                     style={[
                       styles.emotionBar,
                       { 
-                        width: `${(tone.count / analytics.emotionalTones[0].count) * 100}%`,
-                        backgroundColor: theme.colors.primary + '30'
+                        width: `${tone.avgIntensity * 100}%`,
+                        backgroundColor: theme.colors.primary
                       }
                     ]}
                   />
@@ -454,15 +437,6 @@ export const MetaAnalysisScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <Text variant="h3" style={styles.title}>
-          Dream Analytics
-        </Text>
-        <Text variant="caption" color="secondary" style={styles.subtitle}>
-          Discover patterns in your dream journey
-        </Text>
-      </View>
-
       <TabSelector
         tabs={tabs}
         activeTab={activeTab}

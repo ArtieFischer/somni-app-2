@@ -25,6 +25,7 @@ export const useDreamStore = create<DreamStore>()(
       totalDreams: 0,
       totalRecordingTime: 0,
       lastRecordingDate: null,
+      currentUserId: null,
 
       // Recording session actions
       startRecording: () => {
@@ -411,7 +412,8 @@ export const useDreamStore = create<DreamStore>()(
           isLoading: false,
           totalDreams: 0,
           totalRecordingTime: 0,
-          lastRecordingDate: null
+          lastRecordingDate: null,
+          currentUserId: null
         });
         
         console.log('🗑️ Cleared all dream data');
@@ -438,6 +440,29 @@ export const useDreamStore = create<DreamStore>()(
           const errorMessage = error instanceof Error ? error.message : 'Failed to import dreams';
           get().setError(errorMessage);
         }
+      },
+      
+      // User management
+      setCurrentUserId: (userId) => {
+        const previousUserId = get().currentUserId;
+        
+        // If user changed, filter dreams to only show current user's dreams
+        if (previousUserId !== userId) {
+          set(state => ({
+            currentUserId: userId,
+            // Clear dreams when user changes to prevent showing other users' dreams
+            dreams: userId ? state.dreams.filter(dream => dream.userId === userId) : [],
+            // Reset stats as they may be inaccurate after filtering
+            totalDreams: 0,
+            totalRecordingTime: 0,
+            lastRecordingDate: null
+          }));
+          
+          // Recalculate stats for the filtered dreams
+          get().updateStats();
+          
+          console.log('👤 Set current user ID:', userId);
+        }
       }
     }),
     {
@@ -449,6 +474,7 @@ export const useDreamStore = create<DreamStore>()(
         totalDreams: state.totalDreams,
         totalRecordingTime: state.totalRecordingTime,
         lastRecordingDate: state.lastRecordingDate,
+        currentUserId: state.currentUserId,
         // Include required state properties with default values
         recordingSession: null,
         isRecording: false,

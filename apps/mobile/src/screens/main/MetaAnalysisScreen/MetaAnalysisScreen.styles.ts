@@ -37,7 +37,6 @@ export const useStyles = () => {
     
     // Content
     content: {
-      paddingHorizontal: theme.spacing.large,
       paddingBottom: theme.spacing.xxl,
     },
     

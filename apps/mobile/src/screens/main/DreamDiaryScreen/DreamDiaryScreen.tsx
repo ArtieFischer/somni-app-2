@@ -9,6 +9,7 @@ import {
   ScrollView,
   Pressable,
   Center,
+  Spinner,
 } from '../../../components/ui';
 import { SimpleInput } from '../../../components/ui/SimpleInput';
 import { PillButton } from '../../../components/atoms';
@@ -35,8 +36,8 @@ type DreamDiaryScreenProps = MainTabScreenProps<'DreamDiary'>;
 export const DreamDiaryScreen: React.FC = () => {
   const { t } = useTranslation('dreams');
   const navigation = useNavigation<DreamDiaryScreenProps['navigation']>();
-  const { dreams, searchDreams, updateDream, addDream, clearAllData } =
-    useDreamStore();
+  const dreamStore = useDreamStore();
+  const { dreams, searchDreams, updateDream, addDream, clearAllData } = dreamStore;
   const { session, user } = useAuth();
   const isFocused = useIsFocused();
 
@@ -47,6 +48,7 @@ export const DreamDiaryScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [, setRetryingDreams] = useState<Set<string>>(new Set());
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
+  const [isUserSwitching, setIsUserSwitching] = useState(false);
 
   // Filter and search dreams
   const filteredDreams = useMemo(() => {
@@ -76,9 +78,15 @@ export const DreamDiaryScreen: React.FC = () => {
   // Fetch dreams on mount and when user changes
   useEffect(() => {
     if (user?.id) {
+      // Set loading state when user changes
+      setIsUserSwitching(true);
+      // Set current user ID in dream store to validate dreams
+      dreamStore.setCurrentUserId(user.id);
       // Load dreams when component mounts or user changes
       console.log('📱 DreamDiary: Loading dreams for user:', user.id);
-      onRefresh();
+      onRefresh().finally(() => {
+        setIsUserSwitching(false);
+      });
     }
   }, [user?.id]); // Re-run when user ID changes
 
@@ -803,22 +811,31 @@ export const DreamDiaryScreen: React.FC = () => {
 
   return (
     <Box flex={1} bg={darkTheme.colors.background.primary}>
-      <FlatList
-        data={filteredDreams}
-        renderItem={renderDreamItem}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={ListHeader}
-        ListEmptyComponent={ListEmpty}
-        contentContainerStyle={{ paddingBottom: darkTheme.spacing.xl }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={darkTheme.colors.primary}
-          />
-        }
-        ItemSeparatorComponent={() => <Box h={darkTheme.spacing.medium} />}
-      />
+      {isUserSwitching ? (
+        <Box flex={1} justifyContent="center" alignItems="center">
+          <Spinner size="large" color={darkTheme.colors.primary} />
+          <Text mt="$3" color={darkTheme.colors.text.primary}>
+            Loading your dreams...
+          </Text>
+        </Box>
+      ) : (
+        <FlatList
+          data={filteredDreams}
+          renderItem={renderDreamItem}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={ListEmpty}
+          contentContainerStyle={{ paddingBottom: darkTheme.spacing.xl }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={darkTheme.colors.primary}
+            />
+          }
+          ItemSeparatorComponent={() => <Box h={darkTheme.spacing.medium} />}
+        />
+      )}
     </Box>
   );
 };

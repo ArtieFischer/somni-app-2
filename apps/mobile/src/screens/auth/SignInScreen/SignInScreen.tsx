@@ -9,6 +9,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { useBiometricAuth } from '../../../hooks/useBiometricAuth';
 import { useTheme } from '../../../hooks/useTheme';
 import SomniLogo from '../../../../../../assets/logo_somni_full.svg';
+import { DreamyBackground } from '../../../components/DreamyRecordKit';
 
 interface SignInScreenProps {
   navigation: any;
@@ -22,9 +23,13 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
   const [canUseBiometrics, setCanUseBiometrics] = useState(false);
 
   const styles = StyleSheet.create({
+    fullScreenContainer: {
+      flex: 1,
+      backgroundColor: '#000',
+    },
     container: {
       flex: 1,
-      backgroundColor: theme.colors.background.primary,
+      backgroundColor: 'transparent',
     },
     content: {
       flex: 1,
@@ -84,8 +89,10 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+    <View style={styles.fullScreenContainer}>
+      <DreamyBackground active={true} />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
         <View style={styles.logoContainer}>
           <SomniLogo width={280} height={93} />
         </View>
@@ -164,7 +171,8 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
             {String(t('signIn.noAccount'))} {String(t('signIn.signUp'))}
           </Button>
         </View>
-      </View>
-    </SafeAreaView>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 };

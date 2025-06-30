@@ -6,6 +6,7 @@ import MainNavigator from './MainNavigator';
 import { DreamDetailScreen } from '../screens/dream/DreamDetailScreen';
 import { DebugScreen } from '../screens/settings/DebugScreen';
 import { SharedDreamsScreen } from '../screens/community/SharedDreamsScreen';
+import { ConversationalAIScreen } from '../screens/dream/ConversationalAIScreen';
 import { useDreamStore } from '@somni/stores';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -91,6 +92,15 @@ export default function MainStackNavigator() {
         options={{ 
           headerShown: false,
           presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="ConversationalAI"
+        component={ConversationalAIScreen}
+        options={{ 
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'fade',
         }}
       />
     </Stack.Navigator>

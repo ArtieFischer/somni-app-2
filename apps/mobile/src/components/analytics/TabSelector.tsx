@@ -34,7 +34,7 @@ export const TabSelector: React.FC<TabSelectorProps> = ({
       horizontal
       showsHorizontalScrollIndicator={false}
       style={styles.container}
-      contentContainerStyle={[styles.contentContainer, { paddingHorizontal: theme.spacing.medium }]}
+      contentContainerStyle={[styles.contentContainer, { paddingHorizontal: theme.spacing.large }]}
     >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTab;
@@ -48,10 +48,10 @@ export const TabSelector: React.FC<TabSelectorProps> = ({
               {
                 backgroundColor: isActive 
                   ? theme.colors.primary + '20'
-                  : 'transparent',
+                  : theme.colors.background.elevated,
                 borderColor: isActive 
                   ? theme.colors.primary 
-                  : theme.colors.border.primary + '30',
+                  : 'transparent',
               },
             ]}
           >
@@ -87,7 +87,7 @@ export const TabSelector: React.FC<TabSelectorProps> = ({
                 {
                   color: isActive 
                     ? theme.colors.primary 
-                    : theme.colors.text.secondary,
+                    : theme.colors.text.primary,
                   fontWeight: isActive ? '600' : '400',
                 },
               ]}
@@ -104,6 +104,7 @@ export const TabSelector: React.FC<TabSelectorProps> = ({
 const createStyles = (theme: any) => StyleSheet.create({
   container: {
     marginBottom: 20,
+    paddingTop: theme.spacing.large,
   },
   contentContainer: {
     gap: 8,
@@ -112,7 +113,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 24,
     borderWidth: 1,
     marginRight: 8,

@@ -157,7 +157,7 @@ export const useStyles = () => {
       width: 240,
       height: 240,
       borderRadius: 120, // Half of width/height to make it a perfect circle
-      backgroundColor: 'rgba(203, 213, 225, 0.25)', // Silver with 25% opacity
+      backgroundColor: 'rgba(203, 213, 225, 0.325)', // Silver with 32.5% opacity (between idle 25% and moving 40%)
       borderWidth: 1,
       borderColor: 'rgba(248, 250, 252, 0.2)', // Subtle light border
       zIndex: 1,

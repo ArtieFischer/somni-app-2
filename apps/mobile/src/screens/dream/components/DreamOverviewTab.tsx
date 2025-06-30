@@ -141,7 +141,7 @@ const DreamOverviewTab: React.FC<DreamOverviewTabProps> = ({
             />
             <Text
               style={{
-                fontSize: 14,
+                fontSize: 12,
                 color: darkTheme.colors.text.secondary,
                 fontWeight: '500',
               }}
@@ -151,9 +151,9 @@ const DreamOverviewTab: React.FC<DreamOverviewTabProps> = ({
           </HStack>
           <Text
             style={{
-              fontSize: 16,
+              fontSize: 14,
               color: darkTheme.colors.text.primary,
-              lineHeight: 24,
+              lineHeight: 20,
             }}
           >
             {dream.raw_transcript || 'No transcript available'}

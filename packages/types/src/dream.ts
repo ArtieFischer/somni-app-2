@@ -177,6 +177,9 @@ export interface DreamStoreState {
   totalDreams: number;
   totalRecordingTime: number;
   lastRecordingDate: string | null;
+  
+  // User validation
+  currentUserId: string | null;
 }
 
 // Action types for better type safety
@@ -214,6 +217,9 @@ export interface DreamStoreActions {
   clearAllData: () => void;
   exportDreams: () => DreamDTO[];
   importDreams: (dreams: DreamDTO[]) => void;
+  
+  // User management
+  setCurrentUserId: (userId: string | null) => void;
 }
 
 // Complete store type

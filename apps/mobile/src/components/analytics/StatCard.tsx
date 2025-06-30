@@ -64,42 +64,44 @@ export const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background.elevated }]}>
-      {(icon || iconName) && (
-        <View style={styles.iconContainer}>
-          {renderIcon()}
-        </View>
-      )}
-      
-      <View style={styles.content}>
-        <Text style={[styles.value, { color: getVariantColor() }]}>
-          {value}
-        </Text>
-        
-        <Text variant="caption" color="secondary" style={styles.label}>
-          {label}
-        </Text>
-        
-        {trend && (
-          <View style={styles.trendContainer}>
-            <Text 
-              style={[
-                styles.trendIcon, 
-                { color: trend.isPositive ? theme.colors.status.success : theme.colors.status.error }
-              ]}
-            >
-              {trend.isPositive ? '↑' : '↓'}
-            </Text>
-            <Text 
-              variant="caption" 
-              style={[
-                styles.trendValue,
-                { color: trend.isPositive ? theme.colors.status.success : theme.colors.status.error }
-              ]}
-            >
-              {Math.abs(trend.value)}%
-            </Text>
+      <View style={styles.innerContainer}>
+        {(icon || iconName) && (
+          <View style={styles.iconContainer}>
+            {renderIcon()}
           </View>
         )}
+        
+        <View style={styles.content}>
+          <Text style={[styles.value, { color: getVariantColor() }]}>
+            {value}
+          </Text>
+          
+          <Text variant="caption" color="secondary" style={styles.label}>
+            {label}
+          </Text>
+          
+          {trend && (
+            <View style={styles.trendContainer}>
+              <Text 
+                style={[
+                  styles.trendIcon, 
+                  { color: trend.isPositive ? theme.colors.status.success : theme.colors.status.error }
+                ]}
+              >
+                {trend.isPositive ? '↑' : '↓'}
+              </Text>
+              <Text 
+                variant="caption" 
+                style={[
+                  styles.trendValue,
+                  { color: trend.isPositive ? theme.colors.status.success : theme.colors.status.error }
+                ]}
+              >
+                {Math.abs(trend.value)}%
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -110,27 +112,32 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     borderRadius: 12,
-    minHeight: 100,
-    justifyContent: 'center',
+    minHeight: 80,
+  },
+  innerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   iconContainer: {
-    marginBottom: 8,
+    marginRight: 12,
   },
   icon: {
     fontSize: 24,
-    marginBottom: 8,
   },
   content: {
+    flex: 1,
     alignItems: 'flex-start',
   },
   value: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
-    marginBottom: 4,
+    lineHeight: 28,
   },
   label: {
     fontSize: 13,
     fontWeight: '500',
+    marginTop: 2,
   },
   trendContainer: {
     flexDirection: 'row',

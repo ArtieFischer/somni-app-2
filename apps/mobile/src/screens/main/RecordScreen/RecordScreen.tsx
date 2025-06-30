@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Animated, SafeAreaView, Alert, StyleSheet, Pressable } from 'react-native';
 import { Text } from '../../../components/atoms';
 import SomniLogoMoon from '../../../../../../assets/logo_somni_moon.svg';
-// import { DreamyBackground } from '../../../components/DreamyRecordKit';
+import { DreamyBackground } from '../../../components/DreamyRecordKit';
 import Reanimated, { 
   useAnimatedStyle, 
   useSharedValue, 
@@ -87,14 +87,8 @@ export const RecordScreen: React.FC = () => {
   const warpAnimation = useSharedValue(0);
   const scaleAnimation = useSharedValue(1);
 
-  // Animated style for the silver circle with opacity animation
+  // Animated style for the silver circle with scale animation only
   const animatedCircleStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      warpAnimation.value,
-      [0, 1],
-      [0.25, 0.4] // Animates between 25% and 40% opacity
-    );
-    
     const scale = interpolate(
       scaleAnimation.value,
       [1, 1.1],
@@ -102,7 +96,6 @@ export const RecordScreen: React.FC = () => {
     );
     
     return {
-      opacity,
       transform: [{ scale }],
     };
   });
@@ -355,7 +348,7 @@ export const RecordScreen: React.FC = () => {
     <View style={styles.fullScreenContainer}>
       {/* Dreamy animated background - full screen absolute positioned */}
       <View style={StyleSheet.absoluteFill}>
-        {/* <DreamyBackground active={isRecording} /> */}
+        <DreamyBackground active={isRecording} />
       </View>
       
       <SafeAreaView style={styles.container}>

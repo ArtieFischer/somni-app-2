@@ -34,7 +34,7 @@ export const ClarityIndicator: React.FC<ClarityIndicatorProps> = ({ clarity }) =
             style={{ justifyContent: 'space-between', alignItems: 'center' }}
           >
             <Text
-              style={{ fontSize: 16, color: darkTheme.colors.text.primary }}
+              style={{ fontSize: 14, color: darkTheme.colors.text.primary }}
             >
               {clarity ? `${clarity}%` : 'Not set'}
             </Text>

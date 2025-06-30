@@ -9,6 +9,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useTheme } from '../hooks/useTheme';
 import { StyleSheet } from 'react-native';
 import SomniLogo from '../../../../assets/logo_somni_full.svg';
+import { DreamyBackground } from '../components/DreamyRecordKit';
 
 interface SignUpScreenProps {
   navigation: any;
@@ -19,9 +20,13 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
   const theme = useTheme();
 
   const styles = StyleSheet.create({
+    fullScreenContainer: {
+      flex: 1,
+      backgroundColor: '#000',
+    },
     container: {
       flex: 1,
-      backgroundColor: theme.colors.background.primary,
+      backgroundColor: 'transparent',
     },
     content: {
       flex: 1,
@@ -71,8 +76,10 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+    <View style={styles.fullScreenContainer}>
+      <DreamyBackground active={true} />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
         <View style={styles.logoContainer}>
           <SomniLogo width={280} height={93} />
         </View>
@@ -148,8 +155,9 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
         >
           {String(t('signUp.hasAccount'))} {String(t('signUp.signIn'))}
         </Button>
-      </View>
-    </SafeAreaView>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 };
 

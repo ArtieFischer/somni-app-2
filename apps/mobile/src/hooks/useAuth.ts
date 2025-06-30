@@ -13,6 +13,16 @@ export const useAuth = () => {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const previousUserId = authStore.session?.user?.id;
+      const newUserId = session?.user?.id;
+      
+      // Check if user has changed on initial load
+      if (previousUserId !== newUserId && previousUserId !== undefined) {
+        // Clear dream data when user changes to prevent showing other users' dreams
+        dreamStore.clearAllData();
+        console.log('🧹 Cleared dream data due to user change on init');
+      }
+      
       authStore.setSession(session);
       
       // Fetch user profile if session exists
@@ -38,6 +48,16 @@ export const useAuth = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        const previousUserId = authStore.session?.user?.id;
+        const newUserId = session?.user?.id;
+        
+        // Check if user has changed (including login from null)
+        if (previousUserId !== newUserId) {
+          // Clear dream data when user changes to prevent showing other users' dreams
+          dreamStore.clearAllData();
+          console.log('🧹 Cleared dream data due to user change');
+        }
+        
         authStore.setSession(session);
         
         // Fetch user profile if session exists
@@ -56,10 +76,8 @@ export const useAuth = () => {
             }
           }
         } else {
-          // User logged out - clear profile and dreams
+          // User logged out - clear profile
           authStore.setProfile(null);
-          dreamStore.clearAllData();
-          console.log('🧹 Cleared all data after logout');
         }
         
         authStore.setLoading(false);

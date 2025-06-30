@@ -474,11 +474,20 @@ export const DreamDetailScreen: React.FC = () => {
   }, [interpretationLoading, dreamId]);
 
   const handleDiscussDream = () => {
-    Alert.alert(
-      'Coming Soon',
-      'Dream discussions with your guide will be available soon!',
-      [{ text: 'OK' }],
-    );
+    if (!dream || !profile?.dream_interpreter || !interpretation) {
+      Alert.alert(
+        'Not Ready',
+        'Please wait for the dream analysis to complete first.',
+        [{ text: 'OK' }],
+      );
+      return;
+    }
+
+    navigation.navigate('ConversationalAI', {
+      dreamId: dream.id,
+      interpreterId: profile.dream_interpreter as 'jung' | 'freud' | 'mary' | 'lakshmi',
+      interpretationId: interpretation.id,
+    });
   };
 
   const handleCheckInterpretationStatus = async () => {

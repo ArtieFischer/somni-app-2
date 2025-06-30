@@ -8,6 +8,7 @@ import { Input } from '../../../components/ui';
 import { Button } from '../../../components/atoms';
 import { useTheme } from '../../../hooks/useTheme';
 import SomniLogo from '../../../../../../assets/logo_somni_full.svg';
+import { DreamyBackground } from '../../../components/DreamyRecordKit';
 
 const ForgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -38,13 +39,10 @@ export const ForgotPasswordScreen: React.FC<{ navigation: any }> = ({
   };
 
   return (
-    <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.background.primary },
-      ]}
-    >
-      <View style={styles.content}>
+    <View style={styles.fullScreenContainer}>
+      <DreamyBackground active={true} />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
         <View style={styles.logoContainer}>
           <SomniLogo width={260} height={87} />
         </View>
@@ -78,13 +76,15 @@ export const ForgotPasswordScreen: React.FC<{ navigation: any }> = ({
             Back to Sign In
           </Button>
         </View>
-      </View>
-    </SafeAreaView>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  fullScreenContainer: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { flex: 1, justifyContent: 'center', padding: 24 },
   logoContainer: { alignItems: 'center', marginBottom: 32 },
   title: { textAlign: 'center', marginBottom: 24 },

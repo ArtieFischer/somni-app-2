@@ -8,6 +8,11 @@ export type MainStackParamList = {
   DreamDetail: { dreamId: string; initialTab?: 'overview' | 'analysis' | 'journal' };
   Debug: undefined;
   SharedDreams: undefined;
+  ConversationalAI: { 
+    dreamId: string; 
+    interpreterId: 'jung' | 'freud' | 'mary' | 'lakshmi';
+    interpretationId?: string;
+  };
 };
 
 // Main tab navigator param list
